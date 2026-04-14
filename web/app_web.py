@@ -1022,8 +1022,10 @@ def api_calibracao_capturar(ponto_id):
         import pyautogui
 
         # aguarda o operador posicionar o mouse no GAMATEC
-        for i in range(espera, 0, -1):
-            time.sleep(1)
+        # quando espera=0 a contagem ja foi feita no frontend
+        if espera > 0:
+            for i in range(espera, 0, -1):
+                time.sleep(1)
 
         x, y = pyautogui.position()
 

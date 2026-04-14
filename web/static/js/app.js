@@ -924,27 +924,58 @@ function mostrarPassoCalibracao() {
   }
 }
 
+function contarRegressiva(segundos, elementoFeedback) {
+  return new Promise((resolve) => {
+    let restante = segundos;
+
+    function tick() {
+      if (elementoFeedback) {
+        elementoFeedback.innerHTML =
+          `⏳ Posicione o mouse no GAMATEC...<br>` +
+          `<span style="font-size:28px; font-weight:700; letter-spacing:2px;">${restante}</span>`;
+      }
+
+      if (restante <= 0) {
+        resolve();
+        return;
+      }
+
+      restante--;
+      setTimeout(tick, 1000);
+    }
+
+    tick();
+  });
+}
+
 async function capturarPonto() {
   const ponto = calibracaoPontos[calibracaoIndiceAtual];
   const btn = document.getElementById("btn-capturar");
   const feedback = document.getElementById("calib-feedback");
+  const ESPERA = 5; // segundos para posicionar o mouse
 
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Aguarde 3s... posicione o mouse!";
+    btn.textContent = "Vá para o GAMATEC agora!";
   }
 
   if (feedback) {
     feedback.style.display = "";
     feedback.className = "calib-feedback calib-feedback-aguardando";
-    feedback.textContent = "⏳ Posicione o mouse no ponto indicado no GAMATEC...";
+  }
+
+  // contagem regressiva visual
+  await contarRegressiva(ESPERA, feedback);
+
+  if (feedback) {
+    feedback.textContent = "📸 Capturando posição...";
   }
 
   try {
     const resp = await fetch(`/api/calibracao/capturar/${ponto.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ espera: 3 }),
+      body: JSON.stringify({ espera: 0 }), // ja esperamos no frontend
       cache: "no-store"
     });
 

@@ -1171,6 +1171,9 @@ tr.oc-row-archived td {
   background: rgba(255, 159, 10, 0.12);
   border: 1px solid rgba(255, 159, 10, 0.35);
   color: #b07000;
+  text-align: center;
+  padding: 16px;
+  line-height: 1.4;
 }
 
 .calib-feedback-ok {
