@@ -1070,6 +1070,10 @@ function abrirModalAutomacao(nomeOC) {
     btnIniciar.textContent = "▶ Iniciar Automação";
   }
 
+  // limpa aviso de calibracao anterior antes de verificar novamente
+  const avisoAnterior = document.getElementById("calib-aviso-automacao");
+  if (avisoAnterior) avisoAnterior.remove();
+
   if (modal) modal.style.display = "flex";
 
   // verifica se calibracao existe
@@ -1083,6 +1087,10 @@ async function verificarCalibracao() {
     const btnIniciar = document.getElementById("btn-iniciar-automacao");
     const infoBox = document.getElementById("automacao-info-box");
 
+    // remove aviso anterior para evitar duplicação
+    const avisoAnterior = document.getElementById("calib-aviso-automacao");
+    if (avisoAnterior) avisoAnterior.remove();
+
     if (!data.calibrado) {
       if (btnIniciar) {
         btnIniciar.disabled = true;
@@ -1090,17 +1098,28 @@ async function verificarCalibracao() {
       }
       if (infoBox) {
         const aviso = document.createElement("div");
+        aviso.id = "calib-aviso-automacao"; // id fixo para poder remover depois
         aviso.className = "flash-msg flash-erro";
         aviso.style.marginTop = "10px";
         aviso.innerHTML = `⚠️ Calibração não encontrada.
           <br><button class="ios-button small primary" style="margin-top:8px;"
-            onclick="abrirModalCalibracao()">🎯 Calibrar agora</button>`;
+            onclick="fecharModalAutomacaoECalibar()">🎯 Calibrar agora</button>`;
         infoBox.appendChild(aviso);
       }
     }
   } catch (e) {
     console.warn("Nao foi possivel verificar calibracao.", e);
   }
+}
+
+function fecharModalAutomacaoECalibar() {
+  // fecha o modal de automacao primeiro para evitar sobreposicao
+  const nomeOC = automacaoOCAtual;
+  fecharModalAutomacao();
+  // pequena pausa para garantir que o modal fechou antes de abrir o proximo
+  setTimeout(() => {
+    abrirModalCalibracao(nomeOC);
+  }, 150);
 }
 
 function fecharModalAutomacao() {
