@@ -985,6 +985,22 @@ def esta_automatizando(nome_oc):
         return False
 
 
+@app.route("/api/verificar-calibracao")
+def api_verificar_calibracao():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    caminho = os.path.join(BASE_DIR, "saida", "calibracao_gamatec.json")
+    existe = os.path.exists(caminho)
+
+    return jsonify({
+        "ok": True,
+        "calibrado": existe,
+        "caminho": caminho if existe else None,
+        "mensagem": "Calibracao encontrada." if existe else "Calibracao nao encontrada. Execute calibrar_gamatec.py primeiro."
+    })
+
+
 @app.route("/api/iniciar-automacao/<path:arquivo>", methods=["POST"])
 def api_iniciar_automacao(arquivo):
     if not usuario_logado():
@@ -998,7 +1014,7 @@ def api_iniciar_automacao(arquivo):
     if not planilha or not os.path.exists(planilha):
         return jsonify({"ok": False, "mensagem": "Planilha desta OC não encontrada. Processe a OC primeiro."}), 404
 
-    script = os.path.join(BASE_DIR, "rodar_agente_gamatec_leitura.py")
+    script = os.path.join(BASE_DIR, "rodar_agente_gamatec_web.py")
     if not os.path.exists(script):
         return jsonify({"ok": False, "mensagem": "Script de automação não encontrado."}), 500
 

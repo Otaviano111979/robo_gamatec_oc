@@ -881,6 +881,35 @@ function abrirModalAutomacao(nomeOC) {
   }
 
   if (modal) modal.style.display = "flex";
+
+  // verifica se calibracao existe
+  verificarCalibracao();
+}
+
+async function verificarCalibracao() {
+  try {
+    const resp = await fetch("/api/verificar-calibracao", { cache: "no-store" });
+    const data = await resp.json();
+    const btnIniciar = document.getElementById("btn-iniciar-automacao");
+    const infoBox = document.getElementById("automacao-info-box");
+
+    if (!data.calibrado) {
+      if (btnIniciar) {
+        btnIniciar.disabled = true;
+        btnIniciar.textContent = "⚠️ Calibração necessária";
+        btnIniciar.title = "Execute calibrar_gamatec.py no terminal antes de usar a automação.";
+      }
+      if (infoBox) {
+        const aviso = document.createElement("div");
+        aviso.className = "flash-msg flash-erro";
+        aviso.style.marginTop = "10px";
+        aviso.innerHTML = "⚠️ Calibração não encontrada.<br>Execute <strong>python calibrar_gamatec.py</strong> no terminal uma vez antes de usar a automação.";
+        infoBox.appendChild(aviso);
+      }
+    }
+  } catch (e) {
+    console.warn("Nao foi possivel verificar calibracao.", e);
+  }
 }
 
 function fecharModalAutomacao() {
