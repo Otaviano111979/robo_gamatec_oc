@@ -46,3 +46,4 @@ Total de itens na planilha enxuta: 25
 PROCESSAMENTO FINALIZADO COM SUCESSO.
 [WEB] Processo finalizado com SUCESSO em 7s (returncode=0).
 [WEB] PDF localizado em processados.
+[AUTOMAÇÃO] Iniciada para planilha: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509378566\Ped._MRV4509378566_planilha_digitacao_manual.xlsx
