@@ -1,0 +1,97 @@
+RELATORIO DE EXTRAÇÃO DE OC
+================================================================================
+TOTAL DE ITENS: 5
+
+RESUMO
+--------------------------------------------------------------------------------
+OK: 3
+OK_COM_RESSALVAS: 2
+DUVIDOSO: 0
+FALHOU: 0
+
+ITEM 1
+--------------------------------------------------------------------------------
+idx_item: 10
+codigo_interno_oc: 1050756
+descricao: TE REDUCAO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL/ROSCAVEL;DIAMETRO/ROSCA:25MMX3/4BSP;BUCHA LATAO:BUCHA LATAO;FABRICANTE/REFERENCIA:AMANCO/10423;AMANCO/11844;TIGRE/35288376
+quantidade: 50.0
+unidade: UN
+valor_unitario: 4.17
+valor_total: 208.5
+pagina: 1
+linhas_origem: [15, 16, 17, 18, 19, 20, 21]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 2
+--------------------------------------------------------------------------------
+idx_item: 20
+codigo_interno_oc: 1101046
+descricao: CORPO CAIXA SIFONADA;MATERIAL:PVC;COR:BRANCO;REFORCO:S/;DIMENSOES:100X150X50MM;NUMER O ENTRADAS LATERAIS:C/3 ENT LATERAIS 50MM;DADOS EXTRAS:USO:ESGOTO;NORMA:NBR 7362/5688
+quantidade: 100.0
+unidade: UN
+valor_unitario: 19.38
+valor_total: 1938.0
+pagina: 1
+linhas_origem: [22, 23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 3
+--------------------------------------------------------------------------------
+idx_item: 30
+codigo_interno_oc: 1101382
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:20MM;COMPRIMENTO:6000MM;DADOS EXTRAS:COR:MARROM;NORMA:NBR 5648
+quantidade: 200.0
+unidade: UN
+valor_unitario: 9.55
+valor_total: 1910.0
+pagina: 1
+linhas_origem: [29, 30, 31]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 4
+--------------------------------------------------------------------------------
+idx_item: 40
+codigo_interno_oc: 1101547
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:75MM;SERIE:NORMAL;DADOS EXTRAS:NORMAS:NBR 7362/5688
+quantidade: 50.0
+unidade: UN
+valor_unitario: 4.3
+valor_total: 215.0
+pagina: 2
+linhas_origem: [19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 5
+--------------------------------------------------------------------------------
+idx_item: 50
+codigo_interno_oc: 1103781
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL/ROSCAVEL;DIAMETRO/ROSCA:25MMX3/4BSP;ACESSORIO:C/BU CHA LATAO;DADOS EXTRAS:NORMA:NBR 5648
+quantidade: 100.0
+unidade: UN
+valor_unitario: 3.74
+valor_total: 374.0
+pagina: 2
+linhas_origem: [26, 27, 28, 29, 30, 31]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere

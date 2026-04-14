@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Clientes | GAMATEC</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+</head>
+<body class="ios-body">
+  <header class="topbar">
+    <div>
+      <h1 class="page-title">Administração de Clientes</h1>
+      <p class="page-subtitle">Cadastro de clientes do sistema</p>
+    </div>
+
+    <div class="topbar-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+      <a href="/dashboard" class="ios-button secondary">Dashboard</a>
+      <a href="/logout" class="ios-button danger ghost">Sair</a>
+    </div>
+  </header>
+
+  <main class="page-grid">
+    <section class="ios-card">
+      <div class="card-header">
+        <div>
+          <h2>Novo cliente</h2>
+          <p>Cadastro simples para gestão futura por cliente.</p>
+        </div>
+      </div>
+
+      <form method="post" class="ios-form">
+        <div class="ios-field">
+          <label for="nome">Nome do cliente</label>
+          <input id="nome" name="nome" type="text" placeholder="Digite o nome do cliente" required>
+        </div>
+
+        <button class="ios-button primary" type="submit">Salvar cliente</button>
+      </form>
+    </section>
+
+    <section class="ios-card">
+      <div class="card-header">
+        <div>
+          <h2>Clientes cadastrados</h2>
+          <p>Base atual de clientes.</p>
+        </div>
+        <span class="badge">{{ clientes|length }} cliente(s)</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ios-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if clientes %}
+              {% for cliente in clientes %}
+              <tr>
+                <td>{{ cliente.nome }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td class="empty-cell">Nenhum cliente cadastrado.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

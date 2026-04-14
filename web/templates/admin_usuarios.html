@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Usuários | AGENTE EXTRACT</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+</head>
+<body class="ios-body">
+  <header class="topbar">
+    <div>
+      <h1 class="page-title">Administração de Usuários</h1>
+      <p class="page-subtitle">Cadastro e gestão de acessos do sistema</p>
+    </div>
+
+    <div class="topbar-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+      <a href="/dashboard" class="ios-button secondary">Dashboard</a>
+      <a href="/admin/clientes" class="ios-button secondary">Admin Clientes</a>
+      <a href="/logout" class="ios-button danger ghost">Sair</a>
+    </div>
+  </header>
+
+  <main class="page-grid">
+
+    <!-- CADASTRAR NOVO USUÁRIO -->
+    <section class="ios-card">
+      <div class="card-header">
+        <div>
+          <h2>Novo usuário</h2>
+          <p>Cadastro de usuário para acesso ao painel.</p>
+        </div>
+      </div>
+
+      <form method="post" action="/admin/usuarios" class="ios-form">
+        <div class="ios-field">
+          <label for="user">Usuário</label>
+          <input id="user" name="user" type="text" placeholder="Digite o nome do usuário" required>
+        </div>
+
+        <div class="ios-field">
+          <label for="senha">Senha</label>
+          <input id="senha" name="senha" type="password" placeholder="Digite a senha" required>
+        </div>
+
+        <div class="ios-field">
+          <label for="tipo">Tipo</label>
+          <select id="tipo" name="tipo" required>
+            <option value="user">Usuário</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+
+        <button class="ios-button primary" type="submit">Salvar usuário</button>
+      </form>
+    </section>
+
+    <!-- LISTA DE USUÁRIOS -->
+    <section class="ios-card">
+      <div class="card-header">
+        <div>
+          <h2>Usuários cadastrados</h2>
+          <p>Base atual de acessos.</p>
+        </div>
+        <span class="badge">{{ usuarios|length }} usuário(s)</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ios-table">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Tipo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if usuarios %}
+              {% for usuario in usuarios %}
+              <tr>
+                <td>{{ usuario.user }}</td>
+                <td>{{ usuario.tipo }}</td>
+                <td class="actions-wrap">
+
+                  <!-- ALTERAR SENHA -->
+                  <button
+                    class="ios-button small secondary"
+                    type="button"
+                    onclick="abrirAlterarSenha('{{ usuario.user }}')">
+                    Alterar senha
+                  </button>
+
+                  <!-- EXCLUIR — desabilitado para o próprio usuário logado -->
+                  {% if usuario.user != session.get("user") %}
+                    <form
+                      method="post"
+                      action="/admin/usuarios/excluir/{{ usuario.user }}"
+                      onsubmit="return confirm('Excluir o usuário {{ usuario.user }}? Esta ação não pode ser desfeita.')"
+                      style="display:inline;">
+                      <button class="ios-button small danger" type="submit">Excluir</button>
+                    </form>
+                  {% else %}
+                    <button class="ios-button small disabled" type="button" disabled title="Você não pode excluir seu próprio usuário">
+                      Excluir
+                    </button>
+                  {% endif %}
+
+                </td>
+              </tr>
+
+              <!-- LINHA OCULTA: formulário de alterar senha -->
+              <tr id="form-senha-{{ usuario.user }}" style="display:none;">
+                <td colspan="3">
+                  <form
+                    method="post"
+                    action="/admin/usuarios/alterar-senha/{{ usuario.user }}"
+                    class="ios-form"
+                    style="flex-direction:row; align-items:flex-end; gap:10px; padding: 10px 0;">
+                    <div class="ios-field" style="margin:0; flex:1;">
+                      <label>Nova senha para <strong>{{ usuario.user }}</strong></label>
+                      <input name="nova_senha" type="password" placeholder="Digite a nova senha" required>
+                    </div>
+                    <button class="ios-button small primary" type="submit">Salvar</button>
+                    <button
+                      class="ios-button small secondary"
+                      type="button"
+                      onclick="fecharAlterarSenha('{{ usuario.user }}')">
+                      Cancelar
+                    </button>
+                  </form>
+                </td>
+              </tr>
+
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="3" class="empty-cell">Nenhum usuário cadastrado.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    function abrirAlterarSenha(user) {
+      document.getElementById("form-senha-" + user).style.display = "";
+    }
+    function fecharAlterarSenha(user) {
+      document.getElementById("form-senha-" + user).style.display = "none";
+    }
+  </script>
+</body>
+</html>

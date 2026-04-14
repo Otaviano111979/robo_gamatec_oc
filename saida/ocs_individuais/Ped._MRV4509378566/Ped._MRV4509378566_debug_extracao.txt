@@ -1,0 +1,467 @@
+RELATORIO DE EXTRAÇÃO DE OC
+================================================================================
+TOTAL DE ITENS: 25
+
+RESUMO
+--------------------------------------------------------------------------------
+OK: 18
+OK_COM_RESSALVAS: 7
+DUVIDOSO: 0
+FALHOU: 0
+
+ITEM 1
+--------------------------------------------------------------------------------
+idx_item: 10
+codigo_interno_oc: 1101027
+descricao: ANEL P/TUBO;MATERIAL:BORRACHA;DIAMETRO TUBO:50MM;DADOS EXTRAS:USO:PVC ESGOTO;SERIE NORMAL;NORMA:NBR 7362/5688/5647
+quantidade: 1300.0
+unidade: UN
+valor_unitario: 0.58
+valor_total: 754.0
+pagina: 1
+linhas_origem: [15, 16, 17, 18, 19, 20]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 2
+--------------------------------------------------------------------------------
+idx_item: 20
+codigo_interno_oc: 1101028
+descricao: ANEL P/TUBO;MATERIAL:BORRACHA;DIAMETRO TUBO:75MM;DADOS EXTRAS:USO:PVC ESGOTO;SERIE NORMAL;NORMA:NBR 7362/5688/5647
+quantidade: 1300.0
+unidade: UN
+valor_unitario: 0.79
+valor_total: 1027.0
+pagina: 1
+linhas_origem: [21, 22, 23, 24, 25, 26]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 3
+--------------------------------------------------------------------------------
+idx_item: 30
+codigo_interno_oc: 1101032
+descricao: ANEL P/TUBO;MATERIAL:BORRACHA;DIAMETRO TUBO:100MM;DADOS EXTRAS:USO:PVC ESGOTO;SERIE NORMAL;NORMA:NBR 7362/5688
+quantidade: 1300.0
+unidade: UN
+valor_unitario: 0.92
+valor_total: 1196.0
+pagina: 1
+linhas_origem: [27, 28, 29, 30]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 4
+--------------------------------------------------------------------------------
+idx_item: 40
+codigo_interno_oc: 1101060
+descricao: FITA VEDACAO PTFE;LARGURA:18MM;COMPRIMENTO:50M;DADOS EXTRAS:NORMA:NBR 13124;VEDA ROSCA
+quantidade: 74.0
+unidade: UN
+valor_unitario: 5.31
+valor_total: 392.94
+pagina: 2
+linhas_origem: [17, 18, 19, 20, 21, 22]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 5
+--------------------------------------------------------------------------------
+idx_item: 50
+codigo_interno_oc: 1101387
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:60MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 5648
+quantidade: 16.0
+unidade: UN
+valor_unitario: 68.52
+valor_total: 1096.32
+pagina: 2
+linhas_origem: [23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 6
+--------------------------------------------------------------------------------
+idx_item: 60
+codigo_interno_oc: 1101389
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:85MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 5648
+quantidade: 5.0
+unidade: UN
+valor_unitario: 132.77
+valor_total: 663.85
+pagina: 2
+linhas_origem: [29, 30, 31]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 7
+--------------------------------------------------------------------------------
+idx_item: 70
+codigo_interno_oc: 1101514
+descricao: LUVA REDUCAO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA BOLSA;DIAMETRO/ROSCA:75X50MM;FLANGE:S/ FLANGE;DADOS EXTRAS:TIPO:EXCENTRICA;(SERIE NORMAL);NORMAS: NBR 7362/5688
+quantidade: 104.0
+unidade: UN
+valor_unitario: 4.44
+valor_total: 461.76
+pagina: 3
+linhas_origem: [18, 19, 20, 21, 22, 23, 24]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 8
+--------------------------------------------------------------------------------
+idx_item: 80
+codigo_interno_oc: 1101546
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 208.0
+unidade: UN
+valor_unitario: 1.42
+valor_total: 295.36
+pagina: 3
+linhas_origem: [25, 26, 27, 28, 29, 30, 31]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 9
+--------------------------------------------------------------------------------
+idx_item: 90
+codigo_interno_oc: 1101556
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMAS:NBR 7362/5688
+quantidade: 208.0
+unidade: UN
+valor_unitario: 1.61
+valor_total: 334.88
+pagina: 4
+linhas_origem: [15, 16, 17, 18, 19, 20, 21]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 10
+--------------------------------------------------------------------------------
+idx_item: 100
+codigo_interno_oc: 1101558
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 104.0
+unidade: UN
+valor_unitario: 3.5
+valor_total: 364.0
+pagina: 4
+linhas_origem: [22, 23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 11
+--------------------------------------------------------------------------------
+idx_item: 110
+codigo_interno_oc: 1101572
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:SERIE REFORCADA;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 104.0
+unidade: UN
+valor_unitario: 7.85
+valor_total: 816.4
+pagina: 4
+linhas_origem: [29, 30, 31, 32, 33]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 12
+--------------------------------------------------------------------------------
+idx_item: 120
+codigo_interno_oc: 1101593
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:50MM;SERIE:N ORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 302.0
+unidade: UN
+valor_unitario: 0.93
+valor_total: 280.86
+pagina: 5
+linhas_origem: [17, 18, 19, 20, 21, 22, 23]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 13
+--------------------------------------------------------------------------------
+idx_item: 130
+codigo_interno_oc: 1101594
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:75MM;SERIE:N ORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 52.0
+unidade: UN
+valor_unitario: 2.43
+valor_total: 126.36
+pagina: 5
+linhas_origem: [24, 25, 26, 27, 28, 29, 30]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 14
+--------------------------------------------------------------------------------
+idx_item: 140
+codigo_interno_oc: 1101595
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:100MM;SERIE: NORMAL;DADOS
+quantidade: 104.0
+unidade: UN
+valor_unitario: 1.83
+valor_total: 190.32
+pagina: 5
+linhas_origem: [31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 15
+--------------------------------------------------------------------------------
+idx_item: 150
+codigo_interno_oc: 1101620
+descricao: TE PVC RIGIDO PREDIAL;ANGULACAO:90GR;P/:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:75X75MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE:NORMAL
+quantidade: 76.0
+unidade: UN
+valor_unitario: 8.71
+valor_total: 661.96
+pagina: 6
+linhas_origem: [20, 21, 22, 23, 24, 25, 26]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 16
+--------------------------------------------------------------------------------
+idx_item: 160
+codigo_interno_oc: 1101634
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE NORMAL;COR:BRANCO
+quantidade: 270.0
+unidade: UN
+valor_unitario: 21.49
+valor_total: 5802.3
+pagina: 6
+linhas_origem: [27, 28, 29, 30, 31]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 17
+--------------------------------------------------------------------------------
+idx_item: 170
+codigo_interno_oc: 1101635
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:75MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE NORMAL;COR:BRANCA
+quantidade: 5.0
+unidade: UN
+valor_unitario: 34.3
+valor_total: 171.5
+pagina: 7
+linhas_origem: [17, 18, 19, 20, 21, 22, 23]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 18
+--------------------------------------------------------------------------------
+idx_item: 180
+codigo_interno_oc: 1101636
+descricao: TUBO PVC ESGOTO 6M 100MM (SERIE NORMAL) NBR 7362/5688
+quantidade: 108.0
+unidade: UN
+valor_unitario: 45.9
+valor_total: 4957.2
+pagina: 7
+linhas_origem: [24, 25, 26, 27, 28, 29, 30]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 19
+--------------------------------------------------------------------------------
+idx_item: 190
+codigo_interno_oc: 1102850
+descricao: TERMINAL VENTILACAO;MATERIAL:PVC;BITOLA:100MM;DADOS EXTRAS:P/ESGOTO;SERIE NORMAL;NORMA:NBR 7362/5688
+quantidade: 52.0
+unidade: UN
+valor_unitario: 9.7
+valor_total: 504.4
+pagina: 7
+linhas_origem: [31, 32, 33]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 20
+--------------------------------------------------------------------------------
+idx_item: 200
+codigo_interno_oc: 1105557
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:REFORCADA;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 127.0
+unidade: UN
+valor_unitario: 68.64
+valor_total: 8717.28
+pagina: 8
+linhas_origem: [18, 19, 20, 21, 22, 23, 24]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 21
+--------------------------------------------------------------------------------
+idx_item: 220
+codigo_interno_oc: 1106124
+descricao: TE PVC RIGIDO PREDIAL;ANGULACAO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100X100MM;SERIE:REFORCADA;DADOS EXTRAS:NORMAS:NBR 7362/5688
+quantidade: 76.0
+unidade: UN
+valor_unitario: 10.75
+valor_total: 817.0
+pagina: 8
+linhas_origem: [25, 26, 27, 28, 29, 30, 31]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 22
+--------------------------------------------------------------------------------
+idx_item: 240
+codigo_interno_oc: 1106125
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:100MM;SERIE: REFORCADA;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 268.0
+unidade: UN
+valor_unitario: 4.44
+valor_total: 1189.92
+pagina: 9
+linhas_origem: [15, 16, 17, 18, 19, 20, 21]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 23
+--------------------------------------------------------------------------------
+idx_item: 250
+codigo_interno_oc: 1116962
+descricao: ADESIVO PLASTICO P/PVC;CARACTERISTICA CONSTRUTIVA:RESINA AZUL;APRESENTACAO:EMBALAGEM 850G;DADOS EXTRAS:USO:TUBO.;FABRICANTE/REFERENCIA:AMANCO/99684
+quantidade: 2.0
+unidade: UN
+valor_unitario: 34.51
+valor_total: 69.02
+pagina: 9
+linhas_origem: [22, 23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 24
+--------------------------------------------------------------------------------
+idx_item: 260
+codigo_interno_oc: 1201157
+descricao: PASTA LUBRIFICANTE;BASE:ACIDO GRAXO;APLICACAO:TUBOS;APRESENTACAO:EMBALAGEM 1KG;DADOS EXTRAS:MATERIAL TUBO:PVC
+quantidade: 10.0
+unidade: UN
+valor_unitario: 20.3
+valor_total: 203.0
+pagina: 9
+linhas_origem: [29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 25
+--------------------------------------------------------------------------------
+idx_item: 270
+codigo_interno_oc: 1202594
+descricao: SOLUCAO LIMPADORA TUBULACAO;APRESENTACAO:EMBALAGEM 1L;DADOS EXTRAS:P/PVC
+quantidade: 23.0
+unidade: UN
+valor_unitario: 29.45
+valor_total: 677.35
+pagina: 10
+linhas_origem: [17, 18, 19, 20, 21, 22]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - bloco_encerrado_por_separador
+  - validacao:total_confere

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | AGENTE EXTRACT</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+</head>
+<body class="ios-body">
+  <header class="topbar topbar-refined">
+    <div class="topbar-title-wrap">
+      <div class="brand-chip">GE</div>
+      <div>
+        <h1 class="page-title">AGENTE EXTRACT</h1>
+        <p class="page-subtitle">Painel operacional de OCs • camada web de controle</p>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+
+      {% if session.get("tipo") == "admin" %}
+      <a href="/admin/clientes" class="ios-button secondary">Admin Clientes</a>
+      <a href="/admin/usuarios" class="ios-button secondary">Admin Usuários</a>
+      {% endif %}
+
+      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
+      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
+    </div>
+  </header>
+
+  <!-- MENSAGENS FLASH -->
+  {% with mensagens = get_flashed_messages() %}
+    {% if mensagens %}
+      <div class="flash-wrap">
+        {% for msg in mensagens %}
+          {% if msg.startswith('ok:') %}
+            <div class="flash-msg flash-ok">✅ {{ msg[3:] }}</div>
+          {% else %}
+            <div class="flash-msg flash-erro">⚠️ {{ msg[5:] if msg.startswith('error:') else msg }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- CARTOES DE RESUMO -->
+  <section class="resumo-cards">
+    <div class="resumo-card resumo-card-entrada">
+      <span class="resumo-card-numero">{{ total_entrada }}</span>
+      <span class="resumo-card-label">Na entrada</span>
+    </div>
+    <div class="resumo-card resumo-card-processando">
+      <span class="resumo-card-numero">{{ total_processando }}</span>
+      <span class="resumo-card-label">Processando</span>
+    </div>
+    <div class="resumo-card resumo-card-concluido">
+      <span class="resumo-card-numero">{{ total_concluidos }}</span>
+      <span class="resumo-card-label">Concluídas</span>
+    </div>
+  </section>
+
+  <!-- PAINEL DE OCs COM ERRO -->
+  <section class="ios-card erros-card" id="erros-card" style="margin: 16px 24px 0 24px; display:none;">
+    <div class="card-header">
+      <div>
+        <h2>⚠️ OCs com erro</h2>
+        <p>Arquivos que falharam no processamento. Reenvie para tentar novamente.</p>
+      </div>
+      <span class="badge" id="erros-count">0</span>
+    </div>
+    <div class="table-wrap">
+      <table class="ios-table">
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Data</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="erros-table-body">
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="dashboard-shell">
+    <aside class="dashboard-left">
+      <section class="ios-card compact-card">
+        <div class="card-header">
+          <div>
+            <h2>Importar OC</h2>
+            <p>Envie o PDF para a pasta de entrada pelo navegador.</p>
+          </div>
+          <span class="badge">Entrada</span>
+        </div>
+
+        <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+          <label class="upload-box" for="file">
+            <input id="file" type="file" name="file" accept=".pdf" required>
+            <span>Selecionar PDF da OC</span>
+          </label>
+
+          <button class="ios-button primary" type="submit">Enviar PDF</button>
+        </form>
+      </section>
+
+      <section class="ios-card list-card">
+        <div class="card-header">
+          <div>
+            <h2>Fila de OCs</h2>
+            <p>Filtros rápidos e exibição das 10 mais recentes.</p>
+          </div>
+          <span class="badge" id="fila-count">{{ arquivos|length }} arquivo(s)</span>
+        </div>
+
+        <div id="fila-info" class="page-subtitle" style="margin-bottom: 12px;">
+          Carregando informações da fila...
+        </div>
+
+        <div class="status-panel status-panel-compact" style="margin-bottom: 16px;">
+          <div class="status-card">
+            <span class="status-title">Número da OC</span>
+            <input
+              id="filtro-oc"
+              type="text"
+              class="ios-field-input"
+              placeholder="Digite o número da OC">
+          </div>
+
+          <div class="status-card">
+            <span class="status-title">Data</span>
+            <input
+              id="filtro-data"
+              type="date"
+              class="ios-field-input">
+          </div>
+        </div>
+
+        <div class="actions-wrap" style="margin-bottom: 14px;">
+          <button class="ios-button small secondary" type="button" id="ordenar-recente">
+            Mais recentes
+          </button>
+          <button class="ios-button small secondary" type="button" id="ordenar-antigo">
+            Mais antigos
+          </button>
+          <button class="ios-button small secondary" type="button" id="btn-ver-todas">
+            Ver todas
+          </button>
+          <button class="ios-button small secondary" type="button" id="btn-voltar-10" style="display:none;">
+            Voltar para 10
+          </button>
+          <button class="ios-button small secondary" type="button" id="limpar-filtros">
+            Limpar filtros
+          </button>
+        </div>
+
+        <div class="table-wrap oc-table-wrap">
+          <table class="ios-table">
+            <thead>
+              <tr>
+                <th>Arquivo</th>
+                <th>Status</th>
+                <th>Local</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="oc-table-body">
+              {% if arquivos %}
+                {% for item in arquivos %}
+                <tr
+                  data-oc-row="{{ item.nome }}"
+                  data-nome="{{ item.nome|lower }}"
+                  data-numero-oc="{{ item.numero_oc }}"
+                  data-data-ref="{{ item.data_ref_iso }}"
+                  data-timestamp-ref="{{ item.timestamp_ref }}"
+                  data-tem-planilha="{{ 'true' if item.tem_planilha else 'false' }}"
+                  data-em-entrada="{{ 'true' if item.em_entrada else 'false' }}"
+                  data-em-processados="{{ 'true' if item.em_processados else 'false' }}"
+                  data-processando="{{ 'true' if item.processando else 'false' }}">
+                  <td class="arquivo-col">
+                    <div class="arquivo-cell">
+                      <strong class="arquivo-nome">{{ item.nome }}</strong>
+                      <div class="row-badges">
+                        {% if item.numero_oc %}
+                          <span class="mini-badge mini-badge-primary">OC {{ item.numero_oc }}</span>
+                        {% endif %}
+                        {% if item.data_ref %}
+                          <span class="mini-badge mini-badge-neutral">{{ item.data_ref }}</span>
+                        {% endif %}
+                        {% if item.tem_planilha %}
+                          <span class="mini-badge mini-badge-success">Planilha pronta</span>
+                        {% endif %}
+                        {% if item.em_processados %}
+                          <span class="mini-badge mini-badge-neutral">Movido</span>
+                        {% endif %}
+                        {% if item.processando %}
+                          <span class="mini-badge mini-badge-primary">Ativo</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="status-pill {{ item.status_classe }}">
+                      {{ item.status_label }}
+                    </span>
+                  </td>
+
+                  <td>
+                    {% if item.processando %}
+                      Processando
+                    {% elif item.em_entrada %}
+                      Entrada
+                    {% elif item.em_processados %}
+                      Processados
+                    {% else %}
+                      Indefinido
+                    {% endif %}
+                  </td>
+
+                  <td class="actions-cell">
+                    <div class="acoes-grupo">
+
+                      <!-- AÇÃO PRINCIPAL: Processar -->
+                      {% if item.em_entrada and not item.processando %}
+                        <button
+                          class="ios-button small primary"
+                          type="button"
+                          data-processar-arquivo="{{ item.nome }}"
+                          data-bloqueado="false">
+                          Processar
+                        </button>
+                      {% elif item.processando %}
+                        <button
+                          class="ios-button small disabled is-loading"
+                          type="button"
+                          disabled
+                          data-processar-arquivo="{{ item.nome }}"
+                          data-bloqueado="true">
+                          Processando...
+                        </button>
+                      {% endif %}
+
+                      <!-- AÇÃO PRINCIPAL: Planilha XLSX -->
+                      {% if item.tem_planilha %}
+                        <a class="ios-button small success ready-button" href="/baixar-planilha/{{ item.nome }}">
+                          ⬇ Planilha
+                        </a>
+                      {% endif %}
+
+                      <!-- MENU SECUNDÁRIO -->
+                      <div class="acoes-menu-wrap">
+                        <button class="ios-button small secondary acoes-menu-btn" type="button"
+                          onclick="toggleMenu(this)">
+                          •••
+                        </button>
+                        <div class="acoes-menu">
+
+                          <button class="acoes-menu-item" type="button"
+                            onclick="verStatus('{{ item.nome }}'); fecharMenus()">
+                            Ver status
+                          </button>
+
+                          <button class="acoes-menu-item" type="button"
+                            onclick="verLogTecnico('{{ item.nome }}'); fecharMenus()">
+                            Log técnico
+                          </button>
+
+                          {% if item.em_entrada and item.tem_planilha and not item.processando %}
+                            <a class="acoes-menu-item move-button"
+                              href="/mover-processado/{{ item.nome }}"
+                              data-mover-arquivo="{{ item.nome }}"
+                              data-bloqueado="false">
+                              Mover p/ Processados
+                            </a>
+                          {% elif item.em_processados %}
+                            <span class="acoes-menu-item acoes-menu-item-info">✔ Já em Processados</span>
+                          {% endif %}
+
+                          {% if not item.processando %}
+                            <button class="acoes-menu-item acoes-menu-item-danger"
+                              type="button"
+                              data-remover-arquivo="{{ item.nome }}"
+                              data-bloqueado="false">
+                              Remover da lista
+                            </button>
+                          {% endif %}
+
+                        </div>
+                      </div>
+
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="empty-cell">Nenhuma OC localizada.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </aside>
+
+    <section class="dashboard-right">
+      <section class="ios-card inspector-card">
+        <div class="card-header">
+          <div>
+            <h2>Painel da OC</h2>
+            <p>Leitura operacional da OC selecionada.</p>
+          </div>
+          <span class="badge badge-soft" id="monitor-badge">Monitoramento</span>
+        </div>
+
+        <div class="completion-banner hidden-banner" id="completion-banner">
+          Concluído agora
+        </div>
+
+        <div class="status-panel status-panel-compact">
+          <div class="status-card emphasis" id="panel-card-arquivo">
+            <span class="status-title">Arquivo selecionado</span>
+            <strong id="status-arquivo">Nenhum arquivo selecionado</strong>
+          </div>
+
+          <div class="status-card" id="panel-card-status">
+            <span class="status-title">Status atual</span>
+            <strong id="status-geral">Aguardando seleção</strong>
+          </div>
+
+          <div class="status-card" id="panel-card-planilha">
+            <span class="status-title">Planilha XLSX</span>
+            <strong id="status-planilha">Não verificado</strong>
+          </div>
+
+          <div class="status-card" id="panel-card-movimento">
+            <span class="status-title">Movimentação do PDF</span>
+            <strong id="status-movimento">Não verificado</strong>
+          </div>
+        </div>
+
+        <div class="status-output-wrap status-output-layout">
+          <section class="summary-card">
+            <div class="status-output-header">
+              <h3>Resumo da execução</h3>
+            </div>
+            <pre id="status-output" class="status-output-box compact-output">Selecione "Ver status" em uma OC para visualizar o andamento.</pre>
+          </section>
+
+          <section class="log-card">
+            <div class="status-output-header status-output-header-log">
+              <h3>Log técnico</h3>
+              <button class="ios-button small secondary" type="button" onclick="alternarLogTecnico()">
+                Mostrar/Ocultar
+              </button>
+            </div>
+            <pre id="terminal" class="terminal-box terminal-compact hidden-log">Selecione "Log técnico" para visualizar a saída detalhada.</pre>
+          </section>
+        </div>
+      </section>
+    </section>
+  </section>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html> 

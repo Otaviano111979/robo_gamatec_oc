@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | GAMATEC</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+</head>
+<body class="ios-body login-page">
+  <div class="theme-toggle-wrap">
+    <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+  </div>
+
+  <main class="login-shell">
+    <section class="ios-card login-card">
+      <div class="login-brand">
+        <div class="login-badge">G</div>
+        <h1>AGENTE EXTRACT</h1>
+        <p>Painel operacional de OCs</p>
+      </div>
+
+      {% if erro %}
+        <div class="login-erro">{{ erro }}</div>
+      {% endif %}
+
+      <form method="post" class="ios-form">
+        <div class="ios-field">
+          <label for="user">Usuário</label>
+          <input id="user" name="user" type="text" placeholder="Digite seu usuário" required>
+        </div>
+
+        <div class="ios-field">
+          <label for="senha">Senha</label>
+          <input id="senha" name="senha" type="password" placeholder="Digite sua senha" required>
+        </div>
+
+        <button class="ios-button primary" type="submit">Entrar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

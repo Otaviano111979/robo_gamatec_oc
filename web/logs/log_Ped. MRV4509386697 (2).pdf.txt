@@ -1,0 +1,47 @@
+
+==============================
+PROCESSAMENTO INDIVIDUAL DE OC
+==============================
+Arquivo selecionado: C:\robo_gamatec_oc\entrada_oc\Ped. MRV4509386697 (2).pdf
+
+[1/4] EXTRAINDO ITENS DA OC...
+Itens extraídos: 39
+Debug extração: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509386697_(2)\Ped._MRV4509386697_(2)_debug_extracao.txt
+
+[2/4] REALIZANDO MATCH...
+
+[2/6] REALIZANDO MATCH HÍBRIDO (MRV + KRONA)...
+[BASE MRV] Delimitador detectado: ';'
+[BASE MRV] Cabeçalho original: ['CÓDIGO MRV', 'Código Krona', 'Código Tigre', 'Código Amanco', 'Descrição Curta', 'Descrição Longa', 'UMP', 'Embalagem Padrão', 'PR', 'SC', 'RS', 'MT', 'MS', 'GO', 'DF']
+[BASE MRV] Coluna MRV mapeada: CÓDIGO MRV
+[BASE MRV] Coluna Krona mapeada: Código Krona
+
+[BASE MRV]
+Arquivo: C:\robo_gamatec_oc\dados\base_mrv.csv
+Linhas lidas: 391
+Linhas válidas indexadas: 391
+Códigos únicos indexados: 391
+Duplicados sobrescritos: 0
+Itens processados no matching: 39
+Resumo tipos de match: {'MATCH_CODIGO_MRV': 39}
+Resumo regras de quantidade: {'ORIGINAL_NAO_TUBO': 27, 'BARRA_DIRETA_OC_UN': 12}
+Itens após match: 39
+
+[3/4] CONSOLIDANDO QUANTIDADE...
+
+[3/6] CONSOLIDANDO QUANTIDADE FINAL...
+Itens com quantidade consolidada: 39
+Resumo conversão aplicada: {'ORIGINAL_NAO_TUBO': 27, 'BARRA_DIRETA_OC_UN': 12}
+Itens finais: 39
+
+[4/4] GERANDO SAÍDAS INDIVIDUAIS...
+Resultado processado: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509386697_(2)\Ped._MRV4509386697_(2)_resultado_processado.csv
+Planilha CSV: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509386697_(2)\Ped._MRV4509386697_(2)_planilha_digitacao_manual.csv
+Planilha XLSX: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509386697_(2)\Ped._MRV4509386697_(2)_planilha_digitacao_manual.xlsx
+Resumo: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509386697_(2)\Ped._MRV4509386697_(2)_resumo_processamento.txt
+Arquivo movido para: C:\robo_gamatec_oc\processados_oc\Ped. MRV4509386697 (2)_20260410_112404.pdf
+Total de itens na planilha enxuta: 39
+
+PROCESSAMENTO FINALIZADO COM SUCESSO.
+[WEB] Processo finalizado.
+[WEB] PDF localizado em processados.

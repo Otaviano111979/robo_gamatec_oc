@@ -1,0 +1,186 @@
+RELATORIO DE EXTRAÇÃO DE OC
+================================================================================
+TOTAL DE ITENS: 9
+
+RESUMO
+--------------------------------------------------------------------------------
+OK: 5
+OK_COM_RESSALVAS: 4
+DUVIDOSO: 0
+FALHOU: 0
+
+ITEM 1
+--------------------------------------------------------------------------------
+idx_item: 10
+codigo_interno_oc: 1101526
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 32.0
+unidade: UN
+valor_unitario: 2.81
+valor_total: 89.92
+pagina: 1
+linhas_origem: [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - observacao_comercial_detectada
+  - texto_observacao=Entregar na F&#225;brica de Kits MRV:#Avenida Thomaz Alberto Whately, n&#176; 5105, Jardim J&#243;quei Clube, Galp&#227;o de n# 20, Ribeir&# 227;o Preto/SP, CEP: 14078-550.#SEGUNDA A QUINTA 07:00H as 11:30H/13:0 0-16:30H#SEXTA 07:00H as 11:30H/13:00-15:30H#Bruno Oliveira (16) 99389 -2007
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 2
+--------------------------------------------------------------------------------
+idx_item: 20
+codigo_interno_oc: 1101593
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:50MM;SERIE:N ORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 152.0
+unidade: UN
+valor_unitario: 0.87
+valor_total: 132.24
+pagina: 1
+linhas_origem: [27, 28, 29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 3
+--------------------------------------------------------------------------------
+idx_item: 30
+codigo_interno_oc: 1101595
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:100MM;SERIE: NORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 64.0
+unidade: UN
+valor_unitario: 1.72
+valor_total: 110.08
+pagina: 2
+linhas_origem: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - observacao_comercial_detectada
+  - texto_observacao=Entregar na F&#225;brica de Kits MRV:#Avenida Thomaz Alberto Whately, n&#176; 5105, Jardim J&#243;quei Clube, Galp&#227;o de n# 20, Ribeir&# 227;o Preto/SP, CEP: 14078-550.#SEGUNDA A QUINTA 07:00H as 11:30H/13:0 0-16:30H#SEXTA 07:00H as 11:30H/13:00-15:30H#Bruno Oliveira (16) 99389 -2007
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 4
+--------------------------------------------------------------------------------
+idx_item: 40
+codigo_interno_oc: 1101604
+descricao: CAP PVC RIGIDO PREDIAL;P/:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;DADOS EXTRAS:NORMAS:NBR 7362/5688;SERIE:NORMAL
+quantidade: 92.0
+unidade: UN
+valor_unitario: 1.9
+valor_total: 174.8
+pagina: 2
+linhas_origem: [33, 34, 35, 36]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 5
+--------------------------------------------------------------------------------
+idx_item: 50
+codigo_interno_oc: 1101636
+descricao: TUBO PVC ESGOTO 6M 100MM (SERIE NORMAL) NBR 7362/5688
+quantidade: 6.0
+unidade: UN
+valor_unitario: 43.06
+valor_total: 258.36
+pagina: 3
+linhas_origem: [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - observacao_comercial_detectada
+  - texto_observacao=Entregar na F&#225;brica de Kits MRV:#Avenida Thomaz Alberto Whately, n&#176; 5105, Jardim J&#243;quei Clube, Galp&#227;o de n# 20, Ribeir&# 227;o Preto/SP, CEP: 14078-550.#SEGUNDA A QUINTA 07:00H as 11:30H/13:0 0-16:30H#SEXTA 07:00H as 11:30H/13:00-15:30H#Bruno Oliveira (16) 99389 -2007
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 6
+--------------------------------------------------------------------------------
+idx_item: 60
+codigo_interno_oc: 1101638
+descricao: TUBO PVC ESGOTO 6M 150MM (SERIE NORMAL) NBR 7362/5688
+quantidade: 3.0
+unidade: UN
+valor_unitario: 93.95
+valor_total: 281.85
+pagina: 3
+linhas_origem: [34, 35, 36, 37, 38]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 7
+--------------------------------------------------------------------------------
+idx_item: 70
+codigo_interno_oc: 1103409
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL/ROSCAVEL;DIAMETRO/ROSCA:25MMX1/2BSP;BUCHA LATAO:C/ BUCHA LATAO;DADOS EXTRAS:NORMA:NBR 5648
+quantidade: 32.0
+unidade: UN
+valor_unitario: 2.02
+valor_total: 64.64
+pagina: 4
+linhas_origem: [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - observacao_comercial_detectada
+  - texto_observacao=Entregar na F&#225;brica de Kits MRV:#Avenida Thomaz Alberto Whately, n&#176; 5105, Jardim J&#243;quei Clube, Galp&#227;o de n# 20, Ribeir&# 227;o Preto/SP, CEP: 14078-550.#SEGUNDA A QUINTA 07:00H as 11:30H/13:0 0-16:30H#SEXTA 07:00H as 11:30H/13:00-15:30H#Bruno Oliveira (16) 99389 -2007
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 8
+--------------------------------------------------------------------------------
+idx_item: 80
+codigo_interno_oc: 1103609
+descricao: TE PVC RIGIDO PREDIAL;ANGULACAO:90GR;APLICACAO:AGUA FRIA;CONEXAO:ROSCAVEL;DIAMETRO/ROSCA:1/2NPT;BUCHA LATAO:C/ BUCHA LATAO;DADOS EXTRAS:25MMX1/2POL;NORMAL:NBR 5648
+quantidade: 32.0
+unidade: UN
+valor_unitario: 3.16
+valor_total: 101.12
+pagina: 4
+linhas_origem: [34, 35, 36]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - formato_mrv
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 9
+--------------------------------------------------------------------------------
+idx_item: 90
+codigo_interno_oc: 1117503
+descricao: VALVULA ESFERA;MATERIAL/NORMA CORPO:PVC;CONEXAO:3/4BSP;ACIONAMENTO:MANOPLA BORBOLETA;DADOS EXTRAS:ROSCA FEMEA;NORMAS:NBR 5658/5626
+quantidade: 80.0
+unidade: UN
+valor_unitario: 3.75
+valor_total: 300.0
+pagina: 5
+linhas_origem: [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - formato_mrv
+  - observacao_comercial_detectada
+  - texto_observacao=Entregar na F&#225;brica de Kits MRV:#Avenida Thomaz Alberto Whately, n&#176; 5105, Jardim J&#243;quei Clube, Galp&#227;o de n# 20, Ribeir&# 227;o Preto/SP, CEP: 14078-550.#SEGUNDA A QUINTA 07:00H as 11:30H/13:0 0-16:30H#SEXTA 07:00H as 11:30H/13:00-15:30H#Bruno Oliveira (16) 99389 -2007
+  - bloco_encerrado_por_separador
+  - validacao:total_confere

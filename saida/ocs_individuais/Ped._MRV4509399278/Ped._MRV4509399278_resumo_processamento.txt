@@ -1,0 +1,24 @@
+PROCESSAMENTO INDIVIDUAL DE OC
+--------------------------------------------------
+Data/Hora : 2026-04-14 12:54:06
+Arquivo   : C:\robo_gamatec_oc\entrada_oc\Ped._MRV4509399278.pdf
+
+[ EXTRAÇÃO ]
+  Total extraído  : 9
+  OK              : 5
+  OK com ressalvas: 4
+  Duvidoso        : 0
+  Falhou          : 0
+
+[ MATCH ]
+  Total para match: 9
+  MATCH_CODIGO_MRV              : 9
+
+[ QUANTIDADE ]
+  ORIGINAL_NAO_TUBO_UNIDADE     : 7
+  BARRA_DIRETA_OC_UN            : 2
+
+[ PLANILHA FINAL ]
+  Itens na planilha: 9
+
+--------------------------------------------------

@@ -1,0 +1,4 @@
+data_hora=2026-04-14 12:54:06
+arquivo_entrada=C:\robo_gamatec_oc\entrada_oc\Ped._MRV4509399278.pdf
+status=MOVIDO_PROCESSADOS
+detalhe=C:\robo_gamatec_oc\processados_oc\Ped._MRV4509399278.pdf

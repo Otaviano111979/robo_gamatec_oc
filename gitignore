@@ -1,0 +1,63 @@
+# =========================
+# SEGURANÇA — nunca versionar
+# =========================
+.env
+dados/usuarios.json
+dados/clientes.json
+dados/ocs_removidas_dashboard.json
+
+# =========================
+# DADOS DE CLIENTES — nunca versionar
+# =========================
+dados/oc/
+entrada_oc/
+processados_oc/
+erro_oc/
+saida/
+
+# =========================
+# ARQUIVOS GERADOS
+# =========================
+web/logs/
+
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# =========================
+# AMBIENTE VIRTUAL
+# =========================
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# =========================
+# IDEs E EDITORES
+# =========================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# =========================
+# LOGS E TEMPORÁRIOS
+# =========================
+*.log
+*.tmp
+*.bak

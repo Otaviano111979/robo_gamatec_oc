@@ -1,0 +1,632 @@
+RELATORIO DE EXTRAÇÃO DE OC
+================================================================================
+TOTAL DE ITENS: 33
+
+RESUMO
+--------------------------------------------------------------------------------
+OK: 20
+OK_COM_RESSALVAS: 13
+DUVIDOSO: 0
+FALHOU: 0
+
+ITEM 1
+--------------------------------------------------------------------------------
+idx_item: 10
+codigo_interno_oc: 1101047
+descricao: CORPO CAIXA SIFONADA;MATERIAL:PVC;COR:BRANCO;REFORCO:S/;DIMENSOES:150X150X50MM;NUMER O ENTRADAS LATERAIS:C/3 ENT LATERAIS 50MM;DADOS EXTRAS:USO:ESGOTO;NORMA:NBR 7362/5688
+quantidade: 100.0
+unidade: UN
+valor_unitario: 25.02
+valor_total: 2502.0
+pagina: 1
+linhas_origem: [15, 16, 17, 18, 19, 20, 21, 22]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 2
+--------------------------------------------------------------------------------
+idx_item: 20
+codigo_interno_oc: 1101211
+descricao: ADAPTADOR;USO:AGUA FRIA;MATERIAL:PVC RIG;CONEXAO:SOLDAVEL/ROSCAVEL;DIAMETRO:25X3/4;CARACTERISTICAS:CURTO C/BOLSA P/REGISTRO;DADOS EXTRAS:NBR 5648
+quantidade: 1200.0
+unidade: UN
+valor_unitario: 0.45
+valor_total: 540.0
+pagina: 1
+linhas_origem: [23, 24, 25, 26, 27, 28, 29, 30]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 3
+--------------------------------------------------------------------------------
+idx_item: 30
+codigo_interno_oc: 1101244
+descricao: BUCHA REDUCAO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;TIPO CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:25X20MM;CONSTRUCAO:CURTA;DADOS EXTRAS:COR:
+quantidade: 396.0
+unidade: UN
+valor_unitario: 0.31
+valor_total: 122.76
+pagina: 1
+linhas_origem: [31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 4
+--------------------------------------------------------------------------------
+idx_item: 40
+codigo_interno_oc: 1101302
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:20MM;DADOS EXTRAS:EQUIVALENCIA MERCADO: 1/2POL;COR: MARROM;CONFORME NORMA: NBR 5648;CLASSE PRESSAO: 7,50KGF/CM2;NORMA:NBR 5648
+quantidade: 792.0
+unidade: UN
+valor_unitario: 0.32
+valor_total: 253.44
+pagina: 2
+linhas_origem: [21, 22, 23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 5
+--------------------------------------------------------------------------------
+idx_item: 50
+codigo_interno_oc: 1101303
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:25MM;DADOS EXTRAS:COR:MARROM;RAIO:CURTO;DIMENSAO CONFORME NORMA:ABNT NBR 5648;CLASSE PRESSAO:7,50KGF/CM2;NORMA:NBR 5648
+quantidade: 1238.0
+unidade: UN
+valor_unitario: 0.45
+valor_total: 557.1
+pagina: 2
+linhas_origem: [29, 30, 31, 32, 33]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 6
+--------------------------------------------------------------------------------
+idx_item: 60
+codigo_interno_oc: 1101330
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:25MM;DADOS EXTRAS:COR:MARROM;NORMA:NBR 5648;NORMA:NBR 5648
+quantidade: 792.0
+unidade: UN
+valor_unitario: 0.42
+valor_total: 332.64
+pagina: 3
+linhas_origem: [18, 19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 7
+--------------------------------------------------------------------------------
+idx_item: 70
+codigo_interno_oc: 1101359
+descricao: TE PVC RIGIDO PREDIAL;ANGULACAO:90GR;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:25MM;DADOS EXTRAS:EQUIVALENCIA MERCADO: 3/4POL;CONFORME NORMA: ABNT NBR 5648;COR:MARROM;CLASSE PRESSAO:7,50KGF/CM2;NORMA:NBR 5648
+quantidade: 1200.0
+unidade: UN
+valor_unitario: 0.67
+valor_total: 804.0
+pagina: 3
+linhas_origem: [26, 27, 28, 29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 8
+--------------------------------------------------------------------------------
+idx_item: 80
+codigo_interno_oc: 1101382
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:20MM;COMPRIMENTO:6000MM;DADOS EXTRAS:COR:MARROM;NORMA:NBR 5648
+quantidade: 100.0
+unidade: UN
+valor_unitario: 10.11
+valor_total: 1011.0
+pagina: 4
+linhas_origem: [16, 17, 18, 19, 20, 21, 22, 23]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 9
+--------------------------------------------------------------------------------
+idx_item: 90
+codigo_interno_oc: 1101383
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL;DIAMETRO/ROSCA:25MM;COMPRIMENTO:6000MM;DADOS EXTRAS:COR:MARROM;NORMA:NBR 5648
+quantidade: 200.0
+unidade: UN
+valor_unitario: 12.12
+valor_total: 2424.0
+pagina: 4
+linhas_origem: [24, 25, 26, 27, 28, 29, 30, 31]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 10
+--------------------------------------------------------------------------------
+idx_item: 100
+codigo_interno_oc: 1101528
+descricao: CURVA PVC RIGIDO PREDIAL;ANGULO:90GR;RAIO:CURTO;P/:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:40MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE:NORMAL
+quantidade: 200.0
+unidade: UN
+valor_unitario: 2.37
+valor_total: 474.0
+pagina: 4
+linhas_origem: [32, 33, 34]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 11
+--------------------------------------------------------------------------------
+idx_item: 110
+codigo_interno_oc: 1101545
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:40MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 300.0
+unidade: UN
+valor_unitario: 1.06
+valor_total: 318.0
+pagina: 5
+linhas_origem: [20, 21, 22, 23, 24, 25, 26, 27]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 12
+--------------------------------------------------------------------------------
+idx_item: 120
+codigo_interno_oc: 1101546
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 960.0
+unidade: UN
+valor_unitario: 1.6
+valor_total: 1536.0
+pagina: 5
+linhas_origem: [28, 29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 13
+--------------------------------------------------------------------------------
+idx_item: 130
+codigo_interno_oc: 1107966
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:AGUA FRIA;CONEXAO:SOLDAVEL/ROSCAVEL;DIAMETRO/ROSCA:20MMX1/2BSP;ACESSORIO:C/BU CHA LATAO;DADOS EXTRAS:NORMA:NBR 5648
+quantidade: 500.0
+unidade: UN
+valor_unitario: 2.85
+valor_total: 1425.0
+pagina: 6
+linhas_origem: [18, 19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 14
+--------------------------------------------------------------------------------
+idx_item: 140
+codigo_interno_oc: 1116962
+descricao: ADESIVO PLASTICO P/PVC;CARACTERISTICA CONSTRUTIVA:RESINA AZUL;APRESENTACAO:EMBALAGEM 850G;DADOS EXTRAS:USO:TUBO.;FABRICANTE/REFERENCIA:AMANCO/99684
+quantidade: 25.0
+unidade: UN
+valor_unitario: 34.07
+valor_total: 851.75
+pagina: 6
+linhas_origem: [26, 27, 28, 29, 30, 31, 32, 33]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=SOLUCAO LIMPEZA PREPARADORA 1000ML
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 15
+--------------------------------------------------------------------------------
+idx_item: 150
+codigo_interno_oc: 1202594
+descricao: 
+quantidade: 25.0
+unidade: UN
+valor_unitario: 33.05
+valor_total: 826.25
+pagina: 6
+linhas_origem: [34]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - descricao_vazia_ou_nao_reconstruida
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:descricao_ausente
+  - validacao:total_confere
+
+ITEM 16
+--------------------------------------------------------------------------------
+idx_item: 160
+codigo_interno_oc: 1101510
+descricao: BUCHA REDUCAO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;TIPO CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:50X40MM;SERIE:NORMAL;CONSTRUCAO:LONGA;DADOS EXTRAS:NORMAS:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 1.26
+valor_total: 201.6
+pagina: 7
+linhas_origem: [21, 22, 23, 24, 25, 26, 27, 28]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 17
+--------------------------------------------------------------------------------
+idx_item: 170
+codigo_interno_oc: 1101526
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:45GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 320.0
+unidade: UN
+valor_unitario: 3.86
+valor_total: 1235.2
+pagina: 7
+linhas_origem: [29, 30, 31, 32, 33]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 18
+--------------------------------------------------------------------------------
+idx_item: 190
+codigo_interno_oc: 1101556
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMAS:NBR 7362/5688
+quantidade: 320.0
+unidade: UN
+valor_unitario: 1.51
+valor_total: 483.2
+pagina: 8
+linhas_origem: [18, 19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 19
+--------------------------------------------------------------------------------
+idx_item: 200
+codigo_interno_oc: 1101558
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 3.93
+valor_total: 628.8
+pagina: 8
+linhas_origem: [26, 27, 28, 29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 20
+--------------------------------------------------------------------------------
+idx_item: 210
+codigo_interno_oc: 1101578
+descricao: JUNCAO PVC RIGIDO SANEAMENTO;CONSTRUCAO:SIMPLES;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;BITOLA:100X100MM;ANGULO:45GR;DADOS EXTRAS:SERIE NORMAL;NORMA:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 13.73
+valor_total: 2196.8
+pagina: 9
+linhas_origem: [16, 17, 18, 19, 20, 21, 22, 23]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 21
+--------------------------------------------------------------------------------
+idx_item: 220
+codigo_interno_oc: 1101582
+descricao: JUNCAO PVC RIGIDO SANEAMENTO;CONSTRUCAO:SIMPLES;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;BITOLA:75X50MM;ANGULO:45GR;DADOS EXTRAS:SERIE NORMAL;NORMA:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 9.8
+valor_total: 1568.0
+pagina: 9
+linhas_origem: [24, 25, 26, 27, 28, 29, 30, 31]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 22
+--------------------------------------------------------------------------------
+idx_item: 230
+codigo_interno_oc: 1101584
+descricao: JUNCAO PVC RIGIDO SANEAMENTO;CONSTRUCAO:SIMPLES;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;BITOLA:100X50MM;ANGULO:45GR;DADOS EXTRAS:SERIE NORMAL;NORMA:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 9.55
+valor_total: 1528.0
+pagina: 9
+linhas_origem: [32, 33, 34]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 23
+--------------------------------------------------------------------------------
+idx_item: 250
+codigo_interno_oc: 1101592
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:40MM;SERIE:N ORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 160.0
+unidade: UN
+valor_unitario: 0.84
+valor_total: 134.4
+pagina: 10
+linhas_origem: [20, 21, 22, 23, 24, 25, 26, 27]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 24
+--------------------------------------------------------------------------------
+idx_item: 260
+codigo_interno_oc: 1101593
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:50MM;SERIE:N ORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 800.0
+unidade: UN
+valor_unitario: 1.02
+valor_total: 816.0
+pagina: 10
+linhas_origem: [28, 29, 30, 31, 32]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 25
+--------------------------------------------------------------------------------
+idx_item: 270
+codigo_interno_oc: 1101595
+descricao: LUVA PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:PONTA/BOLSA;DIAMETRO/ROSCA:100MM;SERIE: NORMAL;DADOS EXTRAS:MODELO:SIMPLES;NORMA:NBR 7362/5688
+quantidade: 320.0
+unidade: UN
+valor_unitario: 1.89
+valor_total: 604.8
+pagina: 11
+linhas_origem: [18, 19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 26
+--------------------------------------------------------------------------------
+idx_item: 280
+codigo_interno_oc: 1101619
+descricao: TE PVC RIGIDO PREDIAL;ANGULACAO:90GR;P/:ESGOTO;CONEXAO:SOLDAVEL/JUNTA ELASTICA;DIAMETRO/ROSCA:50X50MM;DADOS EXTRAS:NORMA:NBR 7362/5688;S/ROSCA;SERIE:NORMAL
+quantidade: 160.0
+unidade: UN
+valor_unitario: 3.86
+valor_total: 617.6
+pagina: 11
+linhas_origem: [26, 27, 28, 29, 30, 31, 32, 33]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 27
+--------------------------------------------------------------------------------
+idx_item: 290
+codigo_interno_oc: 1101634
+descricao: 
+quantidade: 100.0
+unidade: UN
+valor_unitario: 23.7
+valor_total: 2370.0
+pagina: 11
+linhas_origem: [34]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - descricao_vazia_ou_nao_reconstruida
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:descricao_ausente
+  - validacao:total_confere
+
+ITEM 28
+--------------------------------------------------------------------------------
+idx_item: 300
+codigo_interno_oc: 1101635
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:75MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE NORMAL;COR:BRANCA
+quantidade: 70.0
+unidade: UN
+valor_unitario: 37.49
+valor_total: 2624.3
+pagina: 12
+linhas_origem: [22, 23, 24, 25, 26, 27, 28, 29]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 29
+--------------------------------------------------------------------------------
+idx_item: 310
+codigo_interno_oc: 1101636
+descricao: TUBO PVC ESGOTO 6M 100MM (SERIE NORMAL) NBR 7362/5688
+quantidade: 170.0
+unidade: UN
+valor_unitario: 52.49
+valor_total: 8923.3
+pagina: 12
+linhas_origem: [30, 31, 32, 33, 34]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 30
+--------------------------------------------------------------------------------
+idx_item: 320
+codigo_interno_oc: 1104857
+descricao: JOELHO PVC RIGIDO PREDIAL;ANGULO:90GR;APLICACAO:ESGOTO;CONEXAO:ANEL INTEGRADO;DIAMETRO/ROSCA:40MM;SERIE:SERIE NORMAL;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 310.0
+unidade: UN
+valor_unitario: 2.71
+valor_total: 840.1
+pagina: 13
+linhas_origem: [18, 19, 20, 21, 22, 23, 24, 25]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 31
+--------------------------------------------------------------------------------
+idx_item: 330
+codigo_interno_oc: 1105557
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:100MM;SERIE:REFORCADA;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688
+quantidade: 40.0
+unidade: UN
+valor_unitario: 77.5
+valor_total: 3100.0
+pagina: 13
+linhas_origem: [26, 27, 28, 29, 30, 31]
+status_extracao: ok_com_ressalvas
+score_extracao: 0.8
+observacoes:
+  - bloco_interrompido_por_bloco_administrativo
+  - item_interrompido_por_bloco_administrativo
+  - validacao:total_confere
+
+ITEM 32
+--------------------------------------------------------------------------------
+idx_item: 340
+codigo_interno_oc: 1106144
+descricao: TUBO PVC RIGIDO PREDIAL;APLICACAO:ESGOTO;CONEXAO:JUNTA ELASTICA;DIAMETRO/ROSCA:40MM;COMPRIMENTO:6000MM;DADOS EXTRAS:NORMA:NBR 7362/5688;SERIE:NORMAL;COR:BRANCA
+quantidade: 100.0
+unidade: UN
+valor_unitario: 21.49
+valor_total: 2149.0
+pagina: 14
+linhas_origem: [17, 18, 19, 20, 21, 22, 23, 24]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
+
+ITEM 33
+--------------------------------------------------------------------------------
+idx_item: 350
+codigo_interno_oc: 1201157
+descricao: PASTA LUBRIFICANTE;BASE:ACIDO GRAXO;APLICACAO:TUBOS;APRESENTACAO:EMBALAGEM 1KG;DADOS EXTRAS:MATERIAL TUBO:PVC
+quantidade: 30.0
+unidade: UN
+valor_unitario: 20.77
+valor_total: 623.1
+pagina: 14
+linhas_origem: [25, 26, 27, 28, 29, 30, 31]
+status_extracao: ok
+score_extracao: 0.92
+observacoes:
+  - observacao_comercial_detectada
+  - texto_observacao=PASTA LUBRIFICANTE;ACID GRAX;TUB;EMB 1KG
+  - bloco_encerrado_por_separador
+  - validacao:total_confere
