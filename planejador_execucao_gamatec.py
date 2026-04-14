@@ -6,8 +6,11 @@ from typing import List, Dict, Any, Optional
 
 import pandas as pd
 
+from config import BASE_DIR
 
-PASTA_SAIDA = r"C:\robo_gamatec_oc\saida"
+
+# caminhos lidos do config, sem valor fixo no codigo
+PASTA_SAIDA = os.path.join(BASE_DIR, "saida")
 
 CAMINHOS_CANDIDATOS = [
     os.path.join(PASTA_SAIDA, "descontos_gamatec.csv"),

@@ -278,6 +278,14 @@
                             <span class="acoes-menu-item acoes-menu-item-info">✔ Já em Processados</span>
                           {% endif %}
 
+                          {% if item.tem_planilha %}
+                            <button class="acoes-menu-item acoes-menu-item-automacao"
+                              type="button"
+                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">
+                              🤖 Automação GAMATEC
+                            </button>
+                          {% endif %}
+
                           {% if not item.processando %}
                             <button class="acoes-menu-item acoes-menu-item-danger"
                               type="button"
@@ -362,6 +370,51 @@
       </section>
     </section>
   </section>
+
+  <!-- MÓDULO DE AUTOMAÇÃO GAMATEC -->
+  <div id="modal-automacao" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🤖 Automação GAMATEC</h2>
+        <button class="modal-fechar" onclick="fecharModalAutomacao()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="automacao-info-box" id="automacao-info-box">
+          <p>OC selecionada: <strong id="automacao-nome-oc">—</strong></p>
+          <p class="automacao-instrucao">
+            Antes de iniciar, certifique-se de que:<br>
+            1. A planilha desta OC já foi processada<br>
+            2. O GAMATEC está aberto na tela <strong>Recálculo de Mix</strong><br>
+            3. Os itens estão visíveis na tela
+          </p>
+        </div>
+
+        <div class="automacao-status-wrap" id="automacao-status-wrap" style="display:none;">
+          <div class="automacao-progresso">
+            <span id="automacao-status-label" class="automacao-status-label">Aguardando...</span>
+          </div>
+          <pre id="automacao-log" class="automacao-log-box">Aguardando início...</pre>
+        </div>
+
+        <div class="automacao-resultado-wrap" id="automacao-resultado-wrap" style="display:none;">
+          <div id="automacao-resumo-itens" class="automacao-resumo-itens"></div>
+          <p class="automacao-instrucao">Revise os itens acima e confirme se os descontos foram aplicados corretamente.</p>
+          <div class="automacao-acoes-finais">
+            <button class="ios-button primary" onclick="confirmarAutomacao()">✅ Confirmar e Fechar</button>
+            <button class="ios-button secondary" onclick="fecharModalAutomacao()">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" id="automacao-footer">
+        <button class="ios-button primary" id="btn-iniciar-automacao" onclick="iniciarAutomacao()">
+          ▶ Iniciar Automação
+        </button>
+        <button class="ios-button secondary" onclick="fecharModalAutomacao()">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

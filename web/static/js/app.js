@@ -854,6 +854,192 @@ function restaurarDestaqueAoCarregar() {
 }
 
 // =========================
+// AUTOMAÇÃO GAMATEC
+// =========================
+let automacaoOCAtual = null;
+let automacaoPollingId = null;
+
+function abrirModalAutomacao(nomeOC) {
+  automacaoOCAtual = nomeOC;
+
+  const modal = document.getElementById("modal-automacao");
+  const nomeEl = document.getElementById("automacao-nome-oc");
+  const infoBox = document.getElementById("automacao-info-box");
+  const statusWrap = document.getElementById("automacao-status-wrap");
+  const resultadoWrap = document.getElementById("automacao-resultado-wrap");
+  const footer = document.getElementById("automacao-footer");
+  const btnIniciar = document.getElementById("btn-iniciar-automacao");
+
+  if (nomeEl) nomeEl.textContent = nomeOC;
+  if (infoBox) infoBox.style.display = "";
+  if (statusWrap) statusWrap.style.display = "none";
+  if (resultadoWrap) resultadoWrap.style.display = "none";
+  if (footer) footer.style.display = "";
+  if (btnIniciar) {
+    btnIniciar.disabled = false;
+    btnIniciar.textContent = "▶ Iniciar Automação";
+  }
+
+  if (modal) modal.style.display = "flex";
+}
+
+function fecharModalAutomacao() {
+  pararPollingAutomacao();
+  const modal = document.getElementById("modal-automacao");
+  if (modal) modal.style.display = "none";
+  automacaoOCAtual = null;
+}
+
+function pararPollingAutomacao() {
+  if (automacaoPollingId) {
+    clearInterval(automacaoPollingId);
+    automacaoPollingId = null;
+  }
+}
+
+async function iniciarAutomacao() {
+  if (!automacaoOCAtual) return;
+
+  const btnIniciar = document.getElementById("btn-iniciar-automacao");
+  const infoBox = document.getElementById("automacao-info-box");
+  const statusWrap = document.getElementById("automacao-status-wrap");
+  const logEl = document.getElementById("automacao-log");
+  const statusLabel = document.getElementById("automacao-status-label");
+  const footer = document.getElementById("automacao-footer");
+
+  if (btnIniciar) {
+    btnIniciar.disabled = true;
+    btnIniciar.textContent = "Iniciando...";
+  }
+
+  try {
+    const resp = await fetch("/api/iniciar-automacao/" + encodeURIComponent(automacaoOCAtual), {
+      method: "POST",
+      cache: "no-store"
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      alert(data.mensagem || "Falha ao iniciar automação.");
+      if (btnIniciar) {
+        btnIniciar.disabled = false;
+        btnIniciar.textContent = "▶ Iniciar Automação";
+      }
+      return;
+    }
+
+    if (infoBox) infoBox.style.display = "none";
+    if (statusWrap) statusWrap.style.display = "";
+    if (footer) footer.style.display = "none";
+    if (logEl) logEl.textContent = "Automação iniciada. Aguardando resposta do GAMATEC...";
+    if (statusLabel) statusLabel.textContent = "🔄 Executando...";
+
+    automacaoPollingId = setInterval(consultarStatusAutomacao, 2000);
+
+  } catch (e) {
+    alert("Erro ao iniciar automação.");
+    if (btnIniciar) {
+      btnIniciar.disabled = false;
+      btnIniciar.textContent = "▶ Iniciar Automação";
+    }
+  }
+}
+
+async function consultarStatusAutomacao() {
+  if (!automacaoOCAtual) return;
+
+  try {
+    const resp = await fetch("/api/status-automacao/" + encodeURIComponent(automacaoOCAtual), {
+      cache: "no-store"
+    });
+    const data = await resp.json();
+
+    const logEl = document.getElementById("automacao-log");
+    const statusLabel = document.getElementById("automacao-status-label");
+
+    if (logEl && data.log) {
+      logEl.textContent = data.log;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    if (data.automatizando) {
+      if (statusLabel) statusLabel.textContent = "🔄 Executando...";
+      return;
+    }
+
+    // automação terminou
+    pararPollingAutomacao();
+
+    const status = data.status;
+
+    if (status && status.itens) {
+      exibirResultadoAutomacao(status);
+    } else {
+      if (statusLabel) statusLabel.textContent = "✅ Finalizado";
+      exibirResultadoSimples();
+    }
+
+  } catch (e) {
+    console.warn("Falha ao consultar status da automação.", e);
+  }
+}
+
+function exibirResultadoAutomacao(status) {
+  const statusWrap = document.getElementById("automacao-status-wrap");
+  const resultadoWrap = document.getElementById("automacao-resultado-wrap");
+  const resumoEl = document.getElementById("automacao-resumo-itens");
+  const statusLabel = document.getElementById("automacao-status-label");
+
+  if (statusLabel) statusLabel.textContent = "✅ Concluído — revise abaixo";
+  if (statusWrap) statusWrap.style.display = "";
+  if (resultadoWrap) resultadoWrap.style.display = "";
+
+  if (!resumoEl || !status.itens) return;
+
+  const itens = status.itens;
+  let html = '<table class="ios-table automacao-tabela-resultado"><thead><tr>';
+  html += '<th>Código</th><th>Descrição</th><th>Preço OC</th><th>Final GAMATEC</th><th>Desconto</th><th>Status</th>';
+  html += '</tr></thead><tbody>';
+
+  itens.forEach(function(item) {
+    const ok = item.status === "SUCESSO_VALIDADO" || item.status === "ITEM_OK_VALIDAR_E_SEGUIR";
+    const statusClass = ok ? "status-pill status-ok" : "status-pill status-warning";
+    const statusTexto = ok ? "✅ OK" : "⚠️ Revisar";
+
+    html += `<tr>
+      <td>${item.codigo || "—"}</td>
+      <td>${item.descricao || "—"}</td>
+      <td>R$ ${item.preco_alvo != null ? Number(item.preco_alvo).toFixed(2) : "—"}</td>
+      <td>R$ ${item.preco_final != null ? Number(item.preco_final).toFixed(2) : "—"}</td>
+      <td>${item.desconto != null ? Number(item.desconto).toFixed(2) + "%" : "—"}</td>
+      <td><span class="${statusClass}">${statusTexto}</span></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  resumoEl.innerHTML = html;
+}
+
+function exibirResultadoSimples() {
+  const resultadoWrap = document.getElementById("automacao-resultado-wrap");
+  const resumoEl = document.getElementById("automacao-resumo-itens");
+  if (resultadoWrap) resultadoWrap.style.display = "";
+  if (resumoEl) resumoEl.innerHTML = '<p class="automacao-instrucao">Automação finalizada. Verifique o log técnico para detalhes.</p>';
+}
+
+function confirmarAutomacao() {
+  fecharModalAutomacao();
+}
+
+// fechar modal clicando fora
+document.addEventListener("click", function(e) {
+  const modal = document.getElementById("modal-automacao");
+  if (modal && e.target === modal) {
+    fecharModalAutomacao();
+  }
+});
+
+// =========================
 // PAINEL DE OCs COM ERRO
 // =========================
 async function carregarPainelErros() {

@@ -30,6 +30,7 @@ except Exception:
 
 from percepcao_gamatec import PercepcaoGamatec, carregar_calibracao
 from agente_gamatec import AgenteGamatec, DecisaoAgente
+from config import BASE_DIR
 
 
 # =========================
@@ -83,7 +84,7 @@ class OrquestradorAgenteGamatec:
         self,
         calibracao: Dict[str, Any],
         debug: bool = True,
-        pasta_debug: str = r"C:\robo_gamatec_oc\saida",
+        pasta_debug: str = None,
         quantidade_linhas_visiveis: int = 12,
         max_scrolls_por_item: int = 20,
         max_releituras_por_item: int = 5,
@@ -92,7 +93,7 @@ class OrquestradorAgenteGamatec:
         pausa_longa: float = 0.60,
     ):
         self.debug = debug
-        self.pasta_debug = pasta_debug
+        self.pasta_debug = pasta_debug if pasta_debug is not None else os.path.join(BASE_DIR, "saida")
         os.makedirs(self.pasta_debug, exist_ok=True)
 
         self.quantidade_linhas_visiveis = quantidade_linhas_visiveis
@@ -681,7 +682,7 @@ class OrquestradorAgenteGamatec:
 # =========================
 
 if __name__ == "__main__":
-    caminho_calibracao = r"C:\robo_gamatec_oc\saida\calibracao_gamatec.json"
+    caminho_calibracao = os.path.join(BASE_DIR, "saida", "calibracao_gamatec.json")
 
     if not os.path.exists(caminho_calibracao):
         raise FileNotFoundError(f"Calibracao nao encontrada: {caminho_calibracao}")
@@ -691,7 +692,7 @@ if __name__ == "__main__":
     orquestrador = OrquestradorAgenteGamatec(
         calibracao=calibracao,
         debug=True,
-        pasta_debug=r"C:\robo_gamatec_oc\saida",
+        pasta_debug=os.path.join(BASE_DIR, "saida"),
         quantidade_linhas_visiveis=12,
         max_scrolls_por_item=20,
         max_releituras_por_item=5,

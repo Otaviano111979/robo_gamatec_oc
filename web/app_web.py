@@ -954,6 +954,119 @@ def alterar_senha_usuario(user_alvo):
 
 
 # =========================
+# AUTOMAÇÃO GAMATEC
+# =========================
+
+AUTOMACAO_ATIVA = {}
+LOCK_AUTOMACAO = threading.Lock()
+
+
+def status_automacao(nome_oc):
+    caminho = os.path.join(BASE_DIR, "saida", "ocs_individuais",
+                           nome_oc.replace(" ", "_").replace(".pdf", ""),
+                           "automacao_status.json")
+    if not os.path.exists(caminho):
+        return None
+    try:
+        with open(caminho, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def esta_automatizando(nome_oc):
+    with LOCK_AUTOMACAO:
+        proc = AUTOMACAO_ATIVA.get(nome_oc)
+        if not proc:
+            return False
+        if proc.poll() is None:
+            return True
+        del AUTOMACAO_ATIVA[nome_oc]
+        return False
+
+
+@app.route("/api/iniciar-automacao/<path:arquivo>", methods=["POST"])
+def api_iniciar_automacao(arquivo):
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    if esta_automatizando(arquivo):
+        return jsonify({"ok": False, "mensagem": "Automação já está em andamento para esta OC."}), 409
+
+    # localizar a planilha individual da OC
+    planilha = localizar_planilha_xlsx(arquivo)
+    if not planilha or not os.path.exists(planilha):
+        return jsonify({"ok": False, "mensagem": "Planilha desta OC não encontrada. Processe a OC primeiro."}), 404
+
+    script = os.path.join(BASE_DIR, "rodar_agente_gamatec_leitura.py")
+    if not os.path.exists(script):
+        return jsonify({"ok": False, "mensagem": "Script de automação não encontrado."}), 500
+
+    log_automacao = os.path.join(BASE_DIR, "web", "logs", f"automacao_{arquivo}.txt")
+
+    try:
+        log_handle = open(log_automacao, "w", encoding="utf-8", errors="ignore")
+        processo = subprocess.Popen(
+            ["python", script, "--planilha", planilha, "--oc", arquivo],
+            stdout=log_handle,
+            stderr=log_handle,
+            text=True
+        )
+
+        with LOCK_AUTOMACAO:
+            AUTOMACAO_ATIVA[arquivo] = processo
+
+        escrever_log(arquivo, f"[AUTOMAÇÃO] Iniciada para planilha: {planilha}")
+
+        return jsonify({
+            "ok": True,
+            "mensagem": "Automação iniciada.",
+            "arquivo": arquivo
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": f"Falha ao iniciar automação: {e}"}), 500
+
+
+@app.route("/api/status-automacao/<path:arquivo>")
+def api_status_automacao(arquivo):
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    automatizando = esta_automatizando(arquivo)
+    status = status_automacao(arquivo)
+
+    log_automacao = os.path.join(BASE_DIR, "web", "logs", f"automacao_{arquivo}.txt")
+    log_texto = ""
+    if os.path.exists(log_automacao):
+        try:
+            with open(log_automacao, "r", encoding="utf-8", errors="ignore") as f:
+                linhas = f.readlines()
+                log_texto = "".join(linhas[-50:]).strip()
+        except Exception:
+            log_texto = ""
+
+    return jsonify({
+        "ok": True,
+        "automatizando": automatizando,
+        "status": status,
+        "log": log_texto
+    })
+
+
+@app.route("/logs-automacao/<path:arquivo>")
+def logs_automacao(arquivo):
+    if not usuario_logado():
+        return "Acesso negado."
+
+    log_automacao = os.path.join(BASE_DIR, "web", "logs", f"automacao_{arquivo}.txt")
+    if not os.path.exists(log_automacao):
+        return "Sem logs de automação ainda."
+
+    with open(log_automacao, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+
+# =========================
 # PAINEL DE ERROS
 # =========================
 @app.route("/api/listar-erros")
