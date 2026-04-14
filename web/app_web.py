@@ -985,6 +985,174 @@ def esta_automatizando(nome_oc):
         return False
 
 
+# =========================
+# CALIBRAÇÃO VIA INTERFACE
+# =========================
+
+CALIBRACAO_EM_ANDAMENTO = {}
+CALIBRACAO_DADOS = {}
+LOCK_CALIBRACAO = threading.Lock()
+
+PONTOS_CALIBRACAO = [
+    {"id": "codigo_1",    "label": "Centro do CÓDIGO da PRIMEIRA linha"},
+    {"id": "codigo_2",    "label": "Centro do CÓDIGO da SEGUNDA linha"},
+    {"id": "desc",        "label": "Centro da DESCRIÇÃO da PRIMEIRA linha"},
+    {"id": "ult_preco",   "label": "Centro do campo ÚLT. PREÇO da PRIMEIRA linha"},
+    {"id": "final",       "label": "Centro do campo FINAL da PRIMEIRA linha"},
+    {"id": "desc_campo",  "label": "Centro do campo % DESC da PRIMEIRA linha"},
+    {"id": "scroll",      "label": "Ponto seguro da ÁREA DA GRADE para scroll"},
+]
+
+
+@app.route("/api/calibracao/pontos")
+def api_calibracao_pontos():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+    return jsonify({"ok": True, "pontos": PONTOS_CALIBRACAO})
+
+
+@app.route("/api/calibracao/capturar/<ponto_id>", methods=["POST"])
+def api_calibracao_capturar(ponto_id):
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    espera = int(request.json.get("espera", 3)) if request.is_json else 3
+
+    try:
+        import pyautogui
+
+        # aguarda o operador posicionar o mouse no GAMATEC
+        for i in range(espera, 0, -1):
+            time.sleep(1)
+
+        x, y = pyautogui.position()
+
+        with LOCK_CALIBRACAO:
+            if "pontos" not in CALIBRACAO_DADOS:
+                CALIBRACAO_DADOS["pontos"] = {}
+            CALIBRACAO_DADOS["pontos"][ponto_id] = {"x": x, "y": y}
+
+        return jsonify({
+            "ok": True,
+            "ponto_id": ponto_id,
+            "x": x,
+            "y": y,
+            "mensagem": f"Capturado: ({x}, {y})"
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": f"Erro ao capturar posição: {e}"}), 500
+
+
+@app.route("/api/calibracao/salvar", methods=["POST"])
+def api_calibracao_salvar():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    with LOCK_CALIBRACAO:
+        pontos = CALIBRACAO_DADOS.get("pontos", {})
+
+    ids_necessarios = [p["id"] for p in PONTOS_CALIBRACAO]
+    faltando = [pid for pid in ids_necessarios if pid not in pontos]
+
+    if faltando:
+        return jsonify({
+            "ok": False,
+            "mensagem": f"Pontos não capturados: {', '.join(faltando)}"
+        }), 400
+
+    try:
+        p = pontos
+
+        x_codigo_1 = p["codigo_1"]["x"]
+        y_codigo_1 = p["codigo_1"]["y"]
+        x_codigo_2 = p["codigo_2"]["x"]
+        y_codigo_2 = p["codigo_2"]["y"]
+
+        passo_linha = y_codigo_2 - y_codigo_1
+        if passo_linha <= 0:
+            return jsonify({
+                "ok": False,
+                "mensagem": "Passo de linha inválido. A segunda linha deve estar abaixo da primeira."
+            }), 400
+
+        calibracao = {
+            "x_codigo":           x_codigo_1 - 24,
+            "y_codigo_linha1":    y_codigo_1 - 14,
+            "y_codigo_linha2":    y_codigo_2 - 14,
+            "x_desc":             p["desc"]["x"] - 180,
+            "x_ult_preco":        p["ult_preco"]["x"] - 80,
+            "x_final":            p["final"]["x"] - 80,
+            "w_codigo": 95,  "h_codigo": 30,
+            "w_desc": 430,   "h_desc": 30,
+            "w_ult_preco": 170, "h_ult_preco": 30,
+            "w_final": 170,  "h_final": 30,
+            "offset_y_codigo": 0, "offset_y_desc": 0,
+            "offset_y_ult": 0,    "offset_y_final": 0,
+            "x_desc_campo":           p["desc_campo"]["x"],
+            "y_desc_campo_linha1":    p["desc_campo"]["y"],
+            "x_area_scroll":          p["scroll"]["x"],
+            "y_area_scroll":          p["scroll"]["y"],
+            "scroll_click_antes": True,
+            "scroll_quantidade": -650,
+            "separador_decimal_desconto": ".",
+            "casas_decimais_desconto": 2,
+            "usar_ctrl_a_para_limpar": True,
+            "confirmar_com_enter": True,
+            "duplo_clique_campo_desc": True,
+            "max_tentativas_aplicar_desconto": 2,
+            "max_varredura_linhas": 3,
+            "raio_x_codigo": 2, "raio_y_codigo": 2, "passo_busca_codigo": 2,
+            "raio_x_desc": 2,   "raio_y_desc": 2,   "passo_busca_desc": 2,
+            "raio_x_preco": 2,  "raio_y_preco": 2,  "passo_busca_preco": 2,
+            "max_variantes_codigo": 2, "max_variantes_desc": 1, "max_variantes_preco": 2,
+            "crop_left_codigo": 2,  "crop_top_codigo": 3,
+            "crop_right_codigo": 4, "crop_bottom_codigo": 3,
+            "crop_left_desc": 4,    "crop_top_desc": 3,
+            "crop_right_desc": 8,   "crop_bottom_desc": 3,
+            "crop_left_preco": 8,   "crop_top_preco": 3,
+            "crop_right_preco": 12, "crop_bottom_preco": 3,
+            "exigir_descricao_min_chars": 4,
+            "ancorar_com_descricao": True,
+            "ancorar_com_preco": True,
+            "log_ocr": False,
+        }
+
+        caminho = os.path.join(BASE_DIR, "saida", "calibracao_gamatec.json")
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(calibracao, f, ensure_ascii=False, indent=2)
+
+        # limpa dados temporários
+        with LOCK_CALIBRACAO:
+            CALIBRACAO_DADOS.clear()
+
+        return jsonify({
+            "ok": True,
+            "mensagem": "Calibração salva com sucesso!",
+            "passo_linha": passo_linha,
+            "caminho": caminho
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": f"Erro ao salvar calibração: {e}"}), 500
+
+
+@app.route("/api/calibracao/resetar", methods=["POST"])
+def api_calibracao_resetar():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    with LOCK_CALIBRACAO:
+        CALIBRACAO_DADOS.clear()
+
+    caminho = os.path.join(BASE_DIR, "saida", "calibracao_gamatec.json")
+    if os.path.exists(caminho):
+        os.remove(caminho)
+
+    return jsonify({"ok": True, "mensagem": "Calibração resetada."})
+
+
 @app.route("/api/verificar-calibracao")
 def api_verificar_calibracao():
     if not usuario_logado():

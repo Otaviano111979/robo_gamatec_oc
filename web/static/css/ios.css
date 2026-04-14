@@ -1100,6 +1100,108 @@ tr.oc-row-archived td {
 }
 
 /* =========================
+   MODAL DE CALIBRAÇÃO
+========================= */
+.calib-progresso {
+  margin-bottom: 16px;
+}
+
+.calib-progresso-label {
+  font-size: 13px;
+  color: var(--subtext);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.calib-barra-wrap {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.calib-barra {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.calib-instrucao-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.calib-numero {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 6px 0;
+}
+
+.calib-descricao {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+}
+
+.calib-dica {
+  font-size: 13px;
+  color: var(--subtext);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.calib-feedback {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.calib-feedback-aguardando {
+  background: rgba(255, 159, 10, 0.12);
+  border: 1px solid rgba(255, 159, 10, 0.35);
+  color: #b07000;
+}
+
+.calib-feedback-ok {
+  background: rgba(48, 209, 88, 0.12);
+  border: 1px solid rgba(48, 209, 88, 0.35);
+  color: #1a7a34;
+}
+
+.calib-feedback-erro {
+  background: rgba(255, 59, 48, 0.10);
+  border: 1px solid rgba(255, 59, 48, 0.30);
+  color: #c0392b;
+}
+
+.dark .calib-feedback-aguardando { color: #ffd60a; }
+.dark .calib-feedback-ok  { color: #30d158; }
+.dark .calib-feedback-erro { color: #ff453a; }
+
+.calib-acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.calib-resumo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+/* =========================
    MODAL DE AUTOMAÇÃO
 ========================= */
 .modal-overlay {

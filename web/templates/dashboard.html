@@ -371,6 +371,78 @@
     </section>
   </section>
 
+  <!-- MODAL DE CALIBRAÇÃO -->
+  <div id="modal-calibracao" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🎯 Calibração do GAMATEC</h2>
+        <button class="modal-fechar" onclick="fecharModalCalibracao()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- INTRO -->
+        <div id="calib-intro" class="">
+          <p class="automacao-instrucao" style="margin-bottom:14px;">
+            A calibração captura as coordenadas dos campos na tela do GAMATEC.<br>
+            Você posiciona o mouse em cada ponto indicado e clica em <strong>Capturar</strong>.<br>
+            <strong>Precisa ser feita apenas uma vez</strong> — fica salva para uso futuro.
+          </p>
+          <div class="flash-msg flash-ok" style="margin-bottom:14px;">
+            ✅ Antes de começar: abra o GAMATEC na tela <strong>Itens com Mix</strong> e deixe a grade visível.
+          </div>
+          <button class="ios-button primary" onclick="iniciarCalibracao()">▶ Iniciar Calibração</button>
+          <button class="ios-button secondary" onclick="fecharModalCalibracao()" style="margin-left:8px;">Cancelar</button>
+        </div>
+
+        <!-- PASSO A PASSO -->
+        <div id="calib-passo" style="display:none;">
+          <div class="calib-progresso">
+            <span id="calib-progresso-label">Ponto 1 de 7</span>
+            <div class="calib-barra-wrap">
+              <div class="calib-barra" id="calib-barra"></div>
+            </div>
+          </div>
+
+          <div class="calib-instrucao-box" id="calib-instrucao-box">
+            <p class="calib-numero" id="calib-numero">Ponto 1</p>
+            <p class="calib-descricao" id="calib-descricao">—</p>
+            <p class="calib-dica">
+              Posicione o mouse no ponto indicado na tela do GAMATEC.<br>
+              Quando estiver posicionado, clique em <strong>Capturar</strong>.<br>
+              Você terá <strong>3 segundos</strong> após clicar para posicionar o mouse.
+            </p>
+          </div>
+
+          <div id="calib-feedback" class="calib-feedback" style="display:none;"></div>
+
+          <div class="calib-acoes">
+            <button class="ios-button primary" id="btn-capturar" onclick="capturarPonto()">
+              🎯 Capturar
+            </button>
+            <button class="ios-button secondary" onclick="fecharModalCalibracao()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- CONCLUÍDO -->
+        <div id="calib-concluido" style="display:none;">
+          <div class="flash-msg flash-ok" style="margin-bottom:16px;">
+            ✅ Calibração concluída com sucesso! O sistema está pronto para automação.
+          </div>
+          <div id="calib-resumo-pontos" class="calib-resumo"></div>
+          <div style="margin-top:16px; display:flex; gap:10px;">
+            <button class="ios-button primary" onclick="fecharCalibracaoEAbrirAutomacao()">
+              ▶ Iniciar Automação agora
+            </button>
+            <button class="ios-button secondary" onclick="fecharModalCalibracao()">Fechar</button>
+            <button class="ios-button danger ghost" onclick="resetarCalibracao()">Recalibrar</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- MÓDULO DE AUTOMAÇÃO GAMATEC -->
   <div id="modal-automacao" class="modal-overlay" style="display:none;">
     <div class="modal-box">

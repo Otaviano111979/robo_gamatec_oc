@@ -854,6 +854,196 @@ function restaurarDestaqueAoCarregar() {
 }
 
 // =========================
+// CALIBRAÇÃO VIA INTERFACE
+// =========================
+let calibracaoPontos = [];
+let calibracaoIndiceAtual = 0;
+let calibracaoOCPendente = null;
+
+function abrirModalCalibracao(ocPendente) {
+  calibracaoOCPendente = ocPendente || null;
+  calibracaoIndiceAtual = 0;
+  calibracaoPontos = [];
+
+  const modal = document.getElementById("modal-calibracao");
+  document.getElementById("calib-intro").style.display = "";
+  document.getElementById("calib-passo").style.display = "none";
+  document.getElementById("calib-concluido").style.display = "none";
+
+  if (modal) modal.style.display = "flex";
+}
+
+function fecharModalCalibracao() {
+  const modal = document.getElementById("modal-calibracao");
+  if (modal) modal.style.display = "none";
+}
+
+function fecharCalibracaoEAbrirAutomacao() {
+  fecharModalCalibracao();
+  if (calibracaoOCPendente) {
+    abrirModalAutomacao(calibracaoOCPendente);
+  }
+}
+
+async function iniciarCalibracao() {
+  try {
+    const resp = await fetch("/api/calibracao/pontos", { cache: "no-store" });
+    const data = await resp.json();
+    calibracaoPontos = data.pontos || [];
+    calibracaoIndiceAtual = 0;
+
+    document.getElementById("calib-intro").style.display = "none";
+    document.getElementById("calib-passo").style.display = "";
+
+    mostrarPassoCalibracao();
+  } catch (e) {
+    alert("Erro ao carregar pontos de calibração.");
+  }
+}
+
+function mostrarPassoCalibracao() {
+  const ponto = calibracaoPontos[calibracaoIndiceAtual];
+  const total = calibracaoPontos.length;
+  const numero = calibracaoIndiceAtual + 1;
+
+  document.getElementById("calib-numero").textContent = `Ponto ${numero} de ${total}`;
+  document.getElementById("calib-descricao").textContent = ponto.label;
+  document.getElementById("calib-progresso-label").textContent = `Ponto ${numero} de ${total}`;
+
+  const pct = ((calibracaoIndiceAtual) / total) * 100;
+  document.getElementById("calib-barra").style.width = pct + "%";
+
+  const feedback = document.getElementById("calib-feedback");
+  feedback.style.display = "none";
+  feedback.textContent = "";
+
+  const btn = document.getElementById("btn-capturar");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "🎯 Capturar";
+  }
+}
+
+async function capturarPonto() {
+  const ponto = calibracaoPontos[calibracaoIndiceAtual];
+  const btn = document.getElementById("btn-capturar");
+  const feedback = document.getElementById("calib-feedback");
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Aguarde 3s... posicione o mouse!";
+  }
+
+  if (feedback) {
+    feedback.style.display = "";
+    feedback.className = "calib-feedback calib-feedback-aguardando";
+    feedback.textContent = "⏳ Posicione o mouse no ponto indicado no GAMATEC...";
+  }
+
+  try {
+    const resp = await fetch(`/api/calibracao/capturar/${ponto.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ espera: 3 }),
+      cache: "no-store"
+    });
+
+    const data = await resp.json();
+
+    if (!data.ok) {
+      if (feedback) {
+        feedback.className = "calib-feedback calib-feedback-erro";
+        feedback.textContent = "❌ " + data.mensagem;
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "🎯 Tentar novamente";
+      }
+      return;
+    }
+
+    if (feedback) {
+      feedback.className = "calib-feedback calib-feedback-ok";
+      feedback.textContent = `✅ Capturado: (${data.x}, ${data.y})`;
+    }
+
+    // avança para o próximo ponto após 1 segundo
+    setTimeout(() => {
+      calibracaoIndiceAtual++;
+
+      if (calibracaoIndiceAtual >= calibracaoPontos.length) {
+        salvarCalibracao();
+      } else {
+        mostrarPassoCalibracao();
+      }
+    }, 1000);
+
+  } catch (e) {
+    if (feedback) {
+      feedback.className = "calib-feedback calib-feedback-erro";
+      feedback.textContent = "❌ Erro ao capturar ponto.";
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🎯 Tentar novamente";
+    }
+  }
+}
+
+async function salvarCalibracao() {
+  document.getElementById("calib-passo").style.display = "none";
+
+  try {
+    const resp = await fetch("/api/calibracao/salvar", {
+      method: "POST",
+      cache: "no-store"
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      alert("Erro ao salvar calibração: " + data.mensagem);
+      document.getElementById("calib-passo").style.display = "";
+      return;
+    }
+
+    // mostra tela de concluído
+    document.getElementById("calib-concluido").style.display = "";
+
+    const resumo = document.getElementById("calib-resumo-pontos");
+    if (resumo) {
+      resumo.innerHTML = `
+        <p style="font-size:13px; color:var(--subtext);">
+          ✔ ${calibracaoPontos.length} pontos capturados<br>
+          ✔ Passo de linha: ${data.passo_linha}px<br>
+          ✔ Arquivo salvo em: saida/calibracao_gamatec.json
+        </p>`;
+    }
+
+    // atualiza botão do modal de automação se estiver aberto
+    const btnIniciar = document.getElementById("btn-iniciar-automacao");
+    if (btnIniciar) {
+      btnIniciar.disabled = false;
+      btnIniciar.textContent = "▶ Iniciar Automação";
+    }
+
+  } catch (e) {
+    alert("Erro ao salvar calibração.");
+    document.getElementById("calib-passo").style.display = "";
+  }
+}
+
+async function resetarCalibracao() {
+  if (!confirm("Resetar a calibração? Você precisará refazer o processo.")) return;
+
+  try {
+    await fetch("/api/calibracao/resetar", { method: "POST", cache: "no-store" });
+    abrirModalCalibracao(calibracaoOCPendente);
+  } catch (e) {
+    alert("Erro ao resetar calibração.");
+  }
+}
+
+// =========================
 // AUTOMAÇÃO GAMATEC
 // =========================
 let automacaoOCAtual = null;
@@ -897,13 +1087,14 @@ async function verificarCalibracao() {
       if (btnIniciar) {
         btnIniciar.disabled = true;
         btnIniciar.textContent = "⚠️ Calibração necessária";
-        btnIniciar.title = "Execute calibrar_gamatec.py no terminal antes de usar a automação.";
       }
       if (infoBox) {
         const aviso = document.createElement("div");
         aviso.className = "flash-msg flash-erro";
         aviso.style.marginTop = "10px";
-        aviso.innerHTML = "⚠️ Calibração não encontrada.<br>Execute <strong>python calibrar_gamatec.py</strong> no terminal uma vez antes de usar a automação.";
+        aviso.innerHTML = `⚠️ Calibração não encontrada.
+          <br><button class="ios-button small primary" style="margin-top:8px;"
+            onclick="abrirModalCalibracao()">🎯 Calibrar agora</button>`;
         infoBox.appendChild(aviso);
       }
     }
