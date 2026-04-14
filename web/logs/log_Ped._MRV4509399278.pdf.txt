@@ -47,3 +47,4 @@ PROCESSAMENTO FINALIZADO COM SUCESSO.
 [WEB] Processo finalizado com SUCESSO em 4s (returncode=0).
 [WEB] PDF localizado em processados.
 [AUTOMAÇÃO] Iniciada para planilha: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.xlsx
+[AUTOMAÇÃO] Iniciada para planilha: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.xlsx
