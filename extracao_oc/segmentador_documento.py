@@ -70,6 +70,26 @@ PADRAO_RODAPE_UAU = re.compile(
 
 PADRAO_CONTINUACAO_UAU = re.compile(r"^\d{1,4}$")
 
+# ================================================================
+# FORMATO BRASAL/CLOSER
+# Ex: "8926 TUBO PVC ESGOTO SERIE R DN100MM M 66,000 14,55000 960,30"
+# Código sem ponto (já limpo), descrição, unidade, qtd, preço, total
+# ================================================================
+PADRAO_INICIO_ITEM_BRASAL = re.compile(
+    r"^\d{4,5}\s+\S.+?\s+(?:RL|UN|UND|M|MT|BR|BAR|PC|PCS|CX|KG|LT?)\s+[\d.,]+\s+[\d.,]+\s+[\d.,]+$",
+    re.IGNORECASE
+)
+
+PADRAO_CABECALHO_BRASAL = re.compile(
+    r"c[oó]digo\s+quantidade\s+unidade",
+    re.IGNORECASE
+)
+
+PADRAO_RODAPE_BRASAL = re.compile(
+    r"base\s+calc|valor\s+do\s+frete|total\s+bruto|total\s+pedido|prazo\s+limite|cond\.\s+pagto|observa|condi[cç][oõ]es\s+gerais|autorizo\s+conforme",
+    re.IGNORECASE
+)
+
 PADRAO_DATA_QTD = re.compile(
     r"^\d{2}/\d{2}/\d{4}\s+\d[\d.,]*$"
 )
@@ -116,6 +136,9 @@ def detectar_formato_documento(linhas: List[LinhaDocumento]) -> str:
 
         if "UAU!" in texto_upper or "ORDEM DE COMPRA" in texto_upper and "ITEM" in texto_upper:
             votos_uau += 1
+
+        if "KRONA/KRONA" in texto_upper:
+            votos_uau += 3  # Brasal/Closer usa KRONA/KRONA como marcador — detectado como UAU inicialmente
 
     if votos_uau > votos_krona and votos_uau > votos_mrv:
         return "UAU"

@@ -6,6 +6,8 @@ from rapidfuzz import fuzz as rapidfuzz_fuzz
 from config import CAMINHO_BASE_KRONA_FINAL, BASE_DIR
 from base_mrv_loader import carregar_base_mrv
 from matcher_mrv import match_por_codigo_mrv
+from base_brasal_loader import carregar_base_brasal
+from matcher_brasal import match_por_codigo_brasal
 from regra_quantidade import ajustar_quantidade_tubo
 
 
@@ -408,12 +410,15 @@ def score_total(item, cand):
 # MATCH PRINCIPAL
 # ============================================================
 
-def match_item_oc(item, base_krona=None, indice_mrv=None):
+def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     if base_krona is None:
         base_krona = carregar_base_krona()
 
     if indice_mrv is None:
         indice_mrv = carregar_indice_mrv()
+
+    if indice_brasal is None:
+        indice_brasal = carregar_base_brasal()
 
     # =========================================================
     # PRIORIDADE 1 — MRV
@@ -445,6 +450,16 @@ def match_item_oc(item, base_krona=None, indice_mrv=None):
                 "diametro_krona_mm": obter_diametro_krona(cadastro),
                 "comprimento_krona_m": obter_comprimento_krona(cadastro),
             }
+
+    # =========================================================
+    # PRIORIDADE 1.5 — BRASAL
+    # Match direto por código Brasal usando tabela DE/PARA
+    # Equivalente ao MRV mas para OCs da Brasal/Closer
+    # =========================================================
+    if indice_brasal:
+        match_brasal = match_por_codigo_brasal(item, indice_brasal)
+        if match_brasal:
+            return match_brasal
 
     # =========================================================
     # PRIORIDADE 2 — MATCH POR DESCRICAO
@@ -526,19 +541,22 @@ def match_item_oc(item, base_krona=None, indice_mrv=None):
 # LOTE + REGRA DE QUANTIDADE
 # ============================================================
 
-def match_lote_itens(df_oc, base_krona=None, indice_mrv=None):
+def match_lote_itens(df_oc, base_krona=None, indice_mrv=None, indice_brasal=None):
     if base_krona is None:
         base_krona = carregar_base_krona()
 
     if indice_mrv is None:
         indice_mrv = carregar_indice_mrv()
 
+    if indice_brasal is None:
+        indice_brasal = carregar_base_brasal()
+
     resultados = []
 
     for _, row in df_oc.iterrows():
         item = row.to_dict()
 
-        resultado = match_item_oc(item, base_krona, indice_mrv)
+        resultado = match_item_oc(item, base_krona, indice_mrv, indice_brasal)
 
         final = {**item, **resultado}
 
