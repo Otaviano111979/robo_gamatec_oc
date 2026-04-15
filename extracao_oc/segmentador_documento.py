@@ -41,6 +41,35 @@ PADRAO_CONTINUACAO_KRONA = re.compile(
 # Lixo de codificação do pdfplumber em PDFs Krona
 PADRAO_LIXO_CID = re.compile(r"\(cid:\d+\)")
 
+# ================================================================
+# FORMATO UAU (GPL / outros clientes)
+# Gerado pelo sistema UAU! Software de Automação e Gestão Empresarial
+# Ex: "1 FITA VEDA ROSCA 18X50MT RL 20,000000 5,082000 101,64"
+# ================================================================
+_UN = r"(?:RL|UN|UND|M\b|MT|BR|BAR|PC|PCS|CX|KG|L\b|LT)"
+
+PADRAO_INICIO_ITEM_UAU = re.compile(
+    r"^\d{1,4}\s+\S.+?\s+" + _UN + r"\s+[\d.,]+\s+[\d.,]+\s+[\d.,]+$",
+    re.IGNORECASE
+)
+
+PADRAO_INICIO_ITEM_UAU_QUEBRADO = re.compile(
+    r"^\d{1,4}\s+\S.+?\s+" + _UN + r"\s+[\d.,]+$",
+    re.IGNORECASE
+)
+
+PADRAO_CABECALHO_UAU = re.compile(
+    r"item\s+descri",
+    re.IGNORECASE
+)
+
+PADRAO_RODAPE_UAU = re.compile(
+    r"total\s+ipi|total\s+icms|total\s+itens|total\s+geral|total\s+l[ií]quido|aprova|uau!\s+software",
+    re.IGNORECASE
+)
+
+PADRAO_CONTINUACAO_UAU = re.compile(r"^\d{1,4}$")
+
 PADRAO_DATA_QTD = re.compile(
     r"^\d{2}/\d{2}/\d{4}\s+\d[\d.,]*$"
 )
@@ -58,6 +87,8 @@ def detectar_formato_documento(linhas: List[LinhaDocumento]) -> str:
     votos_mrv = 0
     votos_krona = 0
 
+    votos_uau = 0
+
     for linha in linhas[:60]:
         texto = linha.texto_normalizado.strip()
 
@@ -67,8 +98,14 @@ def detectar_formato_documento(linhas: List[LinhaDocumento]) -> str:
         if PADRAO_INICIO_ITEM_KRONA.match(texto):
             votos_krona += 2
 
+        if PADRAO_INICIO_ITEM_UAU.match(texto) or PADRAO_INICIO_ITEM_UAU_QUEBRADO.match(texto):
+            votos_uau += 2
+
         if PADRAO_CABECALHO_KRONA.search(texto):
             votos_krona += 1
+
+        if PADRAO_CABECALHO_UAU.search(texto):
+            votos_uau += 1
 
         texto_upper = texto.upper()
         if "NCM" in texto_upper and "ITEM" in texto_upper and "QUANTIDADE" in texto_upper:
@@ -77,6 +114,11 @@ def detectar_formato_documento(linhas: List[LinhaDocumento]) -> str:
         if "PEDIDO DE COMPRA" in texto_upper and "INSUMO" in texto_upper:
             votos_krona += 1
 
+        if "UAU!" in texto_upper or "ORDEM DE COMPRA" in texto_upper and "ITEM" in texto_upper:
+            votos_uau += 1
+
+    if votos_uau > votos_krona and votos_uau > votos_mrv:
+        return "UAU"
     if votos_krona > votos_mrv:
         return "KRONA"
     if votos_mrv > 0:
@@ -244,6 +286,86 @@ def classificar_linha_krona(linha: LinhaDocumento) -> LinhaDocumento:
     return linha
 
 
+def classificar_linha_uau(linha: LinhaDocumento) -> LinhaDocumento:
+    """Classificação para o formato UAU (GPL Incorporadora e similares)."""
+    texto = linha.texto_normalizado.strip()
+    texto_upper = texto.upper()
+
+    if not texto:
+        linha.classe = "RUIDO"
+        linha.score = 0.0
+        linha.motivos.append("linha_vazia")
+        return linha
+
+    # rodapé — totais, aprovação, assinatura
+    if PADRAO_RODAPE_UAU.search(texto):
+        linha.classe = "BLOCO_ADMINISTRATIVO"
+        linha.score = 0.95
+        linha.motivos.append("rodape_uau")
+        return linha
+
+    # cabeçalho da tabela
+    if PADRAO_CABECALHO_UAU.search(texto):
+        linha.classe = "CABECALHO_PAGINA"
+        linha.score = 0.95
+        linha.motivos.append("cabecalho_tabela_uau")
+        return linha
+
+    # blocos administrativos do topo do documento
+    if (
+        texto_upper.startswith("RIO VERDE")
+        or texto_upper.startswith("ORDEM DE COMPRA")
+        or texto_upper.startswith("CNO:")
+        or texto_upper.startswith("GEROU O.C.")
+        or texto_upper.startswith("FATURAR PARA")
+        or texto_upper.startswith("FORNECEDOR:")
+        or texto_upper.startswith("CNPJ")
+        or texto_upper.startswith("INSC.")
+        or texto_upper.startswith("CONDIÇÕES")
+        or texto_upper.startswith("CONDICOES")
+        or texto_upper.startswith("RUA ")
+        or texto_upper.startswith("CEP")
+        or texto_upper.startswith("E-MAIL")
+        or texto_upper.startswith("OBSERVA")
+        or texto_upper.startswith("DEPT.")
+        or texto_upper.startswith("DIRETORIA")
+        or "UAU! SOFTWARE" in texto_upper
+        or "PÁGINA" in texto_upper
+        or "PAGINA" in texto_upper
+    ):
+        linha.classe = "BLOCO_ADMINISTRATIVO"
+        linha.score = 0.9
+        linha.motivos.append("linha_administrativa_uau")
+        return linha
+
+    # item completo em uma linha
+    if PADRAO_INICIO_ITEM_UAU.match(texto):
+        linha.classe = "INICIO_ITEM"
+        linha.score = 0.97
+        linha.motivos.append("padrao_forte_inicio_item_uau")
+        return linha
+
+    # item com quantidade quebrada — ex: "6 FVM - TUBO PVC SOLDAVEL 25MM 6MT - NBR 5648 M 3.000,0000"
+    if PADRAO_INICIO_ITEM_UAU_QUEBRADO.match(texto):
+        linha.classe = "INICIO_ITEM"
+        linha.score = 0.90
+        linha.motivos.append("inicio_item_uau_quebrado")
+        return linha
+
+    # continuação de quantidade quebrada — ex: "00" ou "0"
+    if PADRAO_CONTINUACAO_UAU.match(texto):
+        linha.classe = "DESCRICAO_ITEM"
+        linha.score = 0.80
+        linha.motivos.append("continuacao_quantidade_uau")
+        return linha
+
+    # qualquer outra linha — ruído administrativo
+    linha.classe = "RUIDO"
+    linha.score = 0.1
+    linha.motivos.append("ruido_uau")
+    return linha
+
+
 def classificar_linhas_documento(linhas: List[LinhaDocumento]) -> List[LinhaDocumento]:
     """
     Detecta automaticamente o formato do documento e aplica
@@ -254,7 +376,9 @@ def classificar_linhas_documento(linhas: List[LinhaDocumento]) -> List[LinhaDocu
     for linha in linhas:
         linha.motivos.append(f"formato_detectado={formato}")
 
-        if formato == "KRONA":
+        if formato == "UAU":
+            classificar_linha_uau(linha)
+        elif formato == "KRONA":
             classificar_linha_krona(linha)
         else:
             # MRV é o padrão — também usado para DESCONHECIDO como melhor esforço

@@ -32,6 +32,28 @@ PADRAO_INICIO_ITEM_KRONA = re.compile(
     re.IGNORECASE
 )
 
+# Formato UAU: idx descricao unidade quantidade preco_unit total
+# Ex: 1 FITA VEDA ROSCA 18X50MT RL 20,000000 5,082000 101,64
+_UNIDADES_UAU = r"(?:RL|UN|UND|M|MT|BR|BAR|PC|PCS|CX|KG|LT?)"
+PADRAO_INICIO_ITEM_UAU = re.compile(
+    r"^(?P<idx>\d{1,4})\s+"
+    r"(?P<descricao>.+?)\s+"
+    r"(?P<unidade>" + _UNIDADES_UAU + r")\s+"
+    r"(?P<quantidade>[\d.,]+)\s+"
+    r"(?P<valor_unitario>[\d.,]+)\s+"
+    r"(?P<valor_total>[\d.,]+)$",
+    re.IGNORECASE
+)
+
+# Formato UAU com quantidade quebrada (sem total no final)
+PADRAO_INICIO_ITEM_UAU_QUEBRADO = re.compile(
+    r"^(?P<idx>\d{1,4})\s+"
+    r"(?P<descricao>.+?)\s+"
+    r"(?P<unidade>" + _UNIDADES_UAU + r")\s+"
+    r"(?P<quantidade_parcial>[\d.,]+)$",
+    re.IGNORECASE
+)
+
 
 def numero_brasileiro_para_float(texto: str) -> Optional[float]:
     if not texto:
@@ -126,6 +148,7 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
 
     # tenta formato MRV primeiro
     match = PADRAO_INICIO_ITEM.match(texto_inicio)
+    # (bloco disponivel para formatos que precisam de linhas de continuacao, ex: UAU)
 
     if match:
         item.idx_item = int(match.group("idx"))
@@ -156,14 +179,76 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
 
             item.observacoes.append("formato_krona")
         else:
-            item.status_extracao = "falhou"
-            item.observacoes.append("regex_inicio_item_nao_casou_mrv_nem_krona")
-            return item
+            # tenta formato UAU
+            match_uau = PADRAO_INICIO_ITEM_UAU.match(texto_inicio)
+            match_uau_q = PADRAO_INICIO_ITEM_UAU_QUEBRADO.match(texto_inicio) if not match_uau else None
+
+            if match_uau:
+                item.idx_item    = int(match_uau.group("idx"))
+                item.codigo_interno_oc = match_uau.group("idx")
+                item.quantidade  = numero_brasileiro_para_float(match_uau.group("quantidade"))
+                item.unidade_original   = match_uau.group("unidade")
+                item.unidade_normalizada = match_uau.group("unidade").upper()
+                item.valor_unitario = numero_brasileiro_para_float(match_uau.group("valor_unitario"))
+                item.valor_total    = numero_brasileiro_para_float(match_uau.group("valor_total"))
+                # descricao vem diretamente do grupo capturado pelo regex
+                desc = match_uau.group("descricao").strip()
+                item.descricao_original     = desc
+                item.descricao_reconstruida = desc
+                item.observacoes.append("formato_uau")
+
+            elif match_uau_q:
+                # linha com quantidade quebrada — precisa juntar com a proxima linha
+                item.idx_item = int(match_uau_q.group("idx"))
+                item.codigo_interno_oc = match_uau_q.group("idx")
+                item.unidade_original = match_uau_q.group("unidade")
+                item.unidade_normalizada = match_uau_q.group("unidade").upper()
+
+                # descricao vem do grupo capturado pelo regex
+                desc_q = match_uau_q.group("descricao").strip()
+                item.descricao_original     = desc_q
+                item.descricao_reconstruida = desc_q
+
+                # tenta reconstruir quantidade juntando com linhas de continuacao do bloco
+                # ex: linha principal tem "3.000,0000" e continuacao tem "00" → "3.000,000000"
+                qtd_parcial = match_uau_q.group("quantidade_parcial")
+                continuacoes = [
+                    l.texto_normalizado.strip()
+                    for l in bloco.linhas
+                    if l.classe == "DESCRICAO_ITEM"
+                    and re.match(r"^\d{1,4}$", l.texto_normalizado.strip())
+                ]
+                if continuacoes:
+                    qtd_texto = qtd_parcial + continuacoes[0]
+                    item.quantidade = numero_brasileiro_para_float(qtd_texto)
+                else:
+                    item.quantidade = numero_brasileiro_para_float(qtd_parcial)
+
+                item.observacoes.append("formato_uau_quebrado")
+                item.observacoes.append("quantidade_reconstruida_da_quebra")
+
+            else:
+                item.status_extracao = "falhou"
+                item.observacoes.append("regex_inicio_item_nao_casou_mrv_nem_krona_nem_uau")
+                return item
 
     descricao_partes, observacao_partes = separar_descricao_e_observacao(bloco)
 
-    item.descricao_original = montar_texto_unico(descricao_partes)
-    item.descricao_reconstruida = item.descricao_original
+    # para formatos que ja extrairam a descricao diretamente do regex (UAU),
+    # nao sobrescreve com o resultado do separador que seria vazio
+    formato_atual = next(
+        (obs.replace("formato_", "") for obs in item.observacoes if obs.startswith("formato_")),
+        None
+    )
+
+    if formato_atual in ("uau", "uau_quebrado"):
+        # descricao ja foi atribuida pelo regex — apenas complementa se tiver partes extras
+        if not item.descricao_reconstruida:
+            item.descricao_original = montar_texto_unico(descricao_partes)
+            item.descricao_reconstruida = item.descricao_original
+    else:
+        item.descricao_original = montar_texto_unico(descricao_partes)
+        item.descricao_reconstruida = item.descricao_original
 
     item.score_extracao = 0.85
     item.status_extracao = "ok"
