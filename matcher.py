@@ -106,6 +106,230 @@ def obter_comprimento_krona(c):
 
 
 # ============================================================
+# MATCH POR DESCRICAO — para clientes sem tabela DE/PARA
+# ============================================================
+
+_PREFIXOS_RUIDO = re.compile(
+    r"^\s*(?:FVM|FV|REF|COD|PROD|MAT|ART|ITEM)\s*[-:]\s*",
+    re.IGNORECASE
+)
+
+_NORMAS = re.compile(
+    r"\s*[-\u2013]?\s*NBR\s*\d+",
+    re.IGNORECASE
+)
+
+
+def limpar_descricao_para_match(descricao):
+    texto = str(descricao or "").upper().strip()
+    texto = _PREFIXOS_RUIDO.sub("", texto)
+    texto = _NORMAS.sub("", texto)
+    texto = re.sub(r"[;/|]+", " ", texto)
+    texto = re.sub(r"\s+", " ", texto).strip()
+    return texto
+
+
+def extrair_diametro_da_descricao(descricao):
+    texto = str(descricao or "").upper()
+    padroes = [r"\bDN\s*(\d{1,3})\b", r"\b(\d{1,3})\s*MM\b", r"\b(\d{1,3})MM\b"]
+    for p in padroes:
+        m = re.search(p, texto)
+        if m:
+            try:
+                return float(m.group(1))
+            except Exception:
+                pass
+    return None
+
+
+def extrair_categoria_da_descricao(descricao):
+    texto = str(descricao or "").upper()
+    categorias = [
+        ("TUBO",      [r"\bTUBO\b"]),
+        ("CAP",       [r"\bCAP\b"]),
+        ("JOELHO",    [r"\bJOELHO\b", r"\bCURVA\b"]),
+        ("TE",        [r"\bT[EE]\b"]),
+        ("LUVA",      [r"\bLUVA\b"]),
+        ("REDUCAO",   [r"\bREDU[C]"]),
+        ("ADAPTADOR", [r"\bADAPTADOR\b"]),
+        ("BUCHA",     [r"\bBUCHA\b"]),
+        ("REGISTRO",  [r"\bREGISTRO\b"]),
+        ("VALVULA",   [r"\bVALVULA\b"]),
+        ("FITA",      [r"\bFITA\b"]),
+        ("TORNEIRA",  [r"\bTORNEIRA\b"]),
+        ("ADESIVO",   [r"\bADESIVO\b", r"\bCOLA\b"]),
+        ("PASTA",     [r"\bPASTA\b"]),
+        ("FLANGE",    [r"\bFLANGE\b"]),
+        ("UNIAO",     [r"\bUNIAO\b"]),
+    ]
+    for categoria, padroes in categorias:
+        for padrao in padroes:
+            if re.search(padrao, texto):
+                return categoria
+    return None
+
+
+def extrair_material_da_descricao(descricao):
+    texto = str(descricao or "").upper()
+    if re.search(r"\bPPR\b", texto):        return "PPR"
+    if re.search(r"\bCPVC\b", texto):       return "CPVC"
+    if re.search(r"\bPEAD\b", texto):       return "PEAD"
+    if re.search(r"\bPOLIETILENO\b", texto): return "PEAD"
+    # PVC nao e suficiente para diferenciar — nao filtra por material PVC
+    # pois na base Krona os produtos PVC nem sempre tem "PVC" no nome
+    return None
+
+
+def extrair_subcategoria_da_descricao(descricao):
+    texto = str(descricao or "").upper()
+    if re.search(r"\bESOTO\b|\bESGOTO\b|\bSEC\.?\b|\bPRIM\.?\b|\bSERIE\b|\bREFOR", texto):
+        return "ESGOTO"
+    if re.search(r"\bSOLD[AV]\b|\bSOLDAVEL\b", texto):
+        return "SOLDAVEL"
+    if re.search(r"\bROSC[AV]\b|\bROSCAVEL\b", texto):
+        return "ROSCAVEL"
+    if re.search(r"\bULTRATERM\b", texto):
+        return "ULTRATERM"
+    return None
+
+
+def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None):
+    MIN_CANDIDATOS = 3
+
+    # filtro mais preciso: categoria + diametro + subcategoria
+    if categoria and diametro_mm is not None and subcategoria:
+        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
+        mask_dia = (
+            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
+            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
+        )
+        mask_sub = base_krona["descricao_krona"].fillna("").str.upper().str.contains(subcategoria[:4])
+        candidatos = base_krona[mask_cat & mask_dia & mask_sub]
+        if len(candidatos) >= 1:
+            return candidatos
+
+    # filtro: categoria + diametro + material
+    if categoria and diametro_mm is not None and material:
+        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
+        mask_dia = (
+            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
+            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
+        )
+        mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
+        candidatos = base_krona[mask_cat & mask_dia & mask_mat]
+        if len(candidatos) >= 1:
+            return candidatos
+
+    # filtro: categoria + diametro
+    if categoria and diametro_mm is not None:
+        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
+        mask_dia = (
+            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
+            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
+        )
+        # se tiver material, filtra por ele mesmo com poucos candidatos
+        if material:
+            mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
+            candidatos = base_krona[mask_cat & mask_dia & mask_mat]
+            if len(candidatos) >= 1:
+                return candidatos
+        candidatos = base_krona[mask_cat & mask_dia]
+        if len(candidatos) >= MIN_CANDIDATOS:
+            return candidatos
+
+    # filtro: so categoria
+    if categoria:
+        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
+        if material:
+            mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
+            candidatos = base_krona[mask_cat & mask_mat]
+            if len(candidatos) >= MIN_CANDIDATOS:
+                return candidatos
+        candidatos = base_krona[mask_cat]
+        if len(candidatos) >= MIN_CANDIDATOS:
+            return candidatos
+
+    return base_krona
+
+
+def match_por_descricao(item, base_krona):
+    SCORE_MINIMO_DESCRICAO = 0.45
+
+    descricao_raw = (
+        item.get("descricao_oc")
+        or item.get("descricao_reconstruida")
+        or ""
+    )
+
+    descricao_limpa = limpar_descricao_para_match(descricao_raw)
+    categoria    = extrair_categoria_da_descricao(descricao_limpa)
+    diametro     = extrair_diametro_da_descricao(descricao_limpa)
+    material     = extrair_material_da_descricao(descricao_limpa)
+    subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
+
+    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
+
+    if candidatos.empty:
+        return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
+                "motivo_match": "sem_candidatos_krona"}
+
+    registros = []
+    for _, row in candidatos.iterrows():
+        cand = row.to_dict()
+        desc_krona = str(cand.get("descricao_normalizada") or cand.get("descricao_krona") or "").upper()
+        score_txt = rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, desc_krona) / 100.0
+        score_str = rapidfuzz_fuzz.ratio(descricao_limpa, desc_krona) / 100.0
+        score_final = round((score_txt * 0.70) + (score_str * 0.30), 4)
+        registros.append({**cand, "score_total": score_final, "score_textual": score_txt})
+
+    df_scores = pd.DataFrame(registros).sort_values("score_total", ascending=False)
+    melhor = df_scores.iloc[0].to_dict()
+    score_melhor = melhor.get("score_total", 0)
+
+    if score_melhor < SCORE_MINIMO_DESCRICAO:
+        return {
+            "match_encontrado": False,
+            "codigo_krona": None,
+            "descricao_krona": None,
+            "descricao_krona_normalizada": None,
+            "linha_krona_match": None,
+            "familia_krona_match": None,
+            "unidade_venda_krona": None,
+            "quantidade_embalagem_krona": None,
+            "score_estrutura": 0,
+            "score_textual": melhor.get("score_textual", 0),
+            "score_total": score_melhor,
+            "tipo_match": "SEM_MATCH",
+            "revisao_manual": True,
+            "motivo_match": f"SCORE_DESCRICAO_ABAIXO({score_melhor:.2f}<{SCORE_MINIMO_DESCRICAO})",
+            "categoria_krona": categoria,
+            "eh_tubo_krona": None,
+            "diametro_krona_mm": None,
+            "comprimento_krona_m": None,
+        }
+
+    return {
+        "match_encontrado": True,
+        "codigo_krona": melhor.get("codigo_krona"),
+        "descricao_krona": melhor.get("descricao_krona"),
+        "descricao_krona_normalizada": melhor.get("descricao_normalizada"),
+        "linha_krona_match": melhor.get("linha_krona"),
+        "familia_krona_match": melhor.get("familia_krona"),
+        "unidade_venda_krona": melhor.get("unidade_venda"),
+        "quantidade_embalagem_krona": melhor.get("quantidade_embalagem"),
+        "score_estrutura": 0,
+        "score_textual": melhor.get("score_textual", 0),
+        "score_total": score_melhor,
+        "tipo_match": "MATCH_DESCRICAO",
+        "revisao_manual": False,
+        "motivo_match": f"MATCH_POR_DESCRICAO(cat={categoria},diam={diametro})",
+        "categoria_krona": melhor.get("categoria_detectada"),
+        "eh_tubo_krona": melhor.get("eh_tubo"),
+        "diametro_krona_mm": obter_diametro_krona(melhor),
+        "comprimento_krona_m": obter_comprimento_krona(melhor),
+    }
+
+# ============================================================
 # SCORING
 # ============================================================
 
@@ -185,6 +409,15 @@ def match_item_oc(item, base_krona=None, indice_mrv=None):
                 "diametro_krona_mm": obter_diametro_krona(cadastro),
                 "comprimento_krona_m": obter_comprimento_krona(cadastro),
             }
+
+    # =========================================================
+    # PRIORIDADE 2 — MATCH POR DESCRICAO
+    # Para clientes sem tabela DE/PARA (ex: UAU/GPL, Krona direto)
+    # Usa limpeza de descricao + filtro por categoria e diametro
+    # =========================================================
+    match_desc = match_por_descricao(item, base_krona)
+    if match_desc.get("match_encontrado"):
+        return match_desc
 
     # =========================================================
     # FALLBACK TRADICIONAL
