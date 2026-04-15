@@ -1,4 +1,4 @@
-data_hora=2026-04-10 13:41:05
-arquivo_entrada=C:\robo_gamatec_oc\entrada_oc\Ped. MRV4509395729.pdf
+data_hora=2026-04-15 14:22:45
+arquivo_entrada=C:\robo_gamatec_oc\entrada_oc\Ped._MRV4509395729.pdf
 status=MOVIDO_PROCESSADOS
-detalhe=C:\robo_gamatec_oc\processados_oc\Ped. MRV4509395729.pdf
+detalhe=C:\robo_gamatec_oc\processados_oc\Ped._MRV4509395729.pdf

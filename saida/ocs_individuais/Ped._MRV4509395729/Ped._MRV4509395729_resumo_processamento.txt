@@ -1,8 +1,24 @@
 PROCESSAMENTO INDIVIDUAL DE OC
-Data/Hora: 2026-04-10 13:41:05
-Arquivo de entrada: C:\robo_gamatec_oc\entrada_oc\Ped. MRV4509395729.pdf
-Itens extraídos: 5
-Itens finais: 5
-Resumo status extração: {'ok': 3, 'ok_com_ressalvas': 2}
-Resumo tipo match: {'MATCH_CODIGO_MRV': 5}
-Resumo quantidade: {'ORIGINAL_NAO_TUBO': 4, 'BARRA_DIRETA_OC_UN': 1}
+--------------------------------------------------
+Data/Hora : 2026-04-15 14:22:45
+Arquivo   : C:\robo_gamatec_oc\entrada_oc\Ped._MRV4509395729.pdf
+
+[ EXTRAÇÃO ]
+  Total extraído  : 5
+  OK              : 3
+  OK com ressalvas: 2
+  Duvidoso        : 0
+  Falhou          : 0
+
+[ MATCH ]
+  Total para match: 5
+  MATCH_CODIGO_MRV              : 5
+
+[ QUANTIDADE ]
+  ORIGINAL_NAO_TUBO_UNIDADE     : 4
+  BARRA_DIRETA_OC_UN            : 1
+
+[ PLANILHA FINAL ]
+  Itens na planilha: 5
+
+--------------------------------------------------

@@ -142,6 +142,9 @@ def limpar_descricao_para_match(descricao):
     texto = str(descricao or "").upper().strip()
     texto = _PREFIXOS_RUIDO.sub("", texto)
     texto = _NORMAS.sub("", texto)
+    # trata o grau ° como separador para nao juntar angulo com dimensao
+    # ex: "90°X25MM" → "90 X25MM" → tokens "90" e "25" separados
+    texto = texto.replace("°", " ")
     texto = re.sub(r"[;/|]+", " ", texto)
     texto = re.sub(r"\s+", " ", texto).strip()
     return texto

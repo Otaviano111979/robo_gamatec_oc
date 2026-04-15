@@ -12,6 +12,7 @@ Itens válidos para match: 9
 [2/4] REALIZANDO MATCH...
 
 [2/6] REALIZANDO MATCH HÍBRIDO (MRV + KRONA)...
+[MATCHER] 1 produto(s) excluido(s) do match: {'784'}
 [BASE MRV] Delimitador detectado: ';'
 [BASE MRV] Cabeçalho original: ['CÓDIGO MRV', 'Código Krona', 'Código Tigre', 'Código Amanco', 'Descrição Curta', 'Descrição Longa', 'UMP', 'Embalagem Padrão', 'PR', 'SC', 'RS', 'MT', 'MS', 'GO', 'DF']
 [BASE MRV] Coluna MRV mapeada: CÓDIGO MRV
@@ -40,11 +41,9 @@ Resultado processado: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV450939927
 Planilha CSV: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.csv
 Planilha XLSX: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.xlsx
 Resumo: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_resumo_processamento.txt
-Arquivo movido para: C:\robo_gamatec_oc\processados_oc\Ped._MRV4509399278.pdf
+Arquivo movido para: C:\robo_gamatec_oc\processados_oc\Ped._MRV4509399278_20260415_144858.pdf
 Total de itens na planilha enxuta: 9
 
 PROCESSAMENTO FINALIZADO COM SUCESSO.
-[WEB] Processo finalizado com SUCESSO em 4s (returncode=0).
+[WEB] Processo finalizado com SUCESSO em 2s (returncode=0).
 [WEB] PDF localizado em processados.
-[AUTOMAÃ‡ÃƒO] Iniciada para planilha: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.xlsx
-[AUTOMAÃ‡ÃƒO] Iniciada para planilha: C:\robo_gamatec_oc\saida\ocs_individuais\Ped._MRV4509399278\Ped._MRV4509399278_planilha_digitacao_manual.xlsx

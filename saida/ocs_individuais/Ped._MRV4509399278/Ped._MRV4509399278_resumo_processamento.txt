@@ -1,6 +1,6 @@
 PROCESSAMENTO INDIVIDUAL DE OC
 --------------------------------------------------
-Data/Hora : 2026-04-14 12:54:06
+Data/Hora : 2026-04-15 14:48:58
 Arquivo   : C:\robo_gamatec_oc\entrada_oc\Ped._MRV4509399278.pdf
 
 [ EXTRAÇÃO ]

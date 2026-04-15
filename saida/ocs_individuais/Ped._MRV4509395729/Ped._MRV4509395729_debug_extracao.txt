@@ -23,6 +23,7 @@ linhas_origem: [15, 16, 17, 18, 19, 20, 21]
 status_extracao: ok
 score_extracao: 0.92
 observacoes:
+  - formato_mrv
   - bloco_encerrado_por_separador
   - validacao:total_confere
 
@@ -40,6 +41,7 @@ linhas_origem: [22, 23, 24, 25, 26, 27, 28]
 status_extracao: ok
 score_extracao: 0.92
 observacoes:
+  - formato_mrv
   - bloco_encerrado_por_separador
   - validacao:total_confere
 
@@ -57,6 +59,7 @@ linhas_origem: [29, 30, 31]
 status_extracao: ok_com_ressalvas
 score_extracao: 0.8
 observacoes:
+  - formato_mrv
   - bloco_interrompido_por_bloco_administrativo
   - item_interrompido_por_bloco_administrativo
   - validacao:total_confere
@@ -75,6 +78,7 @@ linhas_origem: [19, 20, 21, 22, 23, 24, 25]
 status_extracao: ok
 score_extracao: 0.92
 observacoes:
+  - formato_mrv
   - bloco_encerrado_por_separador
   - validacao:total_confere
 
@@ -92,6 +96,7 @@ linhas_origem: [26, 27, 28, 29, 30, 31]
 status_extracao: ok_com_ressalvas
 score_extracao: 0.8
 observacoes:
+  - formato_mrv
   - bloco_interrompido_por_bloco_administrativo
   - item_interrompido_por_bloco_administrativo
   - validacao:total_confere
