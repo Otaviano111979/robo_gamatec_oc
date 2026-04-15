@@ -13,6 +13,16 @@ CAMINHO_BASE_KRONA = CAMINHO_BASE_KRONA_FINAL
 # caminho lido do config, sem valor fixo no codigo
 CAMINHO_BASE_MRV = os.path.join(BASE_DIR, "dados", "base_mrv.csv")
 
+# ============================================================
+# CÓDIGOS EXCLUÍDOS DO MATCH AUTOMÁTICO
+# Produtos que não existem mais no catálogo ativo ou que causam
+# matches incorretos. Adicione aqui quando identificar problemas.
+# ============================================================
+CODIGOS_EXCLUIDOS_MATCH = {
+    "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
+             # o correto e 786 (SLIM) ou 781 (ESF)
+}
+
 
 # ============================================================
 # BASES
@@ -35,6 +45,14 @@ def carregar_base_krona():
     faltando = [c for c in colunas_obrigatorias if c not in df.columns]
     if faltando:
         raise ValueError(f"Colunas obrigatórias ausentes: {faltando}")
+
+    # remove produtos excluidos do match automatico
+    if CODIGOS_EXCLUIDOS_MATCH:
+        antes = len(df)
+        df = df[~df["codigo_krona"].astype(str).isin(CODIGOS_EXCLUIDOS_MATCH)]
+        excluidos = antes - len(df)
+        if excluidos > 0:
+            print(f"[MATCHER] {excluidos} produto(s) excluido(s) do match: {CODIGOS_EXCLUIDOS_MATCH}")
 
     return df
 
@@ -308,6 +326,17 @@ def match_por_descricao(item, base_krona):
             "comprimento_krona_m": None,
         }
 
+    # verifica se ha empate proximo entre os top candidatos
+    # se a diferenca entre o 1o e o 2o for menor que 0.05, marca para revisao
+    MARGEM_EMPATE = 0.02  # diferenca menor que 2% = empate real
+    revisao_por_empate = False
+    if len(df_scores) >= 2:
+        segundo = df_scores.iloc[1].to_dict()
+        score_segundo = segundo.get("score_total", 0)
+        diferenca = score_melhor - score_segundo
+        if diferenca < MARGEM_EMPATE:
+            revisao_por_empate = True
+
     return {
         "match_encontrado": True,
         "codigo_krona": melhor.get("codigo_krona"),
@@ -320,9 +349,13 @@ def match_por_descricao(item, base_krona):
         "score_estrutura": 0,
         "score_textual": melhor.get("score_textual", 0),
         "score_total": score_melhor,
-        "tipo_match": "MATCH_DESCRICAO",
-        "revisao_manual": False,
-        "motivo_match": f"MATCH_POR_DESCRICAO(cat={categoria},diam={diametro})",
+        "tipo_match": "MATCH_DESCRICAO" if not revisao_por_empate else "MATCH_DESCRICAO_REVISAR",
+        "revisao_manual": revisao_por_empate,
+        "motivo_match": (
+            f"MATCH_POR_DESCRICAO(cat={categoria},diam={diametro})"
+            if not revisao_por_empate
+            else f"MATCH_EMPATE_PROXIMO(dif={score_melhor - df_scores.iloc[1].get('score_total',0):.2f})"
+        ),
         "categoria_krona": melhor.get("categoria_detectada"),
         "eh_tubo_krona": melhor.get("eh_tubo"),
         "diametro_krona_mm": obter_diametro_krona(melhor),
