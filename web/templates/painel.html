@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vortex | Painel de Controle</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    .painel-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .painel-grid { grid-template-columns: 1fr; }
+    }
+
+    .painel-secao {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .painel-secao-full {
+      grid-column: 1 / -1;
+    }
+
+    .painel-secao-titulo {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--subtext);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* SAUDE */
+    .saude-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .saude-item:last-child { border-bottom: none; }
+
+    .saude-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .saude-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .saude-dot.ok     { background: #10b981; box-shadow: 0 0 6px #10b98166; }
+    .saude-dot.aviso  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b66; }
+    .saude-dot.erro   { background: #ff453a; box-shadow: 0 0 6px #ff453a66; }
+    .saude-dot.inativo { background: var(--neutral); }
+
+    .saude-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .saude-detalhe {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--subtext);
+      letter-spacing: 0.05em;
+      text-align: right;
+    }
+
+    /* MÉTRICAS */
+    .metricas-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .metricas-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .metrica-card {
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metrica-numero {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--vortex-cyan, #00d4ff);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metrica-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--subtext);
+      text-transform: uppercase;
+    }
+
+    .clientes-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cliente-chip {
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--vortex-cyan, #00d4ff);
+      letter-spacing: 0.1em;
+    }
+
+    /* REVISÃO EMAILS */
+    .revisao-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .revisao-item {
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .revisao-info { flex: 1; min-width: 0; }
+
+    .revisao-assunto {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .revisao-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: var(--subtext);
+      letter-spacing: 0.05em;
+    }
+
+    .revisao-motivo {
+      display: inline-block;
+      background: rgba(245,158,11,0.10);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: #f59e0b;
+      margin-top: 4px;
+    }
+
+    .revisao-acoes {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .revisao-vazio {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--subtext);
+      text-align: center;
+      padding: 24px 0;
+      letter-spacing: 0.1em;
+    }
+
+    /* GESTÃO DE BASES */
+    .bases-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 700px) {
+      .bases-grid { grid-template-columns: 1fr; }
+    }
+
+    .base-card {
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .base-card-titulo {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .base-card-info {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--subtext);
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    .base-upload-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .base-upload-input {
+      display: none;
+    }
+
+    .base-upload-label {
+      display: block;
+      background: var(--hover-blue, rgba(0,119,255,0.05));
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--subtext);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      letter-spacing: 0.1em;
+    }
+
+    .base-upload-label:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .base-upload-nome {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--vortex-cyan, #00d4ff);
+      text-align: center;
+      display: none;
+    }
+
+    .base-status {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      text-align: center;
+      padding: 4px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .base-status.ok   { color: #10b981; background: rgba(16,185,129,0.08); }
+    .base-status.erro { color: #ff453a; background: rgba(255,69,58,0.08); }
+
+    /* Navegação */
+    .painel-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      margin-bottom: 4px;
+    }
+
+    .painel-nav a {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--subtext);
+      text-decoration: none;
+      text-transform: uppercase;
+      padding: 4px 0;
+      border-bottom: 1px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .painel-nav a:hover,
+    .painel-nav a.ativo {
+      color: var(--vortex-cyan, #00d4ff);
+      border-bottom-color: var(--vortex-cyan, #00d4ff);
+    }
+
+    .painel-nav-sep { color: var(--border); font-size: 12px; }
+  </style>
+</head>
+<body class="ios-body dark">
+
+  <header class="topbar-vortex">
+    <div class="vortex-header">
+      <div class="vortex-spinner">
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-dot"></div>
+      </div>
+      <div>
+        <div class="vortex-wordmark">VOR<span>TEX</span></div>
+        <div class="vortex-sub">Painel de Controle</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+      <a href="/dashboard" class="ios-button secondary">Dashboard</a>
+      <span class="usuario-logado" style="font-size:10px;opacity:0.6;">{{ nivel|upper }}</span>
+      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
+      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
+    </div>
+  </header>
+
+  <div style="padding: 20px 20px 0 20px; max-width:1100px; margin: 0 auto;">
+    <div class="painel-nav">
+      <a href="#saude" class="ativo" onclick="navAtivo(this)">Saúde</a>
+      <span class="painel-nav-sep">·</span>
+      <a href="#metricas" onclick="navAtivo(this)">Métricas</a>
+      <span class="painel-nav-sep">·</span>
+      <a href="#revisao" onclick="navAtivo(this)">Revisão Emails</a>
+      <span class="painel-nav-sep">·</span>
+      {% if nivel == "admin" %}
+      <span class="painel-nav-sep">·</span>
+      <a href="#bases" onclick="navAtivo(this)">Bases de Dados</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="painel-grid">
+
+    <!-- SAÚDE DO SISTEMA -->
+    <div class="painel-secao painel-secao-full" id="saude">
+      <div class="painel-secao-titulo">
+        <span>⬡</span> Saúde do Sistema
+      </div>
+      <div id="saude-lista">
+        <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--subtext);text-align:center;padding:20px;">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- MÉTRICAS -->
+    <div class="painel-secao painel-secao-full" id="metricas">
+      <div class="painel-secao-titulo">
+        <span>◈</span> Métricas de Processamento
+      </div>
+      <div class="metricas-grid" id="metricas-nums">
+        <div class="metrica-card"><div class="metrica-numero" id="met-hoje">—</div><div class="metrica-label">Hoje</div></div>
+        <div class="metrica-card"><div class="metrica-numero" id="met-semana">—</div><div class="metrica-label">Esta semana</div></div>
+        <div class="metrica-card"><div class="metrica-numero" id="met-total">—</div><div class="metrica-label">Total geral</div></div>
+        <div class="metrica-card"><div class="metrica-numero" id="met-match">—</div><div class="metrica-label">Taxa match</div></div>
+      </div>
+      <div class="painel-secao-titulo" style="margin-top:8px;">Clientes ativos</div>
+      <div class="clientes-wrap" id="met-clientes">
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--subtext);">Carregando...</span>
+      </div>
+    </div>
+
+    <!-- REVISÃO EMAILS -->
+    <div class="painel-secao painel-secao-full" id="revisao">
+      <div class="painel-secao-titulo" style="justify-content:space-between;">
+        <span>◎ Fila de Revisão — Emails</span>
+        <button class="ios-button small secondary" onclick="carregarRevisao()">↻ Atualizar</button>
+      </div>
+      <div class="revisao-lista" id="revisao-lista">
+        <div class="revisao-vazio">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- GESTÃO DE BASES — só admin -->
+    {% if nivel == "admin" %}
+    <div class="painel-secao painel-secao-full" id="bases">
+      <div class="painel-secao-titulo">
+        <span>◆</span> Gestão de Bases de Dados
+      </div>
+      <div class="bases-grid">
+
+        <!-- Krona -->
+        <div class="base-card">
+          <div class="base-card-titulo">KRONA</div>
+          <div class="base-card-info" id="base-krona-info">Carregando...</div>
+          <div class="base-upload-wrap">
+            <input type="file" id="file-krona" class="base-upload-input" accept=".xlsx,.xls">
+            <label for="file-krona" class="base-upload-label" id="label-krona">+ Selecionar XLSX</label>
+            <div class="base-upload-nome" id="nome-krona"></div>
+            <button class="ios-button small primary" onclick="uploadBase('krona')" id="btn-krona" style="display:none;">Atualizar Base</button>
+            <div class="base-status" id="status-krona"></div>
+          </div>
+        </div>
+
+        <!-- Brasal -->
+        <div class="base-card">
+          <div class="base-card-titulo">BRASAL</div>
+          <div class="base-card-info" id="base-brasal-info">Carregando...</div>
+          <div class="base-upload-wrap">
+            <input type="file" id="file-brasal" class="base-upload-input" accept=".csv">
+            <label for="file-brasal" class="base-upload-label" id="label-brasal">+ Selecionar CSV</label>
+            <div class="base-upload-nome" id="nome-brasal"></div>
+            <button class="ios-button small primary" onclick="uploadBase('brasal')" id="btn-brasal" style="display:none;">Atualizar Base</button>
+            <div class="base-status" id="status-brasal"></div>
+          </div>
+        </div>
+
+        <!-- MRV -->
+        <div class="base-card">
+          <div class="base-card-titulo">MRV</div>
+          <div class="base-card-info" id="base-mrv-info">Carregando...</div>
+          <div class="base-upload-wrap">
+            <input type="file" id="file-mrv" class="base-upload-input" accept=".csv">
+            <label for="file-mrv" class="base-upload-label" id="label-mrv">+ Selecionar CSV</label>
+            <div class="base-upload-nome" id="nome-mrv"></div>
+            <button class="ios-button small primary" onclick="uploadBase('mrv')" id="btn-mrv" style="display:none;">Atualizar Base</button>
+            <div class="base-status" id="status-mrv"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
+
+  </div><!-- fim painel-grid -->
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    // ── NAVEGAÇÃO ──────────────────────────────────────────
+    function navAtivo(el) {
+      document.querySelectorAll(".painel-nav a").forEach(a => a.classList.remove("ativo"));
+      el.classList.add("ativo");
+    }
+
+    // ── SAÚDE ──────────────────────────────────────────────
+    async function carregarSaude() {
+      const lista = document.getElementById("saude-lista");
+      try {
+        const resp = await fetch("/api/painel/saude", { cache: "no-store" });
+        const data = await resp.json();
+        if (!data.ok) return;
+
+        const itens = [
+          {
+            label: "Base Krona",
+            ok:    data.bases.krona.existe,
+            detalhe: data.bases.krona.existe
+              ? `${data.bases.krona.registros} produtos · ${data.bases.krona.atualizado}`
+              : "Arquivo não encontrado"
+          },
+          {
+            label: "Base Brasal",
+            ok:    data.bases.brasal.existe,
+            detalhe: data.bases.brasal.existe
+              ? `${data.bases.brasal.registros} produtos · ${data.bases.brasal.atualizado}`
+              : "Arquivo não encontrado"
+          },
+          {
+            label: "Base MRV",
+            ok:    data.bases.mrv.existe,
+            detalhe: data.bases.mrv.existe
+              ? `${data.bases.mrv.registros} produtos · ${data.bases.mrv.atualizado}`
+              : "Arquivo não encontrado"
+          },
+          {
+            label: "Calibração GAMATEC",
+            ok:    data.calibrado,
+            detalhe: data.calibrado ? `Calibrado em ${data.cal_data}` : "Não calibrado"
+          },
+          {
+            label: "Agente Email",
+            ok:    data.agente_email.ativo,
+            aviso: data.agente_email.token_expirado,
+            detalhe: data.agente_email.ativo
+              ? `Ativo · ${data.agente_email.emails_hoje} emails hoje`
+              : data.agente_email.token_expirado ? "Token expirado" : "Inativo"
+          },
+          {
+            label: "Fila de entrada",
+            ok:    data.fila_entrada === 0,
+            aviso: data.fila_entrada > 0,
+            detalhe: `${data.fila_entrada} arquivo(s) aguardando`
+          },
+          {
+            label: "OCs com erro",
+            ok:    data.total_erros === 0,
+            aviso: data.total_erros > 0,
+            detalhe: `${data.total_erros} arquivo(s) com erro`
+          },
+        ];
+
+        lista.innerHTML = itens.map(item => {
+          const cls = item.aviso ? "aviso" : (item.ok ? "ok" : "erro");
+          return `
+            <div class="saude-item">
+              <div class="saude-item-left">
+                <div class="saude-dot ${cls}"></div>
+                <span class="saude-label">${item.label}</span>
+              </div>
+              <span class="saude-detalhe">${item.detalhe}</span>
+            </div>`;
+        }).join("");
+
+        // atualiza info das bases
+        if (data.bases.krona.existe) {
+          document.getElementById("base-krona-info").innerHTML =
+            `${data.bases.krona.registros} produtos<br>Atualizado: ${data.bases.krona.atualizado}`;
+        }
+        if (data.bases.brasal.existe) {
+          document.getElementById("base-brasal-info").innerHTML =
+            `${data.bases.brasal.registros} produtos<br>Atualizado: ${data.bases.brasal.atualizado}`;
+        }
+        if (data.bases.mrv.existe) {
+          document.getElementById("base-mrv-info").innerHTML =
+            `${data.bases.mrv.registros} produtos<br>Atualizado: ${data.bases.mrv.atualizado}`;
+        }
+
+      } catch (e) {
+        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar saude.</div>';
+      }
+    }
+
+    // ── MÉTRICAS ───────────────────────────────────────────
+    async function carregarMetricas() {
+      try {
+        const resp = await fetch("/api/painel/metricas", { cache: "no-store" });
+        const data = await resp.json();
+        if (!data.ok) return;
+
+        document.getElementById("met-hoje").textContent   = data.total_hoje;
+        document.getElementById("met-semana").textContent = data.total_semana;
+        document.getElementById("met-total").textContent  = data.total_geral;
+        document.getElementById("met-match").textContent  = data.taxa_match + "%";
+
+        const clientes = Object.entries(data.por_cliente);
+        const wrap = document.getElementById("met-clientes");
+        if (clientes.length === 0) {
+          wrap.innerHTML = '<span style="font-family:Space Mono,monospace;font-size:10px;color:var(--subtext);">Nenhum dado ainda.</span>';
+        } else {
+          wrap.innerHTML = clientes.map(([nome, qtd]) =>
+            `<span class="cliente-chip">${nome} (${qtd})</span>`
+          ).join("");
+        }
+      } catch (e) {
+        console.warn("Erro ao carregar metricas.", e);
+      }
+    }
+
+    // ── REVISÃO EMAILS ─────────────────────────────────────
+    async function carregarRevisao() {
+      const lista = document.getElementById("revisao-lista");
+      try {
+        const resp = await fetch("/api/painel/revisao-emails", { cache: "no-store" });
+        const data = await resp.json();
+
+        if (!data.emails || data.emails.length === 0) {
+          lista.innerHTML = '<div class="revisao-vazio">Nenhum email aguardando revisão.</div>';
+          return;
+        }
+
+        lista.innerHTML = data.emails.map(email => `
+          <div class="revisao-item" id="rev-${email.id}">
+            <div class="revisao-info">
+              <div class="revisao-assunto">${email.assunto || "(sem assunto)"}</div>
+              <div class="revisao-meta">${email.remetente} · ${email.timestamp || ""}</div>
+              <div>
+                <span class="revisao-motivo">${email.motivo || "revisao_manual"}</span>
+                ${(email.anexos || []).map(a => `<span class="revisao-motivo" style="color:var(--subtext);">${a}</span>`).join("")}
+              </div>
+            </div>
+            <div class="revisao-acoes">
+              <button class="ios-button small danger ghost"
+                onclick="revisaoAcao('${email.id}', 'ignorar')">Ignorar</button>
+            </div>
+          </div>
+        `).join("");
+
+      } catch (e) {
+        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar revisoes.</div>';
+      }
+    }
+
+    async function revisaoAcao(id, acao) {
+      try {
+        const resp = await fetch("/api/painel/revisao-emails/processar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, acao }),
+          cache: "no-store"
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          const el = document.getElementById("rev-" + id);
+          if (el) el.remove();
+          const lista = document.getElementById("revisao-lista");
+          if (!lista.children.length) {
+            lista.innerHTML = '<div class="revisao-vazio">Nenhum email aguardando revisao.</div>';
+          }
+        } else {
+          alert(data.mensagem);
+        }
+      } catch (e) {
+        alert("Erro ao processar email.");
+      }
+    }
+
+    // ── GESTÃO DE BASES ────────────────────────────────────
+    ["krona", "brasal", "mrv"].forEach(tipo => {
+      const input = document.getElementById("file-" + tipo);
+      if (!input) return;
+      input.addEventListener("change", function() {
+        const nome    = document.getElementById("nome-" + tipo);
+        const btn     = document.getElementById("btn-" + tipo);
+        const label   = document.getElementById("label-" + tipo);
+        if (this.files.length > 0) {
+          nome.textContent = this.files[0].name;
+          nome.style.display = "block";
+          btn.style.display  = "block";
+          label.textContent  = "Trocar arquivo";
+        }
+      });
+    });
+
+    async function uploadBase(tipo) {
+      const input  = document.getElementById("file-" + tipo);
+      const btn    = document.getElementById("btn-" + tipo);
+      const status = document.getElementById("status-" + tipo);
+
+      if (!input.files.length) return;
+
+      btn.disabled    = true;
+      btn.textContent = "Enviando...";
+      status.style.display = "none";
+
+      const form = new FormData();
+      form.append("tipo", tipo);
+      form.append("arquivo", input.files[0]);
+
+      try {
+        const resp = await fetch("/api/painel/upload-base", {
+          method: "POST",
+          body: form,
+          cache: "no-store"
+        });
+        const data = await resp.json();
+
+        status.style.display = "block";
+        status.className     = "base-status " + (data.ok ? "ok" : "erro");
+        status.textContent   = data.mensagem;
+
+        if (data.ok) {
+          input.value = "";
+          document.getElementById("nome-" + tipo).style.display = "none";
+          btn.style.display = "none";
+          document.getElementById("label-" + tipo).textContent = "+ Selecionar novo arquivo";
+          setTimeout(carregarSaude, 1000);
+        }
+
+      } catch (e) {
+        status.style.display = "block";
+        status.className     = "base-status erro";
+        status.textContent   = "Erro ao enviar arquivo.";
+      }
+
+      btn.disabled    = false;
+      btn.textContent = "Atualizar Base";
+    }
+
+    // ── INICIALIZAÇÃO ──────────────────────────────────────
+    carregarSaude();
+    carregarMetricas();
+    carregarRevisao();
+
+    // refresca saude a cada 30s
+    setInterval(carregarSaude, 30000);
+  </script>
+</body>
+</html>

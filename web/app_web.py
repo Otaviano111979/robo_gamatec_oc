@@ -164,6 +164,18 @@ def usuario_admin():
     return session.get("tipo") == "admin"
 
 
+def usuario_supervisor():
+    return session.get("tipo") in ("admin", "supervisor")
+
+
+def usuario_operador():
+    return session.get("tipo") in ("admin", "supervisor", "operador")
+
+
+def nivel_acesso():
+    return session.get("tipo", "operador")
+
+
 # =========================
 # SENHAS COM BCRYPT
 # =========================
@@ -880,7 +892,7 @@ def admin_usuarios():
         tipo = request.form.get("tipo", "user").strip().lower()
 
         if user and senha:
-            if tipo not in ("admin", "user"):
+            if tipo not in ("admin", "supervisor", "operador"):
                 tipo = "user"
 
             if user not in usuarios:
@@ -1454,6 +1466,239 @@ def api_excluir_erro():
         return jsonify({"ok": True, "mensagem": f"{arquivo} excluído permanentemente."})
     except Exception as e:
         return jsonify({"ok": False, "mensagem": f"Falha ao excluir: {e}"}), 500
+
+
+# =========================
+# PAINEL DE CONTROLE
+# =========================
+
+@app.route("/painel")
+def painel():
+    if not usuario_logado():
+        return redirect("/")
+    if not usuario_supervisor():
+        return redirect("/dashboard")
+    return render_template("painel.html", nivel=nivel_acesso())
+
+
+@app.route("/api/painel/saude")
+def api_painel_saude():
+    if not usuario_logado() or not usuario_supervisor():
+        return jsonify({"ok": False}), 403
+
+    import glob
+
+    # bases de dados
+    def info_arquivo(caminho):
+        if not os.path.exists(caminho):
+            return {"existe": False, "registros": 0, "atualizado": None}
+        try:
+            import pandas as pd
+            ext = os.path.splitext(caminho)[1].lower()
+            if ext == ".csv":
+                df = pd.read_csv(caminho, sep=";", encoding="utf-8-sig")
+            else:
+                df = pd.read_excel(caminho)
+            ts = os.path.getmtime(caminho)
+            return {
+                "existe": True,
+                "registros": len(df),
+                "atualizado": time.strftime("%d/%m/%Y %H:%M", time.localtime(ts))
+            }
+        except Exception as e:
+            return {"existe": True, "registros": 0, "atualizado": None, "erro": str(e)}
+
+    base_krona  = info_arquivo(os.path.join(BASE_DIR, "saida", "base_krona_final.csv"))
+    base_brasal = info_arquivo(os.path.join(BASE_DIR, "dados", "DADOS TABELA BRASAL 01 SEM - 25 (1).csv"))
+    base_mrv    = info_arquivo(os.path.join(BASE_DIR, "dados", "base_mrv.csv"))
+
+    # fila de entrada
+    pasta_entrada = os.path.join(BASE_DIR, "entrada_oc")
+    fila_entrada  = len([f for f in os.listdir(pasta_entrada) if f.endswith(".pdf")]) if os.path.exists(pasta_entrada) else 0
+
+    # erros
+    pasta_erro = os.path.join(BASE_DIR, "erro_oc")
+    total_erros = len([f for f in os.listdir(pasta_erro) if f.endswith(".pdf")]) if os.path.exists(pasta_erro) else 0
+
+    # calibracao gamatec
+    cal_path = os.path.join(BASE_DIR, "saida", "calibracao_gamatec.json")
+    calibrado = os.path.exists(cal_path)
+    cal_data  = None
+    if calibrado:
+        try:
+            cal_data = time.strftime("%d/%m/%Y %H:%M", time.localtime(os.path.getmtime(cal_path)))
+        except Exception:
+            pass
+
+    # agente email
+    email_status = status_agente_email()
+
+    return jsonify({
+        "ok": True,
+        "bases": {
+            "krona":  base_krona,
+            "brasal": base_brasal,
+            "mrv":    base_mrv,
+        },
+        "fila_entrada":  fila_entrada,
+        "total_erros":   total_erros,
+        "calibrado":     calibrado,
+        "cal_data":      cal_data,
+        "agente_email":  email_status,
+    })
+
+
+@app.route("/api/painel/metricas")
+def api_painel_metricas():
+    if not usuario_logado() or not usuario_supervisor():
+        return jsonify({"ok": False}), 403
+
+    import glob
+    from datetime import datetime, timedelta
+
+    hoje      = time.strftime("%Y-%m-%d")
+    semana    = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+
+    pasta_proc   = os.path.join(BASE_DIR, "processados_oc")
+    pasta_saida  = os.path.join(BASE_DIR, "saida", "ocs_individuais")
+
+    total_hoje   = 0
+    total_semana = 0
+    total_geral  = 0
+    por_cliente  = {}
+    por_formato  = {}
+    taxa_match   = []
+
+    if os.path.exists(pasta_saida):
+        for pasta_oc in os.listdir(pasta_saida):
+            caminho = os.path.join(pasta_saida, pasta_oc)
+            if not os.path.isdir(caminho):
+                continue
+
+            total_geral += 1
+
+            ts = os.path.getmtime(caminho)
+            data_oc = time.strftime("%Y-%m-%d", time.localtime(ts))
+
+            if data_oc == hoje:
+                total_hoje += 1
+            if data_oc in semana:
+                total_semana += 1
+
+            # tenta ler resumo
+            resumo_path = os.path.join(caminho, "resumo.json")
+            if os.path.exists(resumo_path):
+                try:
+                    with open(resumo_path, "r", encoding="utf-8") as f:
+                        resumo = json.load(f)
+                    cliente = resumo.get("cliente", "Desconhecido")
+                    formato = resumo.get("formato", "Desconhecido")
+                    por_cliente[cliente] = por_cliente.get(cliente, 0) + 1
+                    por_formato[formato] = por_formato.get(formato, 0) + 1
+                    total = resumo.get("total_itens", 0)
+                    match = resumo.get("itens_com_match", 0)
+                    if total > 0:
+                        taxa_match.append(match / total * 100)
+                except Exception:
+                    pass
+
+    taxa_media = round(sum(taxa_match) / len(taxa_match), 1) if taxa_match else 0
+
+    return jsonify({
+        "ok": True,
+        "total_hoje":   total_hoje,
+        "total_semana": total_semana,
+        "total_geral":  total_geral,
+        "taxa_match":   taxa_media,
+        "por_cliente":  por_cliente,
+        "por_formato":  por_formato,
+    })
+
+
+@app.route("/api/painel/revisao-emails")
+def api_painel_revisao_emails():
+    if not usuario_logado() or not usuario_supervisor():
+        return jsonify({"ok": False}), 403
+
+    estado_path = os.path.join(BASE_DIR, "agente_email", "estado_emails.json")
+    if not os.path.exists(estado_path):
+        return jsonify({"ok": True, "emails": []})
+
+    try:
+        with open(estado_path, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+        return jsonify({"ok": True, "emails": estado.get("revisao", [])})
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": str(e)}), 500
+
+
+@app.route("/api/painel/revisao-emails/processar", methods=["POST"])
+def api_painel_revisao_processar():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+
+    dados   = request.get_json(silent=True) or {}
+    msg_id  = dados.get("id", "").strip()
+    acao    = dados.get("acao", "").strip()  # "processar" ou "ignorar"
+
+    if not msg_id or acao not in ("processar", "ignorar"):
+        return jsonify({"ok": False, "mensagem": "Dados inválidos."}), 400
+
+    estado_path = os.path.join(BASE_DIR, "agente_email", "estado_emails.json")
+    try:
+        with open(estado_path, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+
+        estado["revisao"] = [r for r in estado.get("revisao", []) if r.get("id") != msg_id]
+
+        with open(estado_path, "w", encoding="utf-8") as f:
+            json.dump(estado, f, ensure_ascii=False, indent=2)
+
+        return jsonify({"ok": True, "mensagem": f"Email {acao}do com sucesso."})
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": str(e)}), 500
+
+
+@app.route("/api/painel/upload-base", methods=["POST"])
+def api_painel_upload_base():
+    if not usuario_logado() or not usuario_admin():
+        return jsonify({"ok": False, "mensagem": "Apenas administradores."}), 403
+
+    tipo = request.form.get("tipo", "").strip()
+    if "arquivo" not in request.files:
+        return jsonify({"ok": False, "mensagem": "Nenhum arquivo enviado."}), 400
+
+    arquivo = request.files["arquivo"]
+    nome    = secure_filename(arquivo.filename)
+
+    destinos = {
+        "krona":  os.path.join(BASE_DIR, "dados", "DADOS DE PRODUTOS KRONA(1).xlsx"),
+        "brasal": os.path.join(BASE_DIR, "dados", "DADOS TABELA BRASAL 01 SEM - 25 (1).csv"),
+        "mrv":    os.path.join(BASE_DIR, "dados", "base_mrv.csv"),
+    }
+
+    if tipo not in destinos:
+        return jsonify({"ok": False, "mensagem": f"Tipo desconhecido: {tipo}"}), 400
+
+    try:
+        destino = destinos[tipo]
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+
+        # backup do arquivo anterior
+        if os.path.exists(destino):
+            backup = destino + ".bak"
+            import shutil as _shutil
+            _shutil.copy2(destino, backup)
+
+        arquivo.save(destino)
+
+        return jsonify({
+            "ok": True,
+            "mensagem": f"Base {tipo.upper()} atualizada com sucesso.",
+            "arquivo": nome
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": f"Erro ao salvar: {e}"}), 500
 
 
 # =========================

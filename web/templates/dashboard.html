@@ -239,6 +239,9 @@
       <a href="/admin/usuarios" class="ios-button secondary">Admin Usuários</a>
       {% endif %}
 
+      {% if session.get('tipo') in ('admin', 'supervisor') %}
+      <a href="/painel" class="ios-button secondary">⬡ Painel</a>
+      {% endif %}
       <span class="usuario-logado">👤 {{ session.get('user') }}</span>
       <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
     </div>
