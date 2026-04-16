@@ -1392,9 +1392,11 @@ async function reenviarErro(nomeArquivo, btn) {
   btn.textContent = "Reenviando...";
 
   try {
-    const resp = await fetch("/api/reenviar-erro/" + encodeURIComponent(nomeArquivo), {
+    const resp = await fetch("/api/reenviar-erro", {
       method: "POST",
-      cache: "no-store"
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arquivo: nomeArquivo })
     });
     const data = await resp.json();
 
@@ -1420,9 +1422,11 @@ async function excluirErro(nomeArquivo, btn) {
   btn.textContent = "Excluindo...";
 
   try {
-    const resp = await fetch("/api/excluir-erro/" + encodeURIComponent(nomeArquivo), {
+    const resp = await fetch("/api/excluir-erro", {
       method: "POST",
-      cache: "no-store"
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arquivo: nomeArquivo })
     });
     const data = await resp.json();
 

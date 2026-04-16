@@ -1290,10 +1290,17 @@ def api_listar_erros():
     return jsonify({"ok": True, "arquivos": resultado})
 
 
-@app.route("/api/reenviar-erro/<path:arquivo>", methods=["POST"])
-def api_reenviar_erro(arquivo):
+@app.route("/api/reenviar-erro", methods=["POST"])
+def api_reenviar_erro():
     if not usuario_logado():
         return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    # recebe o nome via JSON no body — evita problemas com pontos e caracteres especiais na URL
+    dados = request.get_json(silent=True) or {}
+    arquivo = dados.get("arquivo", "").strip()
+
+    if not arquivo:
+        return jsonify({"ok": False, "mensagem": "Nome do arquivo não informado."}), 400
 
     pasta_erro = os.path.join(BASE_DIR, "erro_oc")
     origem = os.path.join(pasta_erro, arquivo)
@@ -1315,10 +1322,17 @@ def api_reenviar_erro(arquivo):
         return jsonify({"ok": False, "mensagem": f"Falha ao mover arquivo: {e}"}), 500
 
 
-@app.route("/api/excluir-erro/<path:arquivo>", methods=["POST"])
-def api_excluir_erro(arquivo):
+@app.route("/api/excluir-erro", methods=["POST"])
+def api_excluir_erro():
     if not usuario_logado():
         return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+
+    # recebe o nome via JSON no body — evita problemas com pontos e caracteres especiais na URL
+    dados = request.get_json(silent=True) or {}
+    arquivo = dados.get("arquivo", "").strip()
+
+    if not arquivo:
+        return jsonify({"ok": False, "mensagem": "Nome do arquivo não informado."}), 400
 
     pasta_erro = os.path.join(BASE_DIR, "erro_oc")
     caminho = os.path.join(pasta_erro, arquivo)
