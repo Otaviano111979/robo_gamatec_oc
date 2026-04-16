@@ -116,9 +116,7 @@ def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List
         if itens:
             if caminho_debug:
                 try:
-                    from extracao_oc.debug_extracao import gerar_relatorio_extracao
-                    from extracao_oc.modelos import ItemExtraido
-                    # gera debug simplificado
+                    # debug simplificado para formato Brasal
                     with open(caminho_debug, "w", encoding="utf-8") as f:
                         f.write("FORMATO: BRASAL/CLOSER\n")
                         f.write(f"Total de itens: {len(itens)}\n\n")
