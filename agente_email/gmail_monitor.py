@@ -402,7 +402,10 @@ def obter_ou_criar_label(servico, nome_label: str) -> Optional[str]:
     try:
         resultado = servico.users().labels().list(userId="me").execute()
         for label in resultado.get("labels", []):
-            if label["name"].lower() == nome_label.lower():
+            # comparacao case-insensitive e sem acentos para maior compatibilidade
+            nome_existente = label["name"].lower().strip()
+            nome_buscado   = nome_label.lower().strip()
+            if nome_existente == nome_buscado:
                 return label["id"]
 
         nova = servico.users().labels().create(

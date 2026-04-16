@@ -221,6 +221,90 @@
       "assunto": "Internet Fibra de 700 MEGA + WIFI 6 por apenas R$ 99,99/mês",
       "classificacao": "ignorado",
       "timestamp": "2026-04-16 14:53:57"
+    },
+    "19d68cd4fd13329f": {
+      "remetente": "Thalyta Neres Santos da Silva <tneres@brasal.com.br>",
+      "assunto": "RE: Pedido de Compra da Brasal 904365",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:11"
+    },
+    "19d688e74bf39d34": {
+      "remetente": "VIVO <vivoemdia@atendimento.empresas.vivo.com.br>",
+      "assunto": "Comunicado VIVO",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:12"
+    },
+    "19d681da528812a6": {
+      "remetente": "Cuponomia <mail@e.cuponomia.com.br>",
+      "assunto": "PAYDAY Magalu com até 10% de cashback | Casas Bahia até 50% OFF + 12% | Natura até 50% OFF + 8% 🔥",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:12"
+    },
+    "19d67f363ebb9fcb": {
+      "remetente": "Thalyta Neres Santos da Silva <tneres@brasal.com.br>",
+      "assunto": "RE: Pedido de Compra da Brasal 906552",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:13"
+    },
+    "19d662f32b11a1ca": {
+      "remetente": "MRV - Equipe Suprimentos via Docusign <dse_na2@docusign.net>",
+      "assunto": "Lembrete: MRV - Carta Aceite - Elton Julio Grein",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:15"
+    },
+    "19d648e3810b57ed": {
+      "remetente": "VIVO <vivoemdia@atendimento.empresas.vivo.com.br>",
+      "assunto": "Comunicado VIVO",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:15"
+    },
+    "19d5dcd1b4b15fbd": {
+      "remetente": "Vivo Empresas <comunicacao@mail.vivo.com.br>",
+      "assunto": "Internet de 700 MEGA + Wi-fi 6 e IA grátis por apenas R$ 99,99/mês",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:16"
+    },
+    "19d5be12fbd13a6b": {
+      "remetente": "MRV - Equipe Suprimentos via Docusign <dse_na2@docusign.net>",
+      "assunto": "Lembrete: MRV - Carta Aceite - Elton Julio Grein",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:17"
+    },
+    "19d5ab22ecae3acd": {
+      "remetente": "Google <no-reply@accounts.google.com>",
+      "assunto": "Sua Conta do Google foi recuperada",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:18"
+    },
+    "19d5ab21f3fcbe0f": {
+      "remetente": "Google <no-reply@accounts.google.com>",
+      "assunto": "Alerta de segurança para hugofredchagas@gmail.com",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:19"
+    },
+    "19d5ab0047be16d5": {
+      "remetente": "Google <no-reply@accounts.google.com>",
+      "assunto": "Alerta de segurança para gerencia.unerepresentacao@gmail.com",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 14:59:19"
+    },
+    "19d977a5c860d472": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7076592##] : RESIDENCIAL BERGER- Antecipação 4509383557",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 15:09:23"
+    },
+    "19d977959ca6dfd2": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7076588##] : RESIDENCIAL BERGER- Antecipação do pedido 4509383557",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 15:09:24"
+    },
+    "19d977c840dae3c8": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7077139##] : Pedido Atrasado Guarani",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-16 15:14:27"
     }
   },
   "revisao": [
@@ -304,6 +388,36 @@
         "RELATORIO.pdf"
       ],
       "timestamp": "2026-04-16 14:48:39"
+    },
+    {
+      "id": "19d67a4ffd459a65",
+      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 28 - SPE Jundiaí Emisa Empreendimentos Imobiliários LTDA",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-16 14:59:14"
+    },
+    {
+      "id": "19d9788532db74c6",
+      "remetente": "\"sistemasuprimentos@brasal.com.br\" <sistemasuprimentos@brasal.com.br>",
+      "assunto": "Solicitação de Cotação da Brasal 126459",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "Cotacao_126459_31060.pdf"
+      ],
+      "timestamp": "2026-04-16 15:24:33"
+    },
+    {
+      "id": "19d9794c5f5e575e",
+      "remetente": "Departamento de Suprimentos <sandra.bokane@gplincorporadora.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 6951 - RIO VERDE R15 EMPREENDIMENTO IMOBILIARIO SPE LTDA",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-16 15:39:43"
     }
   ],
   "erros": []

@@ -27,9 +27,13 @@ PASTA_ENTRADA   = os.path.join(CONFIG_BASE_DIR, "entrada_oc")
 INTERVALO_MIN   = 5
 LOG_PATH        = os.path.join(CONFIG_BASE_DIR, "web", "logs", "agente_email.log")
 
-LABEL_OC         = "Vortex/Ordem de Compra"
-LABEL_COTACAO    = "Vortex/Cotação"
-LABEL_REVISAO    = "Vortex/Aguardando Revisão"
+# labels existentes no Gmail — usadas diretamente
+LABEL_OC         = "Ordem de compra"
+LABEL_COTACAO    = "Cotacao"
+LABEL_KRONA      = "Krona"
+
+# labels Vortex — criadas automaticamente se nao existirem
+LABEL_REVISAO    = "Vortex/Aguardando Revisao"
 LABEL_PROCESSADO = "Vortex/Processado"
 LABEL_IGNORADO   = "Vortex/Ignorado"
 
@@ -144,17 +148,18 @@ def verificar_emails(servico, modo_teste: bool = False):
 
         # ── EXECUÇÃO REAL ──────────────────────────────────────
         if classificacao == "ignorar":
-            marcar_como_lido(servico, msg_id)
+            # NAO marca como lido — mantém não lido para o operador ver
             aplicar_label(servico, msg_id, LABEL_IGNORADO)
             registrar_processado(msg_id, {
                 "remetente": remetente,
                 "assunto": assunto,
                 "classificacao": "ignorado",
             })
-            log(f"  → Ignorado e marcado como lido.")
+            log(f"  → Ignorado (mantido como nao lido).")
             continue
 
         if classificacao == "revisar":
+            # revisao tambem mantem como nao lido
             aplicar_label(servico, msg_id, LABEL_REVISAO)
             registrar_revisao(msg_id, {
                 "remetente": remetente,
@@ -165,9 +170,10 @@ def verificar_emails(servico, modo_teste: bool = False):
             log(f"  → Enviado para revisão manual no dashboard.")
             continue
 
-        # OC ou cotação confirmada
+        # OC ou cotacao confirmada — aplica label do tipo + Krona
         label_tipo = LABEL_OC if classificacao == "oc" else LABEL_COTACAO
         aplicar_label(servico, msg_id, label_tipo)
+        aplicar_label(servico, msg_id, LABEL_KRONA)
 
         resultados = []
         for anexo in anexos:
