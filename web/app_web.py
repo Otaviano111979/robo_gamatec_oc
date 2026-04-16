@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import time
 import threading
+import subprocess as _subprocess_email
 import re
 import bcrypt
 
@@ -993,6 +994,114 @@ CALIBRACAO_EM_ANDAMENTO = {}
 CALIBRACAO_DADOS = {}
 LOCK_CALIBRACAO = threading.Lock()
 
+# =========================
+# ESTADO AGENTE EMAIL
+# =========================
+_agente_email_proc   = None
+_agente_email_lock   = threading.Lock()
+_agente_email_status = {
+    "ativo":            False,
+    "iniciado_em":      None,
+    "ultimo_check":     None,
+    "emails_hoje":      0,
+    "erro":             None,
+    "token_expirado":   False,
+}
+
+
+def _atualizar_status_email():
+    log_path = os.path.join(BASE_DIR, "web", "logs", "agente_email.log")
+    if not os.path.exists(log_path):
+        return
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            linhas = f.readlines()
+
+        hoje = time.strftime("%Y-%m-%d")
+        emails_hoje = sum(
+            1 for l in linhas
+            if hoje in l and "✅ Processado com sucesso" in l
+        )
+        _agente_email_status["emails_hoje"] = emails_hoje
+
+        # ultima linha com timestamp
+        for linha in reversed(linhas):
+            if linha.strip():
+                _agente_email_status["ultimo_check"] = linha[:19]
+                break
+
+        # verifica token expirado
+        token_exp = any(
+            "token" in l.lower() and ("expir" in l.lower() or "invalid" in l.lower())
+            for l in linhas[-20:]
+        )
+        _agente_email_status["token_expirado"] = token_exp
+
+    except Exception:
+        pass
+
+
+def iniciar_agente_email():
+    global _agente_email_proc
+    with _agente_email_lock:
+        if _agente_email_proc and _agente_email_proc.poll() is None:
+            return False, "Agente já está rodando."
+
+        script = os.path.join(BASE_DIR, "rodar_agente_email.py")
+        if not os.path.exists(script):
+            return False, "Script do agente não encontrado."
+
+        token_path = os.path.join(BASE_DIR, "agente_email", "token.pickle")
+        if not os.path.exists(token_path):
+            return False, "token_nao_encontrado"
+
+        log_path = os.path.join(BASE_DIR, "web", "logs", "agente_email.log")
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+        try:
+            log_handle = open(log_path, "a", encoding="utf-8", errors="ignore")
+            _agente_email_proc = _subprocess_email.Popen(
+                ["python", script],
+                stdout=log_handle,
+                stderr=log_handle,
+                text=True,
+                cwd=BASE_DIR
+            )
+            _agente_email_status["ativo"]       = True
+            _agente_email_status["iniciado_em"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            _agente_email_status["erro"]        = None
+            _agente_email_status["token_expirado"] = False
+            return True, "Agente iniciado com sucesso."
+        except Exception as e:
+            return False, str(e)
+
+
+def parar_agente_email():
+    global _agente_email_proc
+    with _agente_email_lock:
+        if not _agente_email_proc or _agente_email_proc.poll() is not None:
+            _agente_email_status["ativo"] = False
+            return False, "Agente não está rodando."
+        try:
+            _agente_email_proc.terminate()
+            _agente_email_proc.wait(timeout=5)
+        except Exception:
+            try:
+                _agente_email_proc.kill()
+            except Exception:
+                pass
+        _agente_email_status["ativo"] = False
+        return True, "Agente parado."
+
+
+def status_agente_email() -> dict:
+    global _agente_email_proc
+    with _agente_email_lock:
+        rodando = _agente_email_proc is not None and _agente_email_proc.poll() is None
+        _agente_email_status["ativo"] = rodando
+    _atualizar_status_email()
+    return dict(_agente_email_status)
+
 PONTOS_CALIBRACAO = [
     {"id": "codigo_1",    "label": "Centro do CÓDIGO da PRIMEIRA linha"},
     {"id": "codigo_2",    "label": "Centro do CÓDIGO da SEGUNDA linha"},
@@ -1348,6 +1457,54 @@ def api_excluir_erro():
 
 
 # =========================
+# AGENTE EMAIL — ROTAS
+# =========================
+
+@app.route("/api/agente-email/status")
+def api_agente_email_status():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    return jsonify({"ok": True, **status_agente_email()})
+
+
+@app.route("/api/agente-email/iniciar", methods=["POST"])
+def api_agente_email_iniciar():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+    ok, msg = iniciar_agente_email()
+    if not ok and msg == "token_nao_encontrado":
+        return jsonify({
+            "ok": False,
+            "mensagem": "Token não encontrado. Execute python rodar_agente_email.py no terminal uma vez para autenticar.",
+            "token_pendente": True
+        }), 400
+    return jsonify({"ok": ok, "mensagem": msg})
+
+
+@app.route("/api/agente-email/parar", methods=["POST"])
+def api_agente_email_parar():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+    ok, msg = parar_agente_email()
+    return jsonify({"ok": ok, "mensagem": msg})
+
+
+@app.route("/api/agente-email/log")
+def api_agente_email_log():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    log_path = os.path.join(BASE_DIR, "web", "logs", "agente_email.log")
+    if not os.path.exists(log_path):
+        return jsonify({"ok": True, "log": "Sem logs ainda."})
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            linhas = f.readlines()
+        return jsonify({"ok": True, "log": "".join(linhas[-60:])})
+    except Exception as e:
+        return jsonify({"ok": False, "log": str(e)})
+
+
+# =========================
 # LOGOUT
 # =========================
 @app.route("/logout")
@@ -1361,4 +1518,13 @@ def logout():
 # =========================
 if __name__ == "__main__":
     verificar_estado_ao_iniciar()
+
+    # inicia agente de email automaticamente se token existir
+    token_path = os.path.join(BASE_DIR, "agente_email", "token.pickle")
+    if os.path.exists(token_path):
+        ok, msg = iniciar_agente_email()
+        print(f"[AGENTE EMAIL] {msg}")
+    else:
+        print("[AGENTE EMAIL] Token não encontrado — autentique primeiro com: python rodar_agente_email.py")
+
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)

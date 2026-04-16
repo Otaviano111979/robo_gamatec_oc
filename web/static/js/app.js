@@ -857,6 +857,126 @@ function restaurarDestaqueAoCarregar() {
 }
 
 // =========================
+// AGENTE EMAIL
+// =========================
+let _aepPollingId = null;
+
+async function aepCarregarStatus() {
+  try {
+    const resp = await fetch("/api/agente-email/status", { cache: "no-store" });
+    const data = await resp.json();
+    if (!data.ok) return;
+
+    const ind      = document.getElementById("aep-ind-bar");
+    const status   = document.getElementById("aep-bar-status");
+    const stats    = document.getElementById("aep-bar-stats");
+    const alerta   = document.getElementById("aep-bar-alerta");
+    const btnIni   = document.getElementById("aep-btn-bar-iniciar");
+    const btnPar   = document.getElementById("aep-btn-bar-parar");
+
+    if (data.ativo) {
+      if (ind) { ind.className = "aep-indicador-bar ativo"; }
+      if (status) status.textContent = "Ativo";
+      if (btnIni) btnIni.style.display = "none";
+      if (btnPar) btnPar.style.display = "";
+    } else {
+      if (ind) { ind.className = "aep-indicador-bar" + (data.token_expirado ? " erro" : ""); }
+      if (status) status.textContent = data.token_expirado ? "Token expirado" : "Inativo";
+      if (btnIni) btnIni.style.display = "";
+      if (btnPar) btnPar.style.display = "none";
+    }
+
+    if (stats) {
+      const partes = [];
+      if (data.ultimo_check) partes.push("Último: " + data.ultimo_check.slice(11, 16));
+      if (data.emails_hoje > 0) partes.push(data.emails_hoje + " hoje");
+      stats.textContent = partes.join(" · ");
+    }
+
+    if (alerta) {
+      if (data.token_expirado) {
+        alerta.style.display = "";
+        alerta.innerHTML = "⚠️ Token expirado — execute <strong>python rodar_agente_email.py</strong> no terminal para reautenticar.";
+        if (ind) ind.className = "aep-indicador-bar erro";
+      } else {
+        alerta.style.display = "none";
+      }
+    }
+
+  } catch (e) {
+    console.warn("Falha ao carregar status agente email.", e);
+  }
+}
+
+async function aepIniciar() {
+  const btn = document.getElementById("aep-btn-bar-iniciar");
+  if (btn) { btn.disabled = true; btn.textContent = "Iniciando..."; }
+
+  try {
+    const resp = await fetch("/api/agente-email/iniciar", {
+      method: "POST", cache: "no-store"
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      if (data.token_pendente) {
+        alert("Token não encontrado.\nExecute no terminal:\n\npython rodar_agente_email.py\n\nE autorize o acesso ao Gmail. Depois clique Iniciar novamente.");
+      } else {
+        alert(data.mensagem || "Falha ao iniciar agente.");
+      }
+    }
+  } catch (e) {
+    alert("Erro ao iniciar agente de email.");
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = "▶ Iniciar"; }
+  await aepCarregarStatus();
+}
+
+async function aepParar() {
+  if (!confirm("Parar o monitoramento de email?")) return;
+
+  try {
+    await fetch("/api/agente-email/parar", { method: "POST", cache: "no-store" });
+  } catch (e) {
+    alert("Erro ao parar agente.");
+  }
+  await aepCarregarStatus();
+}
+
+async function aepVerLog() {
+  const modal   = document.getElementById("modal-log-email");
+  const content = document.getElementById("modal-log-email-content");
+  if (!modal) return;
+
+  modal.style.display = "flex";
+  if (content) content.textContent = "Carregando...";
+
+  try {
+    const resp = await fetch("/api/agente-email/log", { cache: "no-store" });
+    const data = await resp.json();
+    if (content) {
+      content.textContent = data.log || "Sem logs.";
+      content.scrollTop = content.scrollHeight;
+    }
+  } catch (e) {
+    if (content) content.textContent = "Erro ao carregar log.";
+  }
+}
+
+// inicia polling de status do agente email
+function iniciarPollingAgenteEmail() {
+  aepCarregarStatus();
+  _aepPollingId = setInterval(aepCarregarStatus, 15000); // atualiza a cada 15s
+}
+
+// fechar modal log email clicando fora
+document.addEventListener("click", function(e) {
+  const modal = document.getElementById("modal-log-email");
+  if (modal && e.target === modal) modal.style.display = "none";
+});
+
+// =========================
 // VORTEX LOADING
 // =========================
 function vortexLoading(msg, progresso) {
@@ -1499,6 +1619,7 @@ document.addEventListener("DOMContentLoaded", function () {
   restaurarMonitoramentoAoReabrirPagina();
   restaurarDestaqueAoCarregar();
   carregarPainelErros();
+  iniciarPollingAgenteEmail();
 });
 
 window.addEventListener("beforeunload", function () {

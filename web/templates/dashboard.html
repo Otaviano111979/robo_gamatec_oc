@@ -259,6 +259,24 @@
     {% endif %}
   {% endwith %}
 
+  <!-- PAINEL AGENTE EMAIL — TOPBAR -->
+  <div id="painel-agente-email-bar" class="aep-bar">
+    <div class="aep-bar-inner">
+      <div class="aep-bar-left">
+        <div class="aep-indicador-bar" id="aep-ind-bar"></div>
+        <span class="aep-bar-label">Agente Email</span>
+        <span class="aep-bar-status" id="aep-bar-status">Verificando...</span>
+        <span class="aep-bar-stats" id="aep-bar-stats"></span>
+      </div>
+      <div class="aep-bar-right">
+        <button class="ios-button small primary" id="aep-btn-bar-iniciar" onclick="aepIniciar()" style="display:none;">▶ Iniciar</button>
+        <button class="ios-button small danger ghost" id="aep-btn-bar-parar" onclick="aepParar()" style="display:none;">⏹ Parar</button>
+        <button class="ios-button small secondary" onclick="aepVerLog()">Log</button>
+      </div>
+    </div>
+    <div id="aep-bar-alerta" class="aep-bar-alerta" style="display:none;"></div>
+  </div>
+
   <!-- CARTOES DE RESUMO -->
   <section class="resumo-cards">
     <div class="resumo-card resumo-card-entrada">
@@ -397,6 +415,9 @@
                     <div class="arquivo-cell">
                       <strong class="arquivo-nome">{{ item.nome }}</strong>
                       <div class="row-badges">
+                        {% if item.nome.startswith('EMAIL_') %}
+                          <span class="badge-email"><span class="badge-dot"></span>VIA EMAIL</span>
+                        {% endif %}
                         {% if item.numero_oc %}
                           <span class="mini-badge mini-badge-primary">OC {{ item.numero_oc }}</span>
                         {% endif %}
@@ -585,6 +606,37 @@
       </section>
     </section>
   </section>
+
+  <!-- PAINEL AGENTE EMAIL -->
+  <div id="painel-agente-email" class="agente-email-painel" style="display:none;">
+    <div class="aep-header">
+      <div class="aep-titulo">
+        <div class="aep-indicador" id="aep-indicador"></div>
+        <span class="aep-label">Agente Email</span>
+        <span class="aep-status-text" id="aep-status-text">Verificando...</span>
+      </div>
+      <div class="aep-acoes">
+        <button class="ios-button small primary" id="btn-aep-iniciar" onclick="aepIniciar()" style="display:none;">▶ Iniciar</button>
+        <button class="ios-button small danger ghost" id="btn-aep-parar" onclick="aepParar()" style="display:none;">⏹ Parar</button>
+        <button class="ios-button small secondary" onclick="aepVerLog()">Log</button>
+      </div>
+    </div>
+    <div class="aep-stats" id="aep-stats"></div>
+    <div id="aep-alerta" class="aep-alerta" style="display:none;"></div>
+  </div>
+
+  <!-- MODAL LOG EMAIL -->
+  <div id="modal-log-email" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:700px;">
+      <div class="modal-header">
+        <h2>📋 Log — Agente Email</h2>
+        <button class="modal-fechar" onclick="document.getElementById('modal-log-email').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre id="modal-log-email-content" class="automacao-log-box" style="max-height:400px;">Carregando...</pre>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DE CALIBRAÇÃO -->
   <div id="modal-calibracao" class="modal-overlay" style="display:none;">

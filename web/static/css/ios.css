@@ -1112,6 +1112,142 @@ tr.oc-row-archived td {
 }
 
 /* =========================
+   AGENTE EMAIL — BARRA
+========================= */
+.aep-bar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  position: sticky;
+  top: 64px;
+  z-index: 90;
+  backdrop-filter: blur(20px);
+}
+
+body.dark .aep-bar {
+  background: rgba(14,14,26,0.95);
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+}
+
+.aep-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.aep-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aep-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aep-indicador-bar {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neutral);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.aep-indicador-bar.ativo {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b98166;
+  animation: aep-pulse 2s ease-in-out infinite;
+}
+
+.aep-indicador-bar.erro {
+  background: #ff453a;
+  box-shadow: 0 0 6px #ff453a66;
+}
+
+@keyframes aep-pulse {
+  0%, 100% { box-shadow: 0 0 4px #10b98166; }
+  50%       { box-shadow: 0 0 10px #10b981aa; }
+}
+
+.aep-bar-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--subtext);
+  text-transform: uppercase;
+}
+
+.aep-bar-status {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.aep-bar-stats {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--subtext);
+  letter-spacing: 0.1em;
+}
+
+.aep-bar-alerta {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #ff453a;
+  padding-top: 6px;
+  letter-spacing: 0.1em;
+}
+
+/* badge EMAIL nas OCs */
+.badge-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 212, 255, 0.10);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #00d4ff;
+  animation: badge-email-pulse 2s ease-in-out infinite;
+}
+
+.badge-email .badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #00d4ff;
+  animation: aep-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badge-email-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(0,212,255,0); }
+  50%       { box-shadow: 0 0 6px rgba(0,212,255,0.2); }
+}
+
+/* badge CLIENTE NOVO */
+.badge-cliente-novo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.30);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #f59e0b;
+}
+
+/* =========================
    MODAL DE CALIBRAÇÃO
 ========================= */
 .calib-progresso {
