@@ -3,16 +3,231 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | AGENTE EXTRACT</title>
+  <title>Vortex | Painel Operacional</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    /* ===== VORTEX BRAND ===== */
+    .vortex-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .vortex-spinner {
+      width: 36px;
+      height: 36px;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .vs-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+    }
+
+    .vs-ring:nth-child(1) {
+      inset: 0;
+      border-top-color: var(--vortex-cyan);
+      border-right-color: var(--vortex-cyan-dim);
+      animation: vs-spin 2s linear infinite;
+    }
+
+    .vs-ring:nth-child(2) {
+      inset: 6px;
+      border-top-color: var(--vortex-blue);
+      border-left-color: #0077ff33;
+      animation: vs-spin 1.5s linear infinite reverse;
+    }
+
+    .vs-ring:nth-child(3) {
+      inset: 12px;
+      border-top-color: #00d4ff55;
+      animation: vs-spin 1s linear infinite;
+    }
+
+    .vs-dot {
+      position: absolute;
+      inset: 15px;
+      background: var(--vortex-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--vortex-cyan);
+    }
+
+    @keyframes vs-spin { to { transform: rotate(360deg); } }
+
+    .vortex-wordmark {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .vortex-wordmark span {
+      color: var(--vortex-cyan);
+      text-shadow: 0 0 16px var(--vortex-cyan-dim);
+    }
+
+    .vortex-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.25em;
+      color: var(--vortex-cyan-dim);
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* Topbar refinada Vortex */
+    .topbar-vortex {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    body.dark .topbar-vortex {
+      box-shadow: 0 1px 0 rgba(0, 212, 255, 0.06);
+    }
+
+    /* Loading overlay Vortex */
+    .vortex-loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 8, 16, 0.85);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    .vortex-loading-overlay.ativo {
+      display: flex;
+    }
+
+    .vlo-spinner {
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+
+    .vlo-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid transparent;
+    }
+
+    .vlo-ring:nth-child(1) {
+      inset: 0;
+      border-top-color: var(--vortex-cyan);
+      border-right-color: var(--vortex-cyan-dim);
+      animation: vs-spin 2s linear infinite;
+    }
+
+    .vlo-ring:nth-child(2) {
+      inset: 11px;
+      border-top-color: var(--vortex-blue);
+      border-left-color: #0077ff33;
+      animation: vs-spin 1.5s linear infinite reverse;
+    }
+
+    .vlo-ring:nth-child(3) {
+      inset: 22px;
+      border-top-color: #00d4ff55;
+      animation: vs-spin 1s linear infinite;
+    }
+
+    .vlo-dot {
+      position: absolute;
+      inset: 32px;
+      background: var(--vortex-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 20px var(--vortex-cyan);
+      animation: vlo-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes vlo-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.6); opacity: 0.5; }
+    }
+
+    .vlo-title {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #fff;
+    }
+
+    .vlo-msg {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--vortex-cyan-dim);
+      animation: vlo-blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes vlo-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .vlo-progress {
+      width: 240px;
+      height: 2px;
+      background: #ffffff11;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .vlo-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--vortex-blue), var(--vortex-cyan));
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px var(--vortex-cyan-dim);
+    }
+  </style>
 </head>
-<body class="ios-body">
-  <header class="topbar topbar-refined">
-    <div class="topbar-title-wrap">
-      <div class="brand-chip">GE</div>
+<body class="ios-body dark">
+
+  <!-- LOADING OVERLAY VORTEX -->
+  <div class="vortex-loading-overlay" id="vortex-loading">
+    <div class="vlo-spinner">
+      <div class="vlo-ring"></div>
+      <div class="vlo-ring"></div>
+      <div class="vlo-ring"></div>
+      <div class="vlo-dot"></div>
+    </div>
+    <div class="vlo-title">VORTEX</div>
+    <div class="vlo-progress"><div class="vlo-progress-fill" id="vlo-bar"></div></div>
+    <div class="vlo-msg" id="vlo-msg">PROCESSANDO...</div>
+  </div>
+
+  <header class="topbar-vortex">
+    <div class="vortex-header">
+      <div class="vortex-spinner">
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-dot"></div>
+      </div>
       <div>
-        <h1 class="page-title">AGENTE EXTRACT</h1>
-        <p class="page-subtitle">Painel operacional de OCs • camada web de controle</p>
+        <div class="vortex-wordmark">VOR<span>TEX</span></div>
+        <div class="vortex-sub">Process · Automate · Deliver</div>
       </div>
     </div>
 

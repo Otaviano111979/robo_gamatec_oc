@@ -213,6 +213,7 @@ function desabilitarBotaoRemover(nomeArquivo) {
 }
 
 function aplicarModoProcessandoNoPainel(ativo) {
+  if (!ativo) vortexLoadingOff();
   const inspector = document.querySelector(".inspector-card");
   const compact = document.querySelector(".compact-card");
   const listCard = document.querySelector(".list-card");
@@ -456,6 +457,7 @@ function iniciarMonitoramentoConclusao(nomeArquivo) {
 }
 
 async function iniciarProcessamentoViaAPI(nomeArquivo) {
+  vortexLoading("Extraindo itens da OC...", 20);
   try {
     const resp = await fetch("/api/processar-oc/" + encodeURIComponent(nomeArquivo), {
       method: "POST",
@@ -481,6 +483,7 @@ async function iniciarProcessamentoViaAPI(nomeArquivo) {
     window.ativarAutoRefreshLogs(nomeArquivo);
     window.ativarAutoRefreshStatus(nomeArquivo);
     iniciarMonitoramentoConclusao(nomeArquivo);
+    vortexLoadingMsg("Processando — aguarde...", 50);
   } catch (e) {
     console.error(e);
     alert("Erro ao iniciar processamento da OC.");
@@ -854,6 +857,30 @@ function restaurarDestaqueAoCarregar() {
 }
 
 // =========================
+// VORTEX LOADING
+// =========================
+function vortexLoading(msg, progresso) {
+  const overlay = document.getElementById("vortex-loading");
+  const msgEl   = document.getElementById("vlo-msg");
+  const barEl   = document.getElementById("vlo-bar");
+  if (overlay) overlay.classList.add("ativo");
+  if (msgEl)   msgEl.textContent = (msg || "PROCESSANDO...").toUpperCase();
+  if (barEl && progresso != null) barEl.style.width = progresso + "%";
+}
+
+function vortexLoadingMsg(msg, progresso) {
+  const msgEl = document.getElementById("vlo-msg");
+  const barEl = document.getElementById("vlo-bar");
+  if (msgEl) msgEl.textContent = (msg || "").toUpperCase();
+  if (barEl && progresso != null) barEl.style.width = progresso + "%";
+}
+
+function vortexLoadingOff() {
+  const overlay = document.getElementById("vortex-loading");
+  if (overlay) overlay.classList.remove("ativo");
+}
+
+// =========================
 // CALIBRAÇÃO VIA INTERFACE
 // =========================
 let calibracaoPontos = [];
@@ -1176,6 +1203,8 @@ async function iniciarAutomacao() {
   const logEl = document.getElementById("automacao-log");
   const statusLabel = document.getElementById("automacao-status-label");
   const footer = document.getElementById("automacao-footer");
+
+  vortexLoading("Iniciando automação GAMATEC...", 10);
 
   if (btnIniciar) {
     btnIniciar.disabled = true;

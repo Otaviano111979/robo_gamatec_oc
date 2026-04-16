@@ -3,41 +3,309 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | GAMATEC</title>
+  <title>Vortex | Acesso</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
-</head>
-<body class="ios-body login-page">
-  <div class="theme-toggle-wrap">
-    <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-  </div>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
 
-  <main class="login-shell">
-    <section class="ios-card login-card">
-      <div class="login-brand">
-        <div class="login-badge">G</div>
-        <h1>AGENTE EXTRACT</h1>
-        <p>Painel operacional de OCs</p>
+    .vortex-login-page {
+      min-height: 100vh;
+      background: #080810;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vortex-login-page::before {
+      content: '';
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00d4ff08 0%, transparent 65%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: bg-pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes bg-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.6; }
+    }
+
+    .login-grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .vortex-login-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(14, 14, 26, 0.95);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 24px;
+      padding: 48px 40px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.04), 0 24px 60px rgba(0,0,0,0.6), 0 0 80px rgba(0,212,255,0.04);
+      animation: card-in 0.5s ease-out both;
+    }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .vortex-login-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .vortex-login-spinner {
+      width: 72px;
+      height: 72px;
+      position: relative;
+    }
+
+    .vls-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid transparent;
+    }
+
+    .vls-ring:nth-child(1) {
+      inset: 0;
+      border-top-color: #00d4ff;
+      border-right-color: #00d4ff44;
+      animation: vls-spin 2.5s linear infinite;
+    }
+
+    .vls-ring:nth-child(2) {
+      inset: 10px;
+      border-top-color: #0077ff;
+      border-left-color: #0077ff33;
+      animation: vls-spin 2s linear infinite reverse;
+    }
+
+    .vls-ring:nth-child(3) {
+      inset: 20px;
+      border-top-color: #00d4ff66;
+      animation: vls-spin 1.5s linear infinite;
+    }
+
+    .vls-dot {
+      position: absolute;
+      inset: 29px;
+      background: #00d4ff;
+      border-radius: 50%;
+      box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44;
+      animation: vls-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes vls-spin { to { transform: rotate(360deg); } }
+
+    @keyframes vls-pulse {
+      0%, 100% { box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44; }
+      50%       { box-shadow: 0 0 24px #00d4ff, 0 0 48px #00d4ff33; }
+    }
+
+    .vortex-login-wordmark {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fff;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .vortex-login-wordmark span {
+      color: #00d4ff;
+      text-shadow: 0 0 20px #00d4ff66;
+    }
+
+    .vortex-login-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      color: #00d4ff44;
+      text-transform: uppercase;
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    .vortex-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.2), transparent);
+      margin-bottom: 32px;
+    }
+
+    .vortex-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .vortex-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .vortex-field label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #00d4ff66;
+      text-transform: uppercase;
+    }
+
+    .vortex-field input {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: #e8eeff;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    .vortex-field input::placeholder { color: #ffffff22; font-size: 14px; }
+
+    .vortex-field input:focus {
+      border-color: rgba(0, 212, 255, 0.4);
+      background: rgba(0, 212, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+    }
+
+    .vortex-btn-login {
+      background: linear-gradient(135deg, #0077ff, #00d4ff);
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-family: 'Syncopate', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vortex-btn-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(0, 212, 255, 0.35);
+    }
+
+    .vortex-btn-login:active { transform: translateY(0); }
+
+    .vortex-erro {
+      background: rgba(255, 69, 58, 0.08);
+      border: 1px solid rgba(255, 69, 58, 0.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #ff6961;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .vortex-login-footer {
+      margin-top: 32px;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: #ffffff11;
+      text-transform: uppercase;
+    }
+
+    .vortex-theme-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(14, 14, 26, 0.8);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 10;
+      transition: border-color 0.2s;
+    }
+
+    .vortex-theme-btn:hover { border-color: rgba(0, 212, 255, 0.3); }
+  </style>
+</head>
+<body class="ios-body dark vortex-login-page">
+
+  <div class="login-grid-bg"></div>
+
+  <button id="themeToggle" class="vortex-theme-btn" type="button">🌙</button>
+
+  <div class="vortex-login-card">
+
+    <div class="vortex-login-brand">
+      <div class="vortex-login-spinner">
+        <div class="vls-ring"></div>
+        <div class="vls-ring"></div>
+        <div class="vls-ring"></div>
+        <div class="vls-dot"></div>
+      </div>
+      <div>
+        <div class="vortex-login-wordmark">VOR<span>TEX</span></div>
+        <div class="vortex-login-sub">Process · Automate · Deliver</div>
+      </div>
+    </div>
+
+    <div class="vortex-divider"></div>
+
+    {% if erro %}
+      <div class="vortex-erro">⚠ {{ erro }}</div>
+    {% endif %}
+
+    <form method="post" class="vortex-form">
+      <div class="vortex-field">
+        <label for="user">Usuário</label>
+        <input id="user" name="user" type="text" placeholder="Digite seu usuário" required autocomplete="username">
       </div>
 
-      {% if erro %}
-        <div class="login-erro">{{ erro }}</div>
-      {% endif %}
+      <div class="vortex-field">
+        <label for="senha">Senha</label>
+        <input id="senha" name="senha" type="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
 
-      <form method="post" class="ios-form">
-        <div class="ios-field">
-          <label for="user">Usuário</label>
-          <input id="user" name="user" type="text" placeholder="Digite seu usuário" required>
-        </div>
+      <button class="vortex-btn-login" type="submit">ACESSAR</button>
+    </form>
 
-        <div class="ios-field">
-          <label for="senha">Senha</label>
-          <input id="senha" name="senha" type="password" placeholder="Digite sua senha" required>
-        </div>
+    <div class="vortex-login-footer">
+      UNI Representações · KRONA · v1.0
+    </div>
 
-        <button class="ios-button primary" type="submit">Entrar</button>
-      </form>
-    </section>
-  </main>
+  </div>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
