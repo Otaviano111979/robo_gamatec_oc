@@ -36,7 +36,15 @@ LABEL_IGNORADO   = "Vortex/Ignorado"
 
 def log(msg: str):
     linha = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
-    print(linha, flush=True)
+    try:
+        # força UTF-8 no Windows que usa cp1252 por padrão
+        sys.stdout.buffer.write((linha + "\n").encode("utf-8", errors="replace"))
+        sys.stdout.buffer.flush()
+    except Exception:
+        try:
+            print(linha.encode("ascii", errors="replace").decode("ascii"), flush=True)
+        except Exception:
+            pass
     try:
         os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
         with open(LOG_PATH, "a", encoding="utf-8") as f:
@@ -111,7 +119,7 @@ def verificar_emails(servico, modo_teste: bool = False):
         cliente_id   = cliente_info["id"]
 
         log(f"Classe : {classificacao.upper()} ({motivo})")
-        log(f"Cliente: {cliente_nome} {'✅' if cliente_info['identificado'] else '⚠️ DESCONHECIDO'}")
+        log(f"Cliente: {cliente_nome} {'[OK]' if cliente_info['identificado'] else '[AVISO] DESCONHECIDO'}")
 
         # cliente desconhecido com OC/cotação → revisão com badge especial
         if not cliente_info["identificado"] and classificacao in ("oc", "cotacao"):
@@ -176,9 +184,9 @@ def verificar_emails(servico, modo_teste: bool = False):
             )
             resultados.append(resultado)
             if resultado["ok"]:
-                log(f"     ✅ Salvo em: {resultado['pasta_doc']}")
+                log(f"     [OK] Salvo em: {resultado['pasta_doc']}")
             else:
-                log(f"     ❌ Erro: {resultado['erro']}")
+                log(f"     [ERRO] Erro: {resultado['erro']}")
 
         # resposta automática
         try:
@@ -190,7 +198,7 @@ def verificar_emails(servico, modo_teste: bool = False):
                 tipo=classificacao,
             )
         except Exception as e:
-            log(f"  ⚠️ Falha ao enviar resposta: {e}")
+            log(f"  [AVISO] Falha ao enviar resposta: {e}")
 
         aplicar_label(servico, msg_id, LABEL_PROCESSADO)
         marcar_como_lido(servico, msg_id)
@@ -206,7 +214,7 @@ def verificar_emails(servico, modo_teste: bool = False):
             "ok":            all(r.get("ok") for r in resultados),
         })
 
-        log(f"  ✅ Processado com sucesso.")
+        log(f"  [OK] Processado com sucesso.")
 
 
 def main():
@@ -235,9 +243,9 @@ def main():
     log("Autenticando com Gmail...")
     try:
         servico = autenticar_gmail()
-        log("✅ Autenticado!")
+        log("[OK] Autenticado!")
     except Exception as e:
-        log(f"❌ Falha na autenticação: {e}")
+        log(f"[ERRO] Falha na autenticação: {e}")
         sys.exit(1)
 
     os.makedirs(PASTA_ENTRADA, exist_ok=True)
@@ -247,7 +255,7 @@ def main():
         try:
             verificar_emails(servico, modo_teste=True)
         except Exception as e:
-            log(f"❌ Erro: {e}")
+            log(f"[ERRO] Erro: {e}")
             traceback.print_exc()
         log("=" * 50)
         log("Modo teste concluído. Nenhuma ação foi executada.")
@@ -259,7 +267,7 @@ def main():
             log("Verificando emails...")
             verificar_emails(servico, modo_teste=False)
         except Exception as e:
-            log(f"❌ Erro: {e}")
+            log(f"[ERRO] Erro: {e}")
             traceback.print_exc()
 
         log(f"Próxima verificação em {INTERVALO_MIN} minuto(s).")
