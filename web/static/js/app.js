@@ -1366,20 +1366,41 @@ async function carregarPainelErros() {
     tbody.innerHTML = "";
     arquivos.forEach(function (arq) {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><strong>${arq.nome}</strong></td>
-        <td>${arq.data_ref || "-"}</td>
-        <td class="actions-wrap">
-          <button class="ios-button small primary" type="button"
-            onclick="reenviarErro('${CSS.escape(arq.nome)}', this)">
-            Reenviar
-          </button>
-          <button class="ios-button small danger" type="button"
-            onclick="excluirErro('${CSS.escape(arq.nome)}', this)">
-            Excluir
-          </button>
-        </td>
-      `;
+
+      const tdNome = document.createElement("td");
+      tdNome.innerHTML = `<strong>${arq.nome}</strong>`;
+
+      const tdData = document.createElement("td");
+      tdData.textContent = arq.data_ref || "-";
+
+      const tdAcoes = document.createElement("td");
+      tdAcoes.className = "actions-wrap";
+
+      // usar data-nome para evitar problemas com caracteres especiais no onclick
+      const btnReenviar = document.createElement("button");
+      btnReenviar.className = "ios-button small primary";
+      btnReenviar.type = "button";
+      btnReenviar.textContent = "Reenviar";
+      btnReenviar.dataset.nome = arq.nome;
+      btnReenviar.addEventListener("click", function() {
+        reenviarErro(this.dataset.nome, this);
+      });
+
+      const btnExcluir = document.createElement("button");
+      btnExcluir.className = "ios-button small danger";
+      btnExcluir.type = "button";
+      btnExcluir.textContent = "Excluir";
+      btnExcluir.dataset.nome = arq.nome;
+      btnExcluir.addEventListener("click", function() {
+        excluirErro(this.dataset.nome, this);
+      });
+
+      tdAcoes.appendChild(btnReenviar);
+      tdAcoes.appendChild(btnExcluir);
+
+      tr.appendChild(tdNome);
+      tr.appendChild(tdData);
+      tr.appendChild(tdAcoes);
       tbody.appendChild(tr);
     });
   } catch (e) {
