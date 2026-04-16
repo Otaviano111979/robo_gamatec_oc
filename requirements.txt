@@ -1,19 +1,13 @@
-# processamento de dados
 pandas
-openpyxl
-
-# leitura de PDF
 pdfplumber
-
-# matching de texto
 rapidfuzz
-
-# servidor web
+openpyxl
 flask
-werkzeug
-
-# seguranca: hash de senhas
 bcrypt
-
-# variaveis de ambiente
 python-dotenv
+
+# Agente de Email — Gmail API
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
