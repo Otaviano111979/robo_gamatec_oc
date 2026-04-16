@@ -1,0 +1,56 @@
+{
+  "clientes": [
+    {
+      "id": "mrv",
+      "nome": "MRV Engenharia",
+      "formato_oc": "MRV",
+      "dominios_email": ["mrv.com.br", "agilis.com.br"],
+      "cnpjs": ["29657172"],
+      "palavras_cabecalho": ["MRV PRIME", "MRV ENGENHARIA", "MRV&CO"],
+      "marcadores_pdf": ["ITEM Nº PRODUTO", "NCM", "CNPJ/CPF: 00145602"],
+      "ativo": true
+    },
+    {
+      "id": "brasal",
+      "nome": "Brasal Incorporações",
+      "formato_oc": "BRASAL",
+      "dominios_email": ["brasal.com.br", "closer3.com.br"],
+      "cnpjs": ["39286080"],
+      "palavras_cabecalho": ["BRASAL INCORPORAÇÕES", "INC 27 BRASAL", "CLOSER"],
+      "marcadores_pdf": ["KRONA/KRONA", "PROCESSO Nº", "CENTRO DE CUSTO"],
+      "ativo": true
+    },
+    {
+      "id": "gpl",
+      "nome": "GPL Incorporadora",
+      "formato_oc": "UAU",
+      "dominios_email": ["gplincorporadora.com.br"],
+      "cnpjs": ["39843541", "53638836"],
+      "palavras_cabecalho": ["GPL", "UNIVERSITARIO", "RIO VERDE", "EMPREENDIMENTO IMOBILIARIO SPE"],
+      "marcadores_pdf": ["UAU! SOFTWARE", "GEROU O.C."],
+      "ativo": true
+    },
+    {
+      "id": "krona_direto",
+      "nome": "Krona (pedido direto)",
+      "formato_oc": "KRONA",
+      "dominios_email": ["kronatubos.com.br", "krona.com.br"],
+      "cnpjs": ["00145602"],
+      "palavras_cabecalho": ["KRONA TUBOS", "PEDIDO DE COMPRA KRONA"],
+      "marcadores_pdf": ["INSUMO", "QUANTIDADE", "PEDIDO DE COMPRA"],
+      "ativo": true
+    }
+  ],
+
+  "cnpj_krona": [
+    "00145602000137",
+    "11907140000245"
+  ],
+
+  "config": {
+    "score_minimo_identificacao": 2,
+    "processar_cliente_desconhecido": false,
+    "label_cliente_novo": "Vortex/Cliente Novo",
+    "label_formato_desconhecido": "Vortex/Formato Desconhecido"
+  }
+}

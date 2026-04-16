@@ -217,6 +217,84 @@ def _extrair_anexos(payload: dict, msg_id: str, lista: list):
 
 
 # ================================================================
+# IDENTIFICAÇÃO DE CLIENTE
+# ================================================================
+
+import json as _json
+
+_CLIENTES_PATH = os.path.join(DIR_AGENTE, "..", "dados", "clientes_conhecidos.json")
+
+
+def carregar_clientes_conhecidos() -> dict:
+    try:
+        with open(_CLIENTES_PATH, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception:
+        return {"clientes": [], "cnpj_krona": [], "config": {}}
+
+
+def identificar_cliente(remetente: str, assunto: str, corpo: str, anexos: list) -> dict:
+    dados   = carregar_clientes_conhecidos()
+    clientes = dados.get("clientes", [])
+
+    texto_completo = (remetente + " " + assunto + " " + corpo).lower()
+    texto_limpo    = texto_completo.replace(".", "").replace("/", "").replace("-", "")
+    nomes_anexos   = " ".join(a["nome"] for a in anexos).lower()
+
+    melhor_cliente = None
+    melhor_score   = 0
+
+    for cliente in clientes:
+        if not cliente.get("ativo", True):
+            continue
+
+        score = 0
+
+        for dominio in cliente.get("dominios_email", []):
+            if dominio.lower() in remetente.lower():
+                score += 3
+                break
+
+        for cnpj in cliente.get("cnpjs", []):
+            if cnpj in texto_limpo:
+                score += 3
+                break
+
+        for palavra in cliente.get("palavras_cabecalho", []):
+            if palavra.lower() in texto_completo:
+                score += 2
+                break
+
+        for marcador in cliente.get("marcadores_pdf", []):
+            if marcador.lower() in nomes_anexos:
+                score += 1
+                break
+
+        if score > melhor_score:
+            melhor_score   = score
+            melhor_cliente = cliente
+
+    score_minimo = dados.get("config", {}).get("score_minimo_identificacao", 2)
+
+    if melhor_cliente and melhor_score >= score_minimo:
+        return {
+            "identificado": True,
+            "id":           melhor_cliente["id"],
+            "nome":         melhor_cliente["nome"],
+            "formato_oc":   melhor_cliente["formato_oc"],
+            "score":        melhor_score,
+        }
+
+    return {
+        "identificado": False,
+        "id":           "desconhecido",
+        "nome":         "Cliente não identificado",
+        "formato_oc":   None,
+        "score":        melhor_score,
+    }
+
+
+# ================================================================
 # CLASSIFICAÇÃO
 # ================================================================
 def _contem_termos(texto: str, termos: list) -> bool:

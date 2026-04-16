@@ -55,6 +55,7 @@ def verificar_emails(servico, modo_teste: bool = False):
         enviar_resposta,
         obter_cache_labels,
         ja_tem_label_vortex,
+        identificar_cliente,
     )
     from processador_email import (
         ja_processado,
@@ -104,7 +105,19 @@ def verificar_emails(servico, modo_teste: bool = False):
 
         classificacao, motivo = classificar_email(assunto, corpo, anexos)
 
+        # identificar cliente
+        cliente_info = identificar_cliente(remetente, assunto, corpo, anexos)
+        cliente_nome = cliente_info["nome"]
+        cliente_id   = cliente_info["id"]
+
         log(f"Classe : {classificacao.upper()} ({motivo})")
+        log(f"Cliente: {cliente_nome} {'✅' if cliente_info['identificado'] else '⚠️ DESCONHECIDO'}")
+
+        # cliente desconhecido com OC/cotação → revisão com badge especial
+        if not cliente_info["identificado"] and classificacao in ("oc", "cotacao"):
+            classificacao = "revisar"
+            motivo = "cliente_nao_identificado"
+            log(f"  → Cliente não identificado — redirecionando para revisão")
 
         if modo_teste:
             if classificacao == "ignorar":
@@ -187,6 +200,8 @@ def verificar_emails(servico, modo_teste: bool = False):
             "assunto":       assunto,
             "classificacao": classificacao,
             "motivo":        motivo,
+            "cliente":       cliente_nome,
+            "cliente_id":    cliente_id,
             "anexos":        [r.get("nome") for r in resultados],
             "ok":            all(r.get("ok") for r in resultados),
         })
