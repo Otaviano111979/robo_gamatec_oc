@@ -252,6 +252,30 @@ def _e_email_krona(assunto: str, corpo: str, anexos: list) -> bool:
     return False
 
 
+def obter_cache_labels(servico) -> dict:
+    """Retorna dicionário {label_id: label_name} para lookup rápido."""
+    try:
+        resultado = servico.users().labels().list(userId="me").execute()
+        return {
+            label["id"]: label["name"]
+            for label in resultado.get("labels", [])
+        }
+    except Exception:
+        return {}
+
+
+def ja_tem_label_vortex(labels_do_email: list, labels_cache: dict) -> bool:
+    """
+    Verifica se o email já tem alguma label Vortex aplicada.
+    Se sim, o agente já processou antes — deve ser ignorado.
+    """
+    for label_id in labels_do_email:
+        nome = labels_cache.get(label_id, "").lower()
+        if nome.startswith("vortex"):
+            return True
+    return False
+
+
 def classificar_email(assunto: str, corpo: str, anexos: list) -> tuple:
     """
     Classifica o email em: 'oc', 'cotacao', 'revisar' ou 'ignorar'.
