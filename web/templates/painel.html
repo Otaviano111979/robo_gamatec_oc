@@ -392,7 +392,14 @@
     <div class="painel-secao painel-secao-full" id="revisao">
       <div class="painel-secao-titulo" style="justify-content:space-between;">
         <span>◎ Fila de Revisão — Emails</span>
-        <button class="ios-button small secondary" onclick="carregarRevisao()">↻ Atualizar</button>
+        <div style="display:flex;gap:8px;">
+          <button class="ios-button small danger ghost"
+            onclick="limparFilaRevisao()"
+            title="Remove emails de clientes conhecidos que foram para revisão antes da correção">
+            Limpar fila antiga
+          </button>
+          <button class="ios-button small secondary" onclick="carregarRevisao()">↻ Atualizar</button>
+        </div>
       </div>
       <div class="revisao-lista" id="revisao-lista">
         <div class="revisao-vazio">Carregando...</div>
@@ -597,6 +604,8 @@
               </div>
             </div>
             <div class="revisao-acoes">
+              <button class="ios-button small primary"
+                onclick="revisaoProcessar('${email.id}', this)">Processar</button>
               <button class="ios-button small danger ghost"
                 onclick="revisaoAcao('${email.id}', 'ignorar')">Ignorar</button>
             </div>
@@ -605,6 +614,73 @@
 
       } catch (e) {
         lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar revisoes.</div>';
+      }
+    }
+
+    async function limparMotivo(motivo) {
+      try {
+        const resp = await fetch("/api/painel/revisao-emails/processar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ limpar_motivo: motivo }),
+          cache: "no-store"
+        });
+        const data = await resp.json();
+        return data.ok ? (data.removidos || 0) : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    async function limparFilaRevisao() {
+      if (!confirm("Remover todos os emails antigos da fila de revisão?")) return;
+      // limpa por todos os motivos conhecidos de clientes que ja foram corrigidos
+      const motivos = [
+        "nao_identificado_como_krona",
+        "cliente_conhecido_promovido",
+        "krona_sem_tipo_definido",
+      ];
+      let total = 0;
+      for (const motivo of motivos) {
+        total += await limparMotivo(motivo);
+      }
+      alert(`${total} email(s) removidos da fila.`);
+      await carregarRevisao();
+    }
+
+    async function revisaoProcessar(id, btn) {
+      // busca os anexos do email em revisao e envia para entrada_oc
+      if (!confirm("Mover anexos deste email para processamento?")) return;
+
+      btn.disabled = true;
+      btn.textContent = "Processando...";
+
+      try {
+        const resp = await fetch("/api/painel/revisao-emails/processar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id, acao: "processar" }),
+          cache: "no-store"
+        });
+        const data = await resp.json();
+
+        if (data.ok) {
+          const el = document.getElementById("rev-" + id);
+          if (el) {
+            el.style.opacity = "0.4";
+            el.querySelector(".revisao-acoes").innerHTML =
+              '<span style="font-family:Space Mono,monospace;font-size:10px;color:#10b981;">[OK] Removido da fila</span>';
+          }
+          setTimeout(carregarRevisao, 1500);
+        } else {
+          alert(data.mensagem || "Falha ao processar.");
+          btn.disabled = false;
+          btn.textContent = "Processar";
+        }
+      } catch (e) {
+        alert("Erro ao processar email.");
+        btn.disabled = false;
+        btn.textContent = "Processar";
       }
     }
 

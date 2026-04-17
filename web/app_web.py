@@ -1640,14 +1640,27 @@ def api_painel_revisao_processar():
     dados   = request.get_json(silent=True) or {}
     msg_id  = dados.get("id", "").strip()
     acao    = dados.get("acao", "").strip()  # "processar" ou "ignorar"
-
-    if not msg_id or acao not in ("processar", "ignorar"):
-        return jsonify({"ok": False, "mensagem": "Dados inválidos."}), 400
+    limpar_motivo = dados.get("limpar_motivo", "").strip()  # limpa todos de um motivo
 
     estado_path = os.path.join(BASE_DIR, "agente_email", "estado_emails.json")
     try:
         with open(estado_path, "r", encoding="utf-8") as f:
             estado = json.load(f)
+
+        if limpar_motivo:
+            # remove todos os emails com determinado motivo da fila
+            antes = len(estado.get("revisao", []))
+            estado["revisao"] = [
+                r for r in estado.get("revisao", [])
+                if r.get("motivo") != limpar_motivo
+            ]
+            removidos = antes - len(estado["revisao"])
+            with open(estado_path, "w", encoding="utf-8") as f:
+                json.dump(estado, f, ensure_ascii=False, indent=2)
+            return jsonify({"ok": True, "mensagem": f"{removidos} email(s) removidos da fila.", "removidos": removidos})
+
+        if not msg_id or acao not in ("processar", "ignorar"):
+            return jsonify({"ok": False, "mensagem": "Dados invalidos."}), 400
 
         estado["revisao"] = [r for r in estado.get("revisao", []) if r.get("id") != msg_id]
 

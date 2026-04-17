@@ -156,16 +156,22 @@ def processar_anexo_email(
 
     # copia para pasta de entrada do processador de OC (apenas PDFs)
     if anexo["extensao"] == ".pdf":
-        destino_entrada = os.path.join(pasta_entrada, nome_arquivo)
+        # adiciona prefixo EMAIL_ para identificar origem no dashboard
+        nome_com_prefixo = nome_arquivo
+        if not nome_arquivo.startswith("EMAIL_"):
+            nome_com_prefixo = f"EMAIL_{nome_arquivo}"
+
+        destino_entrada = os.path.join(pasta_entrada, nome_com_prefixo)
 
         # evita sobrescrever arquivo existente
         if os.path.exists(destino_entrada):
-            base, ext = os.path.splitext(nome_arquivo)
+            base, ext = os.path.splitext(nome_com_prefixo)
             ts = time.strftime("%H%M%S")
-            nome_arquivo = f"{base}_{ts}{ext}"
-            destino_entrada = os.path.join(pasta_entrada, nome_arquivo)
+            nome_com_prefixo = f"{base}_{ts}{ext}"
+            destino_entrada = os.path.join(pasta_entrada, nome_com_prefixo)
 
         shutil.copy2(caminho_baixado, destino_entrada)
+        nome_arquivo = nome_com_prefixo
 
         print(f"[AGENTE] Arquivo enviado para processamento: {nome_arquivo}")
 
