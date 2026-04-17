@@ -398,6 +398,37 @@
       ],
       "ok": true,
       "timestamp": "2026-04-17 11:33:02"
+    },
+    "19d9c6272bbb50dc": {
+      "remetente": "\"Operations.SouthAmerica (Functional Account)\" <operations.southamercia@signify.com>",
+      "assunto": "Completed - ID 1178 | Orders | BR05 Brazil | 02 Professional Trade | Cancel | 55004237 ELETRO TRANSOL IND E COM MAT ELETR LTDA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 14:03:10"
+    },
+    "19d9c760f88e039b": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA 806 - kRONA - SPE RESIDENCIAL CITY 14 EMPREENDIMENTOS",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "City Inc",
+      "cliente_id": "city",
+      "anexos": [
+        "EMAIL_Ordem de compra 806 - Obra 0054C (1).pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-17 14:26:11"
+    },
+    "19d9c90c0d6d72fe": {
+      "remetente": "Marian Siqueira De Almeida <marian.almeida@mrv.com.br>",
+      "assunto": "PEDIDOS KRONA- ENDEREÇO CORRETO",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 14:51:26"
+    },
+    "19d9c9daa17fdc97": {
+      "remetente": "Andre Abdalla Francisco <andre.abdalla@steck.com.br>",
+      "assunto": "Atualização e-mail cliente Eletrosul.",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 15:06:35"
     }
   },
   "revisao": [

@@ -24,7 +24,9 @@ CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
     "1750",  # TUBO PVC SOLD 25MM PY — linha PY especial, nao usar no match
-             # o correto e 24 (TUBO PVC SOLDAVEL - 6M - 25MM)
+    "1758",  # TUBO PVC ESG DN40 PY — linha PY especial
+    "1759",  # TUBO PVC ESG DN50 PY — linha PY especial
+    "1761",  # TUBO PVC ESG DN100 PY — linha PY especial
 }
 
 
@@ -57,6 +59,17 @@ def carregar_base_krona():
         excluidos = antes - len(df)
         if excluidos > 0:
             print(f"[MATCHER] {excluidos} produto(s) excluido(s) do match: {CODIGOS_EXCLUIDOS_MATCH}")
+
+    # correcao em runtime: preencher categoria_detectada para produtos sem categoria
+    # JUNCAO nao estava no normalizador original — corrigido aqui sem precisar regenerar a base
+    sem_cat = df["categoria_detectada"].isna()
+    if sem_cat.sum() > 0:
+        desc = df.loc[sem_cat, "descricao_krona"].fillna("").str.upper()
+        df.loc[sem_cat & desc.str.contains("JUNCAO|JUNC", na=False), "categoria_detectada"] = "JUNCAO"
+
+        sem_cat2 = df["categoria_detectada"].isna()
+        desc2 = df.loc[sem_cat2, "descricao_krona"].fillna("").str.upper()
+        df.loc[sem_cat2 & desc2.str.contains("REDUC", na=False), "categoria_detectada"] = "REDUCAO"
 
     return df
 
@@ -325,15 +338,24 @@ def match_por_descricao(item, base_krona):
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
                 "motivo_match": "sem_candidatos_krona"}
 
-    # filtro critico: se OC pede serie REFORCADA, excluir produtos sem REFORCADA/REFORC
-    # se OC pede serie NORMAL, excluir produtos com REFORCADA (evita confusao)
+    # filtro critico: distingue serie REFORCADA vs NORMAL
+    # na base Krona: serie reforcada usa REFORC ou SR (para tubos)
+    # serie normal usa PRIM ou SEC — nunca REFORC nem SR
     if subcategoria == "REFORCADA":
-        mask_ref = candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False)
+        # OC pede REFORCADA — manter apenas produtos com REFORC ou SR no nome
+        mask_ref = (
+            candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False) |
+            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" SR ", na=False, regex=True)
+        )
         if mask_ref.sum() > 0:
             candidatos = candidatos[mask_ref]
     elif subcategoria == "ESGOTO":
-        # serie normal — exclui produtos que tenham REFORCADA/REFORC no nome
-        mask_nao_ref = ~candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False)
+        # OC pede serie NORMAL — excluir produtos com REFORC, SR ou PY no nome
+        mask_nao_ref = ~(
+            candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False) |
+            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" SR ", na=False, regex=True) |
+            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" PY$", na=False, regex=True)
+        )
         if mask_nao_ref.sum() > 0:
             candidatos = candidatos[mask_nao_ref]
 
