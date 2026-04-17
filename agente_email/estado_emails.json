@@ -329,6 +329,37 @@
       "assunto": "Nova cotação disponível - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
       "classificacao": "ignorado",
       "timestamp": "2026-04-16 17:29:49"
+    },
+    "19d9a4217380bc54": {
+      "remetente": "VIVO <vivoemdia@atendimento.empresas.vivo.com.br>",
+      "assunto": "Comunicado VIVO",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 07:25:24"
+    },
+    "19d9b09befb6aa71": {
+      "remetente": "Mateus Zanella Sotopietra - ESP <naoresponder@sistemas.sienge.com.br>",
+      "assunto": "Pedido de Compra 21492/26",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "Krona (pedido direto)",
+      "cliente_id": "krona_direto",
+      "anexos": [
+        "PedidoCompra4364490044191835194.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-17 07:44:27"
+    },
+    "19d9b2ef45ffee36": {
+      "remetente": "Sandra Bokane <sandra.bokane@gplincorporadora.com.br>",
+      "assunto": "ACESSO AO PORTAL KRONA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 08:24:52"
+    },
+    "19d9b3d38bc45903": {
+      "remetente": "Francisco Alves Amorim dos Santos <francisco.santos@cityinc.com.br>",
+      "assunto": "Re: ORDEM DE COMPRA 806",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 08:40:01"
     }
   },
   "revisao": [
@@ -442,6 +473,46 @@
         "RELATORIO.pdf"
       ],
       "timestamp": "2026-04-16 15:39:43"
+    },
+    {
+      "id": "19d9a94379427505",
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509404588",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "Ped. MRV4509404588.pdf"
+      ],
+      "timestamp": "2026-04-17 07:25:21"
+    },
+    {
+      "id": "19d9a93ab624a78a",
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509404622",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "Ped. MRV4509404622.pdf"
+      ],
+      "timestamp": "2026-04-17 07:25:22"
+    },
+    {
+      "id": "19d9a84df6096977",
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509404620",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "Ped. MRV4509404620.pdf"
+      ],
+      "timestamp": "2026-04-17 07:25:22"
+    },
+    {
+      "id": "19d9a84bc0487e12",
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509398172",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "Ped. MRV4509398172.pdf"
+      ],
+      "timestamp": "2026-04-17 07:25:23"
     }
   ],
   "erros": []
