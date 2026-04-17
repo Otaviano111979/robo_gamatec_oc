@@ -127,6 +127,30 @@
       ],
       "usar_reply_to": true,
       "ativo": true
+    },
+    {
+      "id": "city",
+      "nome": "City Inc",
+      "formato_oc": "UAU",
+      "dominios_email": [
+        "cityinc.com.br"
+      ],
+      "cnpjs": [
+        "36153010"
+      ],
+      "palavras_cabecalho": [
+        "CITY",
+        "SPE RESIDENCIAL CITY",
+        "ORDEM DE COMPRA",
+        "CITYHOUSE",
+        "CITYINC"
+      ],
+      "marcadores_pdf": [
+        "uau! software",
+        "city"
+      ],
+      "usar_reply_to": false,
+      "ativo": true
     }
   ],
   "cnpj_krona": [
