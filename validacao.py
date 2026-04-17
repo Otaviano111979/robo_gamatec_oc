@@ -12,9 +12,12 @@ CAMINHO_REVISAO = os.path.join(PASTA_SAIDA, "itens_revisao_manual.csv")
 
 TIPOS_MATCH_APROVADOS = {
     "MATCH_CODIGO_MRV",
+    "MATCH_CODIGO_BRASAL",
     "MATCH_FORTE",
     "MATCH_BOM",
     "MATCH_FRACO",
+    "MATCH_DESCRICAO",          # match por descricao — aprovado automaticamente
+    "MATCH_DESCRICAO_REVISAR",  # match por descricao com empate — aprovado mas sinalizado
 }
 
 
