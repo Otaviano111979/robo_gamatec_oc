@@ -384,6 +384,20 @@
       "assunto": "RE: ORDEM DE COMPRA 806",
       "classificacao": "ignorado",
       "timestamp": "2026-04-17 11:06:04"
+    },
+    "19d9bdb34ef8deb0": {
+      "remetente": "<joao.andrade@b3pconstrutora.com.br>",
+      "assunto": "ORDEM DE COMPRA KRONA (HIDROLANDIA)",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "City Inc",
+      "cliente_id": "city",
+      "anexos": [
+        "EMAIL_Ordem de Compras - 336 KRONA TUBOS.pdf",
+        "EMAIL_Ordem de Compras - 337 KRONA TUBOS.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-17 11:33:02"
     }
   },
   "revisao": [
@@ -416,6 +430,16 @@
         "RELATORIO.pdf"
       ],
       "timestamp": "2026-04-17 10:48:16"
+    },
+    {
+      "id": "19d9bd707121a836",
+      "remetente": "\"Depto. de Compras - Cotação\" <cotacao@ccbconstrutora.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 64841 - CONSTRUTORA CENTRAL DO BRASIL S/A",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-17 11:27:57"
     }
   ],
   "erros": []

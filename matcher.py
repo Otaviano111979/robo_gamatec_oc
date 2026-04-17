@@ -184,6 +184,7 @@ def extrair_categoria_da_descricao(descricao):
         ("PASTA",     [r"\bPASTA\b"]),
         ("FLANGE",    [r"\bFLANGE\b"]),
         ("UNIAO",     [r"\bUNIAO\b"]),
+        ("JUNCAO",    [r"\bJUN[CÇ][AÃ]O\b", r"\bJUNC\.?\b"]),
     ]
     for categoria, padroes in categorias:
         for padrao in padroes:
@@ -204,9 +205,24 @@ def extrair_material_da_descricao(descricao):
 
 
 def extrair_subcategoria_da_descricao(descricao):
+    """
+    Detecta subcategoria do produto para filtrar candidatos na base Krona.
+
+    Padrão base Krona:
+    - Série Reforçada  → produtos com código 1400+ tem 'SERIE REFORCADA' no nome
+    - Série Normal     → produtos mais antigos usam PRIM (DN>=50) ou SEC (DN40)
+    - Água fria soldável → SOLDAVEL
+    """
     texto = str(descricao or "").upper()
-    if re.search(r"\bESOTO\b|\bESGOTO\b|\bSEC\.?\b|\bPRIM\.?\b|\bSERIE\b|\bREFOR", texto):
+
+    # serie reforcada (nova linha Krona 1400+)
+    if re.search(r"REFOR[CÇ]", texto):
+        return "REFORCADA"
+
+    # esgoto serie normal → busca PRIM e SEC (ambos usados na Krona)
+    if re.search(r"ESGOTO|\bESG\.?\b|\bPRIM\.?\b|\bSEC\.?\b", texto):
         return "ESGOTO"
+
     if re.search(r"\bSOLD[AV]\b|\bSOLDAVEL\b", texto):
         return "SOLDAVEL"
     if re.search(r"\bROSC[AV]\b|\bROSCAVEL\b", texto):
@@ -226,7 +242,18 @@ def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, 
             (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
             (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
         )
-        mask_sub = base_krona["descricao_krona"].fillna("").str.upper().str.contains(subcategoria[:4])
+        # mapeia subcategoria para termos usados na base Krona
+        termos_sub = {
+            "REFORCADA": ["REFORCADA", "REFORC", "REFORÇ"],  # serie reforcada nova
+            "ESGOTO":    ["ESGOTO", "PRIM", "SEC", "ESG"],   # esgoto serie normal
+            "SOLDAVEL":  ["SOLD"],
+            "ROSCAVEL":  ["ROSC"],
+            "ULTRATERM": ["ULTRA"],
+        }.get(subcategoria, [subcategoria[:4]])
+
+        mask_sub = pd.Series([False] * len(base_krona), index=base_krona.index)
+        for termo in termos_sub:
+            mask_sub = mask_sub | base_krona["descricao_krona"].fillna("").str.upper().str.contains(termo)
         candidatos = base_krona[mask_cat & mask_dia & mask_sub]
         if len(candidatos) >= 1:
             return candidatos
