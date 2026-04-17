@@ -366,8 +366,41 @@
       "assunto": "RES: Pedido de Compra 16246/26",
       "classificacao": "ignorado",
       "timestamp": "2026-04-17 10:13:25"
+    },
+    "19d9131263fac281": {
+      "remetente": "Tainara Cestari <tainara.cestari@ebm.com.br>",
+      "assunto": "RES: Pedido de Compra 16246/26",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 10:38:09"
+    },
+    "19d7747493249c50": {
+      "remetente": "Tainara Cestari <tainara.cestari@ebm.com.br>",
+      "assunto": "RES: Pedido de Compra 16246/26",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 10:38:11"
     }
   },
-  "revisao": [],
+  "revisao": [
+    {
+      "id": "19d7237bb04b0ad2",
+      "remetente": "Tainara Cestari <tainara.cestari@ebm.com.br>",
+      "assunto": "ENC: Pedido de Compra 16246/26",
+      "motivo": "resposta_ou_encaminhamento",
+      "anexos": [
+        "PedidoCompra6426761380058976394.pdf"
+      ],
+      "timestamp": "2026-04-17 10:38:11"
+    },
+    {
+      "id": "19d6acb5f943f9c6",
+      "remetente": "Tainara Cestari <tainara.cestari@ebm.com.br>",
+      "assunto": "RES: Pedido de Compra 16246/26",
+      "motivo": "resposta_ou_encaminhamento",
+      "anexos": [
+        "CNO Wide Nova Campinas.pdf"
+      ],
+      "timestamp": "2026-04-17 10:38:12"
+    }
+  ],
   "erros": []
 }
