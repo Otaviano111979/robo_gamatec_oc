@@ -23,6 +23,8 @@ CAMINHO_BASE_MRV = os.path.join(BASE_DIR, "dados", "base_mrv.csv")
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
+    "1750",  # TUBO PVC SOLD 25MM PY — linha PY especial, nao usar no match
+             # o correto e 24 (TUBO PVC SOLDAVEL - 6M - 25MM)
 }
 
 
