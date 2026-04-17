@@ -305,7 +305,7 @@
       </div>
       <span class="badge" id="erros-count">0</span>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap ios-table-wrap">
       <table class="ios-table">
         <thead>
           <tr>
@@ -331,13 +331,20 @@
           <span class="badge">Entrada</span>
         </div>
 
-        <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
-          <label class="upload-box" for="file">
-            <input id="file" type="file" name="file" accept=".pdf" required>
-            <span>Selecionar PDF da OC</span>
+        <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+          <label class="upload-box" for="file" id="upload-label">
+            <input id="file" type="file" name="file" accept=".pdf" required
+              onchange="mostrarArquivoSelecionado(this)">
+            <span id="upload-texto">📎 Selecionar PDF da OC</span>
           </label>
-
-          <button class="ios-button primary" type="submit">Enviar PDF</button>
+          <div id="upload-preview" style="display:none;" class="upload-preview">
+            <span id="upload-nome-arquivo"></span>
+            <button type="button" class="ios-button small danger ghost"
+              onclick="limparUpload()">✕</button>
+          </div>
+          <button class="ios-button primary" type="submit" id="btn-enviar-pdf" disabled>
+            Enviar PDF
+          </button>
         </form>
       </section>
 

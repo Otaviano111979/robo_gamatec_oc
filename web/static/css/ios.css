@@ -1112,6 +1112,45 @@ tr.oc-row-archived td {
 }
 
 /* =========================
+   UPLOAD FEEDBACK
+========================= */
+.upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--vortex-cyan, #00d4ff);
+  letter-spacing: 0.05em;
+  animation: fadeIn 0.3s ease;
+}
+
+.upload-preview span {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upload-box.arquivo-selecionado {
+  border-color: var(--vortex-cyan, #00d4ff);
+  background: rgba(0,212,255,0.04);
+}
+
+.upload-box.arquivo-selecionado span {
+  color: var(--vortex-cyan, #00d4ff);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================
    AGENTE EMAIL — BARRA
 ========================= */
 .aep-bar {
@@ -1812,3 +1851,173 @@ body.dark .aep-bar {
     min-width: 760px;
   }
 } 
+/* =========================
+   RESPONSIVIDADE — VORTEX
+   Desktop first / Mobile funcional
+========================= */
+
+/* ── TABLET (até 900px) ── */
+@media (max-width: 900px) {
+
+  /* Topbar Vortex — compacta */
+  .topbar-vortex {
+    padding: 0 14px;
+    height: 56px;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .vortex-wordmark { font-size: 14px; }
+  .vortex-sub { display: none; }
+  .vortex-spinner { width: 28px; height: 28px; }
+  .vs-ring:nth-child(2) { inset: 5px; }
+  .vs-ring:nth-child(3) { inset: 10px; }
+  .vs-dot { inset: 12px; }
+
+  /* Topbar actions — esconde labels longos */
+  .topbar-actions .ios-button.secondary:not(:last-child) {
+    display: none;
+  }
+
+  /* Barra agente email */
+  .aep-bar { padding: 8px 14px; top: 56px; }
+  .aep-bar-stats { display: none; }
+
+  /* Cards de resumo */
+  .resumo-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  /* Tabela de OCs — scroll horizontal */
+  .ios-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ios-table { min-width: 700px; }
+
+  /* Painel de controle */
+  .painel-grid {
+    grid-template-columns: 1fr;
+    padding: 16px 14px 40px 14px;
+  }
+
+  .metricas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bases-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── MOBILE (até 600px) ── */
+@media (max-width: 600px) {
+
+  /* Topbar — logo + ações essenciais */
+  .topbar-vortex {
+    padding: 0 12px;
+    height: 52px;
+  }
+
+  .vortex-header { gap: 8px; }
+
+  /* Esconde textos admin no header */
+  .topbar-actions .ios-button {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .usuario-logado { display: none; }
+
+  /* Cards de resumo — linha única compacta */
+  .resumo-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .resumo-card-numero { font-size: 22px; }
+  .resumo-card-label  { font-size: 9px; }
+
+  /* Upload de OC */
+  .upload-area { padding: 20px 14px; }
+  .upload-area-text { font-size: 12px; }
+
+  /* Modais — tela cheia */
+  .modal-box {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90vh;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  /* Login */
+  .vortex-login-card {
+    padding: 36px 24px;
+    border-radius: 20px;
+  }
+
+  .vortex-login-wordmark { font-size: 22px; }
+  .vortex-login-spinner  { width: 56px; height: 56px; }
+  .vls-ring:nth-child(2) { inset: 8px; }
+  .vls-ring:nth-child(3) { inset: 16px; }
+  .vls-dot { inset: 23px; }
+
+  /* Painel de controle */
+  .painel-grid { padding: 12px 12px 40px 12px; gap: 12px; }
+  .metrica-numero { font-size: 22px; }
+  .painel-secao { padding: 18px 14px; }
+
+  /* Revisão de emails */
+  .revisao-item { flex-direction: column; gap: 10px; }
+  .revisao-acoes { width: 100%; justify-content: flex-end; }
+
+  /* Saude do sistema */
+  .saude-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .saude-detalhe { text-align: left; }
+
+  /* Barra agente email mobile */
+  .aep-bar-inner { flex-wrap: wrap; gap: 8px; }
+  .aep-bar-right { width: 100%; justify-content: flex-end; }
+
+  /* Tabela — scroll com indicador visual */
+  .ios-table-wrap::after {
+    content: '← deslize →';
+    display: block;
+    text-align: center;
+    font-size: 10px;
+    color: var(--subtext);
+    padding: 4px 0;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+
+  /* Calibração */
+  .calib-descricao { font-size: 14px; }
+  .calib-instrucao-box { padding: 14px; }
+}
+
+/* ── MOBILE PEQUENO (até 380px) ── */
+@media (max-width: 380px) {
+
+  .topbar-vortex { height: 48px; }
+  .vortex-wordmark { font-size: 12px; }
+  .vortex-spinner { width: 24px; height: 24px; }
+
+  .resumo-card-numero { font-size: 18px; }
+
+  .topbar-actions .ios-button.secondary { display: none; }
+
+  .painel-nav { flex-wrap: wrap; gap: 6px; }
+  .painel-nav-sep { display: none; }
+}

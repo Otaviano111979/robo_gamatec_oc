@@ -487,6 +487,8 @@ def enviar_resposta(servico, thread_id: str, para: str, assunto: str, tipo: str)
 
 Confirmamos o recebimento da sua Ordem de Compra e já iniciamos o processamento.
 
+Prazo de entrega: 15 dias úteis após a confirmação do pedido.
+
 Em breve nossa equipe entrará em contato com as informações necessárias.
 
 Atenciosamente,
@@ -496,6 +498,8 @@ Representante Oficial KRONA Tubos e Conexões"""
         corpo = f"""Olá, {nome}!
 
 Recebemos sua solicitação de cotação e já estamos trabalhando nos preços.
+
+Prazo de resposta: em até 2 dias úteis.
 
 Em breve retornaremos com as informações completas.
 
