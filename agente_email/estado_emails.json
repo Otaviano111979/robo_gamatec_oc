@@ -429,6 +429,12 @@
       "assunto": "Atualização e-mail cliente Eletrosul.",
       "classificacao": "ignorado",
       "timestamp": "2026-04-17 15:06:35"
+    },
+    "19d9ce38c4bdfc28": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7082026##] : ENTREGA DE ITEM NA QUANTIDADE INCORRETA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-17 16:24:52"
     }
   },
   "revisao": [
@@ -491,6 +497,16 @@
         "cliente_150397_receber_6998260_363970054324001776434589.pdf"
       ],
       "timestamp": "2026-04-17 12:22:39"
+    },
+    {
+      "id": "19d9cc8935ba252b",
+      "remetente": "Mateus Zanella Sotopietra <mateus.sotopietra@ebm.com.br>",
+      "assunto": "RE: Pedido de Compra 21492/26",
+      "motivo": "resposta_ou_encaminhamento",
+      "anexos": [
+        "CNO - BRASIL INCORPORACAO 190 SPE LTDA - WIDE PRAÇA DO SOL.pdf"
+      ],
+      "timestamp": "2026-04-17 15:54:35"
     }
   ],
   "erros": []

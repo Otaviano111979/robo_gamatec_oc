@@ -334,6 +334,24 @@ def match_por_descricao(item, base_krona):
 
     candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
 
+    # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
+    # refinar candidatos por texto dos dois numeros da descricao OC
+    if categoria == "JUNCAO" and diametro is not None:
+        nums_oc = re.findall(r"\b(\d{2,3})\b", descricao_limpa)
+        if len(nums_oc) >= 2:
+            mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
+            candidatos_sem_diam = candidatos[mask_sem_diam]
+            candidatos_com_diam = candidatos[~mask_sem_diam]
+            if not candidatos_sem_diam.empty:
+                mask_num = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
+                for num in nums_oc[:2]:
+                    mask_num = mask_num | candidatos_sem_diam["descricao_krona"].fillna("").str.upper().str.contains(rf"\b{num}\b", regex=True, na=False)
+                candidatos_filtrados = candidatos_sem_diam[mask_num]
+                if not candidatos_filtrados.empty:
+                    candidatos = pd.concat([candidatos_com_diam, candidatos_filtrados])
+                elif not candidatos_com_diam.empty:
+                    candidatos = candidatos_com_diam
+
     if candidatos.empty:
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
                 "motivo_match": "sem_candidatos_krona"}
