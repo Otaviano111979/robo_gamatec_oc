@@ -440,6 +440,26 @@
         "RELATORIO.pdf"
       ],
       "timestamp": "2026-04-17 11:27:57"
+    },
+    {
+      "id": "19d9bde56a4e26f2",
+      "remetente": "Suprimentos OM <suprimentos@ominc.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para Cotação nº 1472 - SPE COMERCIAL CITY 24 EMPREENDIMENTOS LTDA",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-17 11:37:11"
+    },
+    {
+      "id": "19d9c0600b11768b",
+      "remetente": "boletos@envio.linq.net.br",
+      "assunto": "Lembrete de Pagamento LinQ Telecom",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "cliente_150397_receber_6998260_363970054324001776434589.pdf"
+      ],
+      "timestamp": "2026-04-17 12:22:39"
     }
   ],
   "erros": []

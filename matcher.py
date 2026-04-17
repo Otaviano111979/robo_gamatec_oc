@@ -323,6 +323,22 @@ def match_por_descricao(item, base_krona):
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
                 "motivo_match": "sem_candidatos_krona"}
 
+    # filtro critico: se OC pede serie REFORCADA, excluir produtos sem REFORCADA/REFORC
+    # se OC pede serie NORMAL, excluir produtos com REFORCADA (evita confusao)
+    if subcategoria == "REFORCADA":
+        mask_ref = candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False)
+        if mask_ref.sum() > 0:
+            candidatos = candidatos[mask_ref]
+    elif subcategoria == "ESGOTO":
+        # serie normal — exclui produtos que tenham REFORCADA/REFORC no nome
+        mask_nao_ref = ~candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False)
+        if mask_nao_ref.sum() > 0:
+            candidatos = candidatos[mask_nao_ref]
+
+    if candidatos.empty:
+        return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
+                "motivo_match": "sem_candidatos_apos_filtro_serie"}
+
     registros = []
     for _, row in candidatos.iterrows():
         cand = row.to_dict()
