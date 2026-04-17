@@ -234,13 +234,33 @@ def carregar_clientes_conhecidos() -> dict:
 
 
 def identificar_cliente(remetente: str, assunto: str, corpo: str, anexos: list) -> dict:
-    dados   = carregar_clientes_conhecidos()
+    dados    = carregar_clientes_conhecidos()
     clientes = dados.get("clientes", [])
+    sistemas = dados.get("sistemas", [])
 
     texto_completo = (remetente + " " + assunto + " " + corpo).lower()
     texto_limpo    = texto_completo.replace(".", "").replace("/", "").replace("-", "")
     nomes_anexos   = " ".join(a["nome"] for a in anexos).lower()
 
+    # ── DETECÇÃO POR SISTEMA PROVEDOR ──────────────────────
+    # Qualquer cliente que use SIENGE ou UAU é processado automaticamente
+    # sem precisar cadastrar o cliente individualmente
+    for sistema in sistemas:
+        if not sistema.get("ativo", True):
+            continue
+        for marcador in sistema.get("marcadores_sistema", []):
+            if marcador.lower() in texto_completo or marcador.lower() in remetente.lower():
+                return {
+                    "identificado":  True,
+                    "id":            sistema["id"],
+                    "nome":          f"Cliente via {sistema['nome']}",
+                    "formato_oc":    sistema["formato_oc"],
+                    "score":         5,
+                    "usar_reply_to": sistema.get("usar_reply_to", False),
+                    "via_sistema":   True,
+                }
+
+    # ── DETECÇÃO POR CLIENTE CADASTRADO ────────────────────
     melhor_cliente = None
     melhor_score   = 0
 
@@ -278,19 +298,23 @@ def identificar_cliente(remetente: str, assunto: str, corpo: str, anexos: list) 
 
     if melhor_cliente and melhor_score >= score_minimo:
         return {
-            "identificado": True,
-            "id":           melhor_cliente["id"],
-            "nome":         melhor_cliente["nome"],
-            "formato_oc":   melhor_cliente["formato_oc"],
-            "score":        melhor_score,
+            "identificado":  True,
+            "id":            melhor_cliente["id"],
+            "nome":          melhor_cliente["nome"],
+            "formato_oc":    melhor_cliente["formato_oc"],
+            "score":         melhor_score,
+            "usar_reply_to": melhor_cliente.get("usar_reply_to", False),
+            "via_sistema":   False,
         }
 
     return {
-        "identificado": False,
-        "id":           "desconhecido",
-        "nome":         "Cliente não identificado",
-        "formato_oc":   None,
-        "score":        melhor_score,
+        "identificado":  False,
+        "id":            "desconhecido",
+        "nome":          "Cliente nao identificado",
+        "formato_oc":    None,
+        "score":         melhor_score,
+        "usar_reply_to": False,
+        "via_sistema":   False,
     }
 
 

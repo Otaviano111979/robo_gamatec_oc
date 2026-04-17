@@ -101,6 +101,32 @@
         "PEDIDO DE COMPRA"
       ],
       "ativo": true
+    },
+    {
+      "id": "ebm",
+      "nome": "EBM Incorporações",
+      "formato_oc": "SIENGE",
+      "dominios_email": [
+        "ebm.com.br",
+        "sistemas.sienge.com.br"
+      ],
+      "cnpjs": [
+        "40957315"
+      ],
+      "palavras_cabecalho": [
+        "EBM",
+        "BRASIL INCORPORACAO",
+        "WIDE",
+        "PEDIDO DE COMPRA",
+        "SIENGE"
+      ],
+      "marcadores_pdf": [
+        "sienge",
+        "starian",
+        "pedido de compra"
+      ],
+      "usar_reply_to": true,
+      "ativo": true
     }
   ],
   "cnpj_krona": [
@@ -112,5 +138,34 @@
     "processar_cliente_desconhecido": false,
     "label_cliente_novo": "Vortex/Cliente Novo",
     "label_formato_desconhecido": "Vortex/Formato Desconhecido"
-  }
+  },
+  "sistemas": [
+    {
+      "id": "sienge",
+      "nome": "Sistema SIENGE/STARIAN",
+      "detecta_por_sistema": true,
+      "marcadores_sistema": [
+        "sistemas.sienge.com.br",
+        "sienge",
+        "starian",
+        "naoresponder@sistemas.sienge"
+      ],
+      "formato_oc": "SIENGE",
+      "usar_reply_to": true,
+      "ativo": true
+    },
+    {
+      "id": "uau",
+      "nome": "Sistema UAU",
+      "detecta_por_sistema": true,
+      "marcadores_sistema": [
+        "uau! software",
+        "automacao e gestao empresarial",
+        "uau.com.br"
+      ],
+      "formato_oc": "UAU",
+      "usar_reply_to": false,
+      "ativo": true
+    }
+  ]
 }

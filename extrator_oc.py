@@ -7,6 +7,7 @@ from extracao_oc.agrupador_itens import agrupar_blocos_itens
 from extracao_oc.estruturador_item import estruturar_blocos_em_itens
 from extracao_oc.validacao_extracao_oc import validar_itens_extraidos
 from extracao_oc.debug_extracao import gerar_relatorio_extracao
+from extracao_oc.extrator_sienge import extrair_oc_sienge, detectar_formato_sienge
 import re as _re
 
 
@@ -110,7 +111,41 @@ def _extrair_itens_brasal(caminho_pdf: str) -> List[Dict[str, Any]]:
 
 
 def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List[Dict[str, Any]]:
-    # detecta formato Brasal/Closer antes de tudo
+    # detecta formato SIENGE/STARIAN primeiro — EBM e qualquer cliente SIENGE
+    if detectar_formato_sienge(caminho_pdf):
+        resultado = extrair_oc_sienge(caminho_pdf)
+        if resultado["ok"] and resultado["itens"]:
+            itens_normalizados = []
+            for i, item in enumerate(resultado["itens"], 1):
+                itens_normalizados.append({
+                    "idx_item":              str(i).zfill(5),
+                    "codigo_interno_oc":     item["codigo_cliente"],
+                    "descricao_original":    item["descricao"],
+                    "descricao_reconstruida": item["descricao"],
+                    "quantidade":            item["quantidade"],
+                    "unidade_original":      item["unidade"],
+                    "unidade_normalizada":   item["unidade"],
+                    "preco_unitario":        item["preco_unitario"],
+                    "preco_total":           item["preco_total"],
+                    "data_entrega":          item["data_entrega"],
+                    "status_extracao":       "extraido",
+                    "observacoes":           ["formato_sienge"],
+                })
+            if caminho_debug:
+                try:
+                    with open(caminho_debug, "w", encoding="utf-8") as f:
+                        f.write(f"FORMATO: SIENGE/STARIAN\n")
+                        f.write(f"Pedido: {resultado['numero_oc']}\n")
+                        f.write(f"Cliente: {resultado['cliente']}\n")
+                        f.write(f"Total de itens: {len(itens_normalizados)}\n\n")
+                        for item in itens_normalizados:
+                            f.write(f"[{item['status_extracao']}] {item['idx_item']} | {item['descricao_reconstruida']}\n")
+                            f.write(f"  codigo={item['codigo_interno_oc']} | qtd={item['quantidade']} {item['unidade_normalizada']}\n")
+                except Exception:
+                    pass
+            return itens_normalizados
+
+    # detecta formato Brasal/Closer
     if _detectar_formato_brasal(caminho_pdf):
         itens = _extrair_itens_brasal(caminho_pdf)
         if itens:

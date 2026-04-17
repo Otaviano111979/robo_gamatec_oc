@@ -207,12 +207,20 @@ def verificar_emails(servico, modo_teste: bool = False):
             else:
                 log(f"     [ERRO] Erro: {resultado['erro']}")
 
-        # resposta automática
+        # resposta automatica
+        # usa reply-to quando cliente usa sistema como SIENGE (naoresponder@)
+        usar_reply_to = cliente_info.get("usar_reply_to", False)
+        destinatario  = (
+            email_info.get("reply_to")
+            if usar_reply_to and email_info.get("reply_to")
+            else email_info["remetente"]
+        )
+        log(f"  Resposta para: {destinatario}")
         try:
             enviar_resposta(
                 servico=servico,
                 thread_id=email_info["thread_id"],
-                para=email_info["reply_to"],
+                para=destinatario,
                 assunto=assunto,
                 tipo=classificacao,
             )
