@@ -116,7 +116,6 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
                     textos = [_limpar_celula(c).lower() for c in (row or [])]
                     if "item" in textos and any(t in textos for t in ("descricao", "descrição", "qtde", "qtd")):
                         col = _detectar_colunas_uau(row)
-<<<<<<< HEAD
                         col_ultimo = col  # salva para proximas paginas
                         inicio_dados = i + 1
                         break
@@ -127,11 +126,6 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
                     col = col_ultimo
                     inicio_dados = 0
 
-=======
-                        inicio_dados = i + 1
-                        break
-
->>>>>>> 640869ec2eef85dd0de9b038e71e5e6cc1e79638
                 if not col:
                     continue
 
