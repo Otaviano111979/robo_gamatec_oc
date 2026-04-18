@@ -761,6 +761,53 @@ def status_oc(arquivo):
 # =========================
 # BAIXAR PLANILHA
 # =========================
+@app.route("/api/registrar-correcao", methods=["POST"])
+def api_registrar_correcao():
+    """
+    Registra uma correcao manual do operador no historico de aprendizado.
+    Chamada quando o operador corrige um codigo na planilha.
+    Payload JSON: {
+        descricao_oc, codigo_krona_correto, cliente_id, cliente_nome,
+        codigo_krona_sugerido (opcional), motivo (opcional)
+    }
+    """
+    try:
+        from historico_aprendizado import registrar_validacao_manual, inicializar_banco
+        from base_krona_loader import buscar_cadastro_krona_por_codigo, carregar_base_krona
+        inicializar_banco()
+
+        dados = request.get_json(force=True) or {}
+        descricao_oc   = str(dados.get("descricao_oc") or "").strip()
+        codigo_correto = str(dados.get("codigo_krona_correto") or "").strip()
+        cliente_id     = str(dados.get("cliente_id") or "").strip() or None
+        cliente_nome   = str(dados.get("cliente_nome") or "").strip() or None
+        motivo         = str(dados.get("motivo") or "").strip() or None
+
+        if not descricao_oc or not codigo_correto:
+            return jsonify({"ok": False, "erro": "descricao_oc e codigo_krona_correto sao obrigatorios"}), 400
+
+        # buscar descricao krona para o codigo corrigido
+        base = carregar_base_krona()
+        cadastro = buscar_cadastro_krona_por_codigo(codigo_correto, base)
+        desc_krona = cadastro.get("descricao_krona") if cadastro else None
+
+        registrar_validacao_manual(
+            cliente_id=cliente_id,
+            cliente_nome=cliente_nome,
+            descricao_oc_original=descricao_oc,
+            descricao_oc_normalizada=descricao_oc.upper().strip(),
+            codigo_krona_aprovado=codigo_correto,
+            descricao_krona_aprovada=desc_krona,
+            tipo_match_final="CORRECAO_MANUAL",
+            observacoes=motivo,
+        )
+
+        return jsonify({"ok": True, "mensagem": f"Correcao registrada: {descricao_oc} → {codigo_correto}"})
+
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
 @app.route("/baixar-planilha/<path:arquivo>")
 def baixar_planilha(arquivo):
     if not usuario_logado():

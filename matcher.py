@@ -10,6 +10,13 @@ from base_brasal_loader import carregar_base_brasal
 from matcher_brasal import match_por_codigo_brasal
 from regra_quantidade import ajustar_quantidade_tubo
 
+# historico de aprendizado — importacao opcional para nao quebrar se nao existir
+try:
+    from historico_aprendizado import obter_melhor_sugestao_historico, registrar_validacao_manual
+    HISTORICO_DISPONIVEL = True
+except ImportError:
+    HISTORICO_DISPONIVEL = False
+
 
 CAMINHO_BASE_KRONA = CAMINHO_BASE_KRONA_FINAL
 # caminho lido do config, sem valor fixo no codigo
@@ -20,254 +27,6 @@ CAMINHO_BASE_MRV = os.path.join(BASE_DIR, "dados", "base_mrv.csv")
 # Produtos que não existem mais no catálogo ativo ou que causam
 # matches incorretos. Adicione aqui quando identificar problemas.
 # ============================================================
-
-# ============================================================
-# MAPA DIRETO DE JUNÇÃO — evita erros do rapidfuzz
-# Chave: "JUNCAO {TIPO} {SERIE} {DIAM}" → codigo_krona
-# ============================================================
-MAPA_JUNCAO_DIRETO = {
-    # SÉRIE NORMAL (PRIM/SEC na Krona)
-    "JUNCAO SIMPLES NORMAL DN40":        626,
-    "JUNCAO SIMPLES NORMAL 40X40":       626,
-    "JUNCAO SIMPLES NORMAL DN50":        627,
-    "JUNCAO SIMPLES NORMAL 50X50":       627,
-    "JUNCAO SIMPLES NORMAL DN75":        628,
-    "JUNCAO SIMPLES NORMAL 75X75":       628,
-    "JUNCAO SIMPLES NORMAL DN100":       629,
-    "JUNCAO SIMPLES NORMAL 100X100":     629,
-    "JUNCAO SIMPLES NORMAL DN150":       630,
-    "JUNCAO SIMPLES NORMAL 150X150":     630,
-    "JUNCAO SIMPLES NORMAL 75X50":       638,
-    "JUNCAO SIMPLES NORMAL 100X50":      639,
-    "JUNCAO SIMPLES NORMAL 100X75":      640,
-    "JUNCAO SIMPLES NORMAL 150X100":     641,
-    "JUNCAO INVERTIDA NORMAL 75X50":     700,
-    "JUNCAO INVERTIDA NORMAL 100X50":    701,
-    "JUNCAO INVERTIDA NORMAL 100X75":    702,
-    "JUNCAO INVERTIDA NORMAL 75X75":     704,
-    "JUNCAO DUPLA NORMAL 75X75":         708,
-    "JUNCAO INVERTIDA NORMAL 100X100":   709,
-    "JUNCAO DUPLA NORMAL 100X100":       710,
-    # SÉRIE REFORÇADA
-    "JUNCAO SIMPLES REFORCADA DN40":    1427,
-    "JUNCAO SIMPLES REFORCADA DN50":    1428,
-    "JUNCAO SIMPLES REFORCADA DN75":    1429,
-    "JUNCAO SIMPLES REFORCADA DN100":   1430,
-    "JUNCAO SIMPLES REFORCADA DN150":   1431,
-    "JUNCAO SIMPLES REFORCADA 75X50":   1433,
-    "JUNCAO SIMPLES REFORCADA 100X50":  1434,
-    "JUNCAO SIMPLES REFORCADA 100X75":  1435,
-    "JUNCAO SIMPLES REFORCADA 150X100": 1436,
-    "JUNCAO DUPLA REFORCADA DN100":     1426,
-}
-
-
-def _normalizar_chave_juncao(descricao):
-    """Normaliza descricao de JUNCAO para chave do MAPA_JUNCAO_DIRETO."""
-    d = str(descricao or "").upper()
-    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
-    tipo = "SIMPLES"
-    if re.search(r"INVERT", d): tipo = "INVERTIDA"
-    elif re.search(r"DUPLA", d): tipo = "DUPLA"
-    # extrair pares DxD ou D X D primeiro
-    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
-    if pares:
-        nums = [pares[0][0], pares[0][1]]
-    else:
-        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
-                if n not in ("45", "90") and int(n) <= 300]
-    if len(nums) >= 2:
-        diam = f"{nums[0]}X{nums[1]}"
-    elif len(nums) == 1:
-        diam = f"DN{nums[0]}"
-    else:
-        diam = ""
-    return f"JUNCAO {tipo} {serie} {diam}".strip()
-
-
-# ============================================================
-# MAPA DIRETO DE TE ESGOTO — evita erros do rapidfuzz
-# ============================================================
-MAPA_TE_ESGOTO_DIRETO = {
-    # SÉRIE NORMAL (PRIM/SEC)
-    "TE SIMPLES NORMAL DN40":       658,
-    "TE SIMPLES NORMAL DN50":       659,
-    "TE SIMPLES NORMAL 50X50":      659,
-    "TE SIMPLES NORMAL DN75":       660,
-    "TE SIMPLES NORMAL 75X75":      660,
-    "TE SIMPLES NORMAL DN100":      661,
-    "TE SIMPLES NORMAL 100X100":    661,
-    "TE SIMPLES NORMAL DN150":      662,
-    "TE SIMPLES NORMAL 150X150":    662,
-    "TE REDUCAO NORMAL 75X50":      663,
-    "TE REDUCAO NORMAL 100X50":     664,
-    "TE REDUCAO NORMAL 100X75":     665,
-    "TE REDUCAO NORMAL 150X100":    666,
-    "TE INSPECAO NORMAL 100X75":    728,
-    # SÉRIE REFORÇADA
-    "TE SIMPLES REFORCADA DN40":   1456,
-    "TE SIMPLES REFORCADA DN50":   1457,
-    "TE SIMPLES REFORCADA DN75":   1458,
-    "TE SIMPLES REFORCADA DN100":  1459,
-    "TE SIMPLES REFORCADA DN150":  1460,
-    "TE REDUCAO REFORCADA 75X50":  1462,
-    "TE REDUCAO REFORCADA 100X50": 1463,
-    "TE SIMPLES REFORCADA 100X50":  1463,  # SR sem palavra REDUCAO
-    "TE REDUCAO REFORCADA 100X75": 1464,
-    "TE REDUCAO REFORCADA 150X100":1465,
-    "TE INSPECAO REFORCADA 75X75": 1467,
-    "TE INSPECAO REFORCADA 100X75":1468,
-    "TE INSPECAO REFORCADA 150X100":1469,
-}
-
-
-# ============================================================
-# MAPA DIRETO DE REDUÇÃO EXCÊNTRICA ESGOTO
-# ============================================================
-MAPA_REDUCAO_ESGOTO_DIRETO = {
-    # SÉRIE NORMAL (PRIM)
-    "REDUCAO NORMAL 75X50":   654,
-    "REDUCAO NORMAL 100X50":  655,
-    "REDUCAO NORMAL 100X75":  656,
-    "REDUCAO NORMAL 150X100": 657,
-    "REDUCAO NORMAL 200X150": 724,
-    # SÉRIE REFORÇADA
-    "REDUCAO REFORCADA 75X50":   1450,
-    "REDUCAO REFORCADA 100X75":  1452,
-    "REDUCAO REFORCADA 150X100": 1453,
-    "REDUCAO REFORCADA 200X150": 1451,
-}
-
-
-def _normalizar_chave_te_esgoto(descricao):
-    """Normaliza descricao de TE ESGOTO para chave do MAPA_TE_ESGOTO_DIRETO."""
-    import re
-    d = str(descricao or "").upper()
-    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
-    tipo = "SIMPLES"
-    if re.search(r"REDU[CÇ]|\bRED\b", d): tipo = "REDUCAO"
-    elif re.search(r"INSPEC", d):  tipo = "INSPECAO"
-    # pares: DN75X50, 100x50, 100 X 50
-    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
-    if pares:
-        nums = [pares[0][0], pares[0][1]]
-    else:
-        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
-                if n not in ("45", "90") and int(n) <= 300]
-    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else (f"DN{nums[0]}" if nums else "")
-    return f"TE {tipo} {serie} {diam}".strip()
-
-
-def _normalizar_chave_reducao_esgoto(descricao):
-    """Normaliza descricao de REDUÇÃO EXCÊNTRICA ESGOTO para chave do mapa."""
-    import re
-    d = str(descricao or "").upper()
-    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
-    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
-    if pares:
-        nums = [pares[0][0], pares[0][1]]
-    else:
-        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
-                if n not in ("45", "90") and int(n) <= 300]
-    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else ""
-    return f"REDUCAO {serie} {diam}".strip()
-
-
-# ============================================================
-# MAPA DIRETO DE JOELHO ESPECIAL (COM ANEL / COM VISITA)
-# ============================================================
-MAPA_JOELHO_ESPECIAL = {
-    "JOELHO 90 ANEL DN40":        623,   # JOELHO 90 BRANCO C/ANEL DN40X40
-    "JOELHO 90 ANEL NORMAL DN40":   623,   # variacao com serie detectada
-    "JOELHO 90 ANEL NORMAL 40X40":  623,   # variacao DN 40 X 40
-    "JOELHO 90 VISITA NORMAL 100X50":  622,   # JOELHO 90 C/VIS ESGOTO PRIM DN100X50
-    "JOELHO 90 VISITA REFORCADA 100X75": 1472, # JOELHO 90 VISITA ESG SR DN100X75
-}
-
-
-# mapas diretos para JOELHO 45 e 90 — serie normal e reforcada
-MAPA_JOELHO45_REFORCADA = {
-    "DN40":1413,"DN50":1414,"DN75":1415,"DN100":1416,"DN150":1417,
-}
-MAPA_JOELHO45_NORMAL = {
-    "DN40":611,"DN50":612,"DN75":613,"DN100":614,"DN150":615,
-}
-MAPA_JOELHO90_REFORCADA = {
-    "DN40":1419,"DN50":1420,"DN75":1421,"DN100":1422,"DN150":1423,
-}
-MAPA_JOELHO90_NORMAL = {
-    "DN40":616,"DN50":617,"DN75":618,"DN100":619,"DN150":621,
-}
-
-def _normalizar_chave_joelho_especial(descricao):
-    """Detecta JOELHO com ANEL ou VISITA e retorna chave para lookup."""
-    import re
-    d = str(descricao or "").upper()
-    if not re.search(r"JOELHO", d):
-        return None
-    if not re.search(r"ANEL|VISITA|C/VIS|C/ VIS", d):
-        return None
-    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
-    tipo = "ANEL" if re.search(r"ANEL", d) else "VISITA"
-    # extrair diâmetros
-    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
-    if pares:
-        nums = [pares[0][0], pares[0][1]]
-    else:
-        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
-                if n not in ("45", "90") and int(n) <= 300]
-    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else (f"DN{nums[0]}" if nums else "")
-    return f"JOELHO 90 {tipo} {serie} {diam}".strip()
-
-
-# ============================================================
-# MAPA DIRETO — PRODUTOS C/ BUCHA DE LATÃO
-# Crítico: ignorar LATAO leva a match errado (produto mais barato)
-# ============================================================
-MAPA_BUCHA_LATAO = {
-    # JOELHO SOLDÁVEL C/ BUCHA LATÃO
-    "JOELHO 90 SOLD LATAO 20X12":  497,  # 20MM X 1/2
-    "JOELHO 90 SOLD LATAO 25X34":  498,  # 25MM X 3/4
-    "JOELHO 90 SOLD LATAO 25X12":  499,  # 25MM X 1/2
-    "JOELHO 90 SOLD LATAO 32X34":  500,  # 32MM X 3/4
-    # LUVA SOLDÁVEL C/ BUCHA LATÃO
-    "LUVA SOLD LATAO 20X12":       501,
-    "LUVA SOLD LATAO 25X34":       502,
-    "LUVA SOLD LATAO 25X12":       503,
-    # TE SOLDÁVEL C/ BUCHA LATÃO
-    "TE SOLD LATAO 20X12":         504,
-    "TE SOLD LATAO 25X34":         505,
-    "TE SOLD LATAO 25X12":         506,
-    "TE SOLD LATAO 32X34":         507,
-}
-
-
-def _normalizar_chave_latao(descricao):
-    """
-    Detecta produtos C/ BUCHA DE LATÃO e retorna chave para lookup.
-    Retorna None se nao tiver LATAO na descricao.
-    """
-    import re
-    d = str(descricao or "").upper()
-    if not re.search(r"LATAO|LAT[AÃ]O", d):
-        return None
-    # tipo de produto
-    tipo = None
-    if re.search(r"\bJOELHO\b", d):  tipo = "JOELHO 90"
-    elif re.search(r"\bLUVA\b", d):  tipo = "LUVA"
-    elif re.search(r"\bTE\b|\bTEE\b", d): tipo = "TE"
-    if not tipo:
-        return None
-    # dimensoes: formato "20MM X 1/2" ou "20 X 1/2" ou "20MMX1/2"
-    # extrair par MM x polegada
-    par = re.search(r"(\d{2,3})(?:MM)?\s*[Xx]\s*(\d+/\d+(?:\.\d+/\d+)?)", d)
-    if not par:
-        return None
-    mm = par.group(1)
-    pol = par.group(2).replace("/", "")  # "1/2" → "12", "3/4" → "34"
-    return f"{tipo} SOLD LATAO {mm}X{pol}"
-
-
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
@@ -495,23 +254,7 @@ def extrair_subcategoria_da_descricao(descricao):
     return None
 
 
-# regra de negocio Gamatec: comprimento padrao por linha de tubo
-# PPR, ELETRODUTO e ULTRATERM so existem em 3M — nao aplicar regra 6M
-# SOLDAVEL, ESGOTO (PRIM/SEC/SR) — sempre 6M quando nao especificado na OC
-LINHAS_TUBO_6M = {
-    "TUBOS PVC SOLDAVEL",
-    "TUBOS PVC ESGOTO",
-    "TUBOS PVC BRANCO",
-}
-LINHAS_TUBO_3M_APENAS = {
-    "TUBOS PPR",
-    "TUBOS ELETRODUTO RÍGIDOS",
-    "TUBOS ELETRODUTO RIGIDOS",
-    "CPVC - ULTRATERM - TUBOS",
-}
-
-
-def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None, comprimento_m=None):
+def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None):
     MIN_CANDIDATOS = 3
 
     # filtro mais preciso: categoria + diametro + subcategoria
@@ -596,292 +339,29 @@ def match_por_descricao(item, base_krona):
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
 
-    # lookup direto para produtos C/ BUCHA DE LATÃO
-    # CRITICO: ignorar LATAO leva a cotar produto mais barato (ex: LUVA SOLD 25MM em vez de LUVA SOLD C/BUCHA LATAO 25MM X 1/2)
-    if categoria in ("JOELHO", "LUVA", "TE"):
-        chave_latao = _normalizar_chave_latao(descricao_limpa)
-        if chave_latao:
-            codigo_direto = MAPA_BUCHA_LATAO.get(chave_latao)
-            if codigo_direto:
-                cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-                if cadastro:
-                    return {
-                        "match_encontrado": True,
-                        "codigo_krona": cadastro.get("codigo_krona"),
-                        "descricao_krona": cadastro.get("descricao_krona"),
-                        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                        "linha_krona_match": cadastro.get("linha_krona"),
-                        "familia_krona_match": cadastro.get("familia_krona"),
-                        "unidade_venda_krona": cadastro.get("unidade_venda"),
-                        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                        "score_estrutura": 1,
-                        "score_textual": 1.0,
-                        "score_total": 1.0,
-                        "tipo_match": "MATCH_DESCRICAO",
-                        "revisao_manual": False,
-                        "motivo_match": f"LOOKUP_LATAO({chave_latao})",
-                        "categoria_krona": cadastro.get("categoria_detectada"),
-                        "eh_tubo_krona": cadastro.get("eh_tubo"),
-                        "diametro_krona_mm": obter_diametro_krona(cadastro),
-                        "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                    }
-            else:
-                # LATAO detectado mas nao mapeado — forcar revisao manual
-                # evita match errado com produto sem bucha
-                return {
-                    "match_encontrado": False,
-                    "codigo_krona": None,
-                    "descricao_krona": None,
-                    "descricao_krona_normalizada": None,
-                    "linha_krona_match": None,
-                    "familia_krona_match": None,
-                    "unidade_venda_krona": None,
-                    "quantidade_embalagem_krona": None,
-                    "score_estrutura": 0,
-                    "score_textual": 0,
-                    "score_total": 0,
-                    "tipo_match": "SEM_MATCH",
-                    "revisao_manual": True,
-                    "motivo_match": f"LATAO_NAO_MAPEADO({chave_latao}) - revisar manualmente",
-                    "categoria_krona": categoria,
-                    "eh_tubo_krona": None,
-                    "diametro_krona_mm": None,
-                    "comprimento_krona_m": None,
-                }
-
-    # lookup direto para JOELHO — cobre 45/90, series normal e reforcada, e especiais (anel/visita)
-    if categoria == "JOELHO":
-        # primeiro verificar anel/visita (produtos especiais)
-        chave_esp = _normalizar_chave_joelho_especial(descricao_limpa)
-        if chave_esp:
-            codigo_direto = MAPA_JOELHO_ESPECIAL.get(chave_esp)
-            if codigo_direto:
-                cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-                if cadastro:
-                    return {
-                        "match_encontrado": True,
-                        "codigo_krona": cadastro.get("codigo_krona"),
-                        "descricao_krona": cadastro.get("descricao_krona"),
-                        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                        "linha_krona_match": cadastro.get("linha_krona"),
-                        "familia_krona_match": cadastro.get("familia_krona"),
-                        "unidade_venda_krona": cadastro.get("unidade_venda"),
-                        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                        "score_estrutura": 1,
-                        "score_textual": 1.0,
-                        "score_total": 1.0,
-                        "tipo_match": "MATCH_DESCRICAO",
-                        "revisao_manual": False,
-                        "motivo_match": f"LOOKUP_JOELHO_ESPECIAL({chave_esp})",
-                        "categoria_krona": cadastro.get("categoria_detectada"),
-                        "eh_tubo_krona": cadastro.get("eh_tubo"),
-                        "diametro_krona_mm": obter_diametro_krona(cadastro),
-                        "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                    }
-
-        # lookup para joelho 45 e 90 esgoto (serie normal e reforcada)
-        if subcategoria in ("ESGOTO", "REFORCADA") and diametro is not None:
-            angulo = None
-            if re.search(r"\b45\b", descricao_limpa): angulo = 45
-            elif re.search(r"\b90\b", descricao_limpa): angulo = 90
-            if angulo and diametro:
-                diam_key = f"DN{int(diametro)}"
-                if angulo == 45:
-                    mapa = MAPA_JOELHO45_REFORCADA if subcategoria == "REFORCADA" else MAPA_JOELHO45_NORMAL
-                else:
-                    mapa = MAPA_JOELHO90_REFORCADA if subcategoria == "REFORCADA" else MAPA_JOELHO90_NORMAL
-                codigo_direto = mapa.get(diam_key)
-                if codigo_direto:
-                    cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-                    if cadastro:
-                        return {
-                            "match_encontrado": True,
-                            "codigo_krona": cadastro.get("codigo_krona"),
-                            "descricao_krona": cadastro.get("descricao_krona"),
-                            "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                            "linha_krona_match": cadastro.get("linha_krona"),
-                            "familia_krona_match": cadastro.get("familia_krona"),
-                            "unidade_venda_krona": cadastro.get("unidade_venda"),
-                            "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                            "score_estrutura": 1,
-                            "score_textual": 1.0,
-                            "score_total": 1.0,
-                            "tipo_match": "MATCH_DESCRICAO",
-                            "revisao_manual": False,
-                            "motivo_match": f"LOOKUP_JOELHO{angulo}({'REF' if subcategoria=='REFORCADA' else 'NOR'})({diam_key})",
-                            "categoria_krona": cadastro.get("categoria_detectada"),
-                            "eh_tubo_krona": cadastro.get("eh_tubo"),
-                            "diametro_krona_mm": obter_diametro_krona(cadastro),
-                            "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                        }
-
-    # lookup direto para TE ESGOTO
-    if categoria == "TE" and subcategoria in ("ESGOTO", "REFORCADA"):
-        chave = _normalizar_chave_te_esgoto(descricao_limpa)
-        codigo_direto = MAPA_TE_ESGOTO_DIRETO.get(chave)
-        if codigo_direto:
-            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-            if cadastro:
-                return {
-                    "match_encontrado": True,
-                    "codigo_krona": cadastro.get("codigo_krona"),
-                    "descricao_krona": cadastro.get("descricao_krona"),
-                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                    "linha_krona_match": cadastro.get("linha_krona"),
-                    "familia_krona_match": cadastro.get("familia_krona"),
-                    "unidade_venda_krona": cadastro.get("unidade_venda"),
-                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                    "score_estrutura": 1,
-                    "score_textual": 1.0,
-                    "score_total": 1.0,
-                    "tipo_match": "MATCH_DESCRICAO",
-                    "revisao_manual": False,
-                    "motivo_match": f"LOOKUP_TE({chave})",
-                    "categoria_krona": cadastro.get("categoria_detectada"),
-                    "eh_tubo_krona": cadastro.get("eh_tubo"),
-                    "diametro_krona_mm": obter_diametro_krona(cadastro),
-                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                }
-
-    # lookup direto para REDUCAO EXCENTRICA ESGOTO
-    if categoria == "REDUCAO" and subcategoria in ("ESGOTO", "REFORCADA"):
-        chave = _normalizar_chave_reducao_esgoto(descricao_limpa)
-        codigo_direto = MAPA_REDUCAO_ESGOTO_DIRETO.get(chave)
-        if codigo_direto:
-            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-            if cadastro:
-                return {
-                    "match_encontrado": True,
-                    "codigo_krona": cadastro.get("codigo_krona"),
-                    "descricao_krona": cadastro.get("descricao_krona"),
-                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                    "linha_krona_match": cadastro.get("linha_krona"),
-                    "familia_krona_match": cadastro.get("familia_krona"),
-                    "unidade_venda_krona": cadastro.get("unidade_venda"),
-                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                    "score_estrutura": 1,
-                    "score_textual": 1.0,
-                    "score_total": 1.0,
-                    "tipo_match": "MATCH_DESCRICAO",
-                    "revisao_manual": False,
-                    "motivo_match": f"LOOKUP_REDUCAO({chave})",
-                    "categoria_krona": cadastro.get("categoria_detectada"),
-                    "eh_tubo_krona": cadastro.get("eh_tubo"),
-                    "diametro_krona_mm": obter_diametro_krona(cadastro),
-                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                }
-
-    # lookup direto para JUNCAO — evita erros do rapidfuzz em descricoes similares
-    if categoria == "JUNCAO":
-        chave = _normalizar_chave_juncao(descricao_limpa)
-        codigo_direto = MAPA_JUNCAO_DIRETO.get(chave)
-        if codigo_direto:
-            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
-            if cadastro:
-                return {
-                    "match_encontrado": True,
-                    "codigo_krona": cadastro.get("codigo_krona"),
-                    "descricao_krona": cadastro.get("descricao_krona"),
-                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                    "linha_krona_match": cadastro.get("linha_krona"),
-                    "familia_krona_match": cadastro.get("familia_krona"),
-                    "unidade_venda_krona": cadastro.get("unidade_venda"),
-                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                    "score_estrutura": 1,
-                    "score_textual": 1.0,
-                    "score_total": 1.0,
-                    "tipo_match": "MATCH_DESCRICAO",
-                    "revisao_manual": False,
-                    "motivo_match": f"LOOKUP_JUNCAO({chave})",
-                    "categoria_krona": cadastro.get("categoria_detectada"),
-                    "eh_tubo_krona": cadastro.get("eh_tubo"),
-                    "diametro_krona_mm": obter_diametro_krona(cadastro),
-                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                }
-
-    # extrair comprimento especificado na OC (ex: "6M", "3M")
-    comprimento_oc = None
-    if categoria == "TUBO":
-        import re as _re
-        m_comp = _re.search(r"\b([36])\.?0?\s*M\b", descricao_limpa)
-        if m_comp:
-            comprimento_oc = float(m_comp.group(1))
-
-    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria, comprimento_oc)
+    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
 
     # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
-    # filtrar por AMBOS os diametros presentes no texto (AND, nao OR)
-    if categoria == "JUNCAO":
-        # extrair numeros 2-3 digitos da descricao OC, excluindo angulos (45, 90)
-        nums_oc = [n for n in re.findall(r"\b(\d{2,3})\b", descricao_limpa)
-                   if n not in ("45", "90")]
-
-        mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
-        candidatos_sem_diam = candidatos[mask_sem_diam]
-        candidatos_com_diam = candidatos[~mask_sem_diam]
-
-        if len(nums_oc) >= 2 and not candidatos_sem_diam.empty:
-            # OC tem dois diametros — filtrar por AND (ambos devem estar no texto)
-            desc_k = candidatos_sem_diam["descricao_krona"].fillna("").str.upper()
-            mask_and = pd.Series([True] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
-            for num in nums_oc[:2]:
-                mask_and = mask_and & desc_k.str.contains(rf"\b{num}\b", regex=True, na=False)
-            filtrados_and = candidatos_sem_diam[mask_and]
-
-            if not filtrados_and.empty:
-                candidatos = filtrados_and  # apenas os que tem ambos os diametros
-            else:
-                # fallback: pelo menos um diametro
-                mask_or = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
+    # refinar candidatos por texto dos dois numeros da descricao OC
+    if categoria == "JUNCAO" and diametro is not None:
+        nums_oc = re.findall(r"\b(\d{2,3})\b", descricao_limpa)
+        if len(nums_oc) >= 2:
+            mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
+            candidatos_sem_diam = candidatos[mask_sem_diam]
+            candidatos_com_diam = candidatos[~mask_sem_diam]
+            if not candidatos_sem_diam.empty:
+                mask_num = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
                 for num in nums_oc[:2]:
-                    mask_or = mask_or | desc_k.str.contains(rf"\b{num}\b", regex=True, na=False)
-                filtrados_or = candidatos_sem_diam[mask_or]
-                if not filtrados_or.empty:
-                    candidatos = pd.concat([candidatos_com_diam, filtrados_or])
+                    mask_num = mask_num | candidatos_sem_diam["descricao_krona"].fillna("").str.upper().str.contains(rf"\b{num}\b", regex=True, na=False)
+                candidatos_filtrados = candidatos_sem_diam[mask_num]
+                if not candidatos_filtrados.empty:
+                    candidatos = pd.concat([candidatos_com_diam, candidatos_filtrados])
                 elif not candidatos_com_diam.empty:
                     candidatos = candidatos_com_diam
-
-        elif len(nums_oc) == 1 and not candidatos_sem_diam.empty:
-            # OC tem um diametro — filtrar sem diametro por texto
-            desc_k = candidatos_sem_diam["descricao_krona"].fillna("").str.upper()
-            mask_n = desc_k.str.contains(rf"\b{nums_oc[0]}\b", regex=True, na=False)
-            filtrados = candidatos_sem_diam[mask_n]
-            if not filtrados.empty:
-                candidatos = pd.concat([candidatos_com_diam, filtrados])
-            elif not candidatos_com_diam.empty:
-                candidatos = candidatos_com_diam
-
 
     if candidatos.empty:
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
                 "motivo_match": "sem_candidatos_krona"}
-
-    # regra de negocio: comprimento padrao por linha de tubo
-    # SOLDAVEL, ESGOTO → 6M padrao | PPR, ELETRODUTO, ULTRATERM → 3M (unico disponivel)
-    if categoria == "TUBO" and "comprimento_final_m" in candidatos.columns:
-        if comprimento_oc:
-            # OC especificou comprimento — filtrar por ele
-            mask_comp = (
-                candidatos["comprimento_final_m"].notna() &
-                (candidatos["comprimento_final_m"] == comprimento_oc)
-            )
-            if mask_comp.sum() > 0:
-                candidatos = candidatos[mask_comp]
-        else:
-            # OC nao especificou — verificar se a linha e de 6M padrao
-            # detectar linha pelos candidatos ou pela descricao
-            linhas_cand = set(candidatos["linha_krona"].dropna().str.strip().tolist())
-            eh_linha_6m = bool(linhas_cand & LINHAS_TUBO_6M)
-            eh_linha_3m = bool(linhas_cand & LINHAS_TUBO_3M_APENAS)
-
-            if eh_linha_6m and not eh_linha_3m:
-                # linha que vem em 6M — excluir tubos de 3M
-                mask_6m = (
-                    candidatos["comprimento_final_m"].notna() &
-                    (candidatos["comprimento_final_m"] == 6.0)
-                )
-                if mask_6m.sum() > 0:
-                    candidatos = candidatos[mask_6m]
 
     # filtro critico: distingue serie REFORCADA vs NORMAL
     # na base Krona: serie reforcada usa REFORC ou SR (para tubos)
@@ -909,24 +389,12 @@ def match_por_descricao(item, base_krona):
                 "motivo_match": "sem_candidatos_apos_filtro_serie"}
 
     registros = []
-    # extrair diametros da OC para bonus de match exato
-    nums_oc_score = set(n for n in re.findall(r"\b(\d{2,3})\b", descricao_limpa)
-                        if n not in ("45", "90"))
-
     for _, row in candidatos.iterrows():
         cand = row.to_dict()
         desc_krona = str(cand.get("descricao_normalizada") or cand.get("descricao_krona") or "").upper()
         score_txt = rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, desc_krona) / 100.0
         score_str = rapidfuzz_fuzz.ratio(descricao_limpa, desc_krona) / 100.0
         score_final = round((score_txt * 0.70) + (score_str * 0.30), 4)
-
-        # bonus para JUNCAO: cada diametro da OC que esta no produto Krona
-        if categoria == "JUNCAO" and nums_oc_score:
-            nums_krona = set(re.findall(r"\b(\d{2,3})\b", desc_krona))
-            matches_diam = len(nums_oc_score & nums_krona)
-            bonus = matches_diam * 0.08  # +0.08 por diametro correto
-            score_final = round(min(score_final + bonus, 1.0), 4)
-
         registros.append({**cand, "score_total": score_final, "score_textual": score_txt})
 
     df_scores = pd.DataFrame(registros).sort_values("score_total", ascending=False)
@@ -1043,6 +511,52 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
+
+    # =========================================================
+    # PRIORIDADE 0 — HISTÓRICO DE CORREÇÕES MANUAIS
+    # Aprende com correções anteriores do operador
+    # =========================================================
+    if HISTORICO_DISPONIVEL:
+        descricao_busca = (
+            item.get("descricao_oc")
+            or item.get("descricao_reconstruida")
+            or ""
+        )
+        cliente_id = item.get("cliente_id") or item.get("sistema_origem")
+        cliente_nome = item.get("cliente_nome")
+
+        sugestao = obter_melhor_sugestao_historico(
+            descricao_oc=descricao_busca,
+            cliente_id=cliente_id,
+            cliente_nome=cliente_nome,
+            score_minimo=0.92,  # alta confiança — só usa se for muito similar
+        )
+
+        if sugestao:
+            cod_krona = str(sugestao.get("codigo_krona_aprovado") or "").strip()
+            cadastro = buscar_cadastro_krona_por_codigo(cod_krona, base_krona) if cod_krona else None
+
+            if cadastro:
+                return {
+                    "match_encontrado": True,
+                    "codigo_krona": cadastro.get("codigo_krona"),
+                    "descricao_krona": cadastro.get("descricao_krona"),
+                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                    "linha_krona_match": cadastro.get("linha_krona"),
+                    "familia_krona_match": cadastro.get("familia_krona"),
+                    "unidade_venda_krona": cadastro.get("unidade_venda"),
+                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                    "score_estrutura": 1.0,
+                    "score_textual": sugestao.get("score_historico", 1.0),
+                    "score_total": sugestao.get("score_historico", 1.0),
+                    "tipo_match": "MATCH_HISTORICO",
+                    "revisao_manual": False,
+                    "motivo_match": f"HISTORICO({sugestao.get('origem_historico','?')},score={sugestao.get('score_historico',0):.2f})",
+                    "categoria_krona": cadastro.get("categoria_detectada"),
+                    "eh_tubo_krona": cadastro.get("eh_tubo"),
+                    "diametro_krona_mm": obter_diametro_krona(cadastro),
+                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                }
 
     # =========================================================
     # PRIORIDADE 1 — MRV
