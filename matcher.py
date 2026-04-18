@@ -173,6 +173,38 @@ def _normalizar_chave_reducao_esgoto(descricao):
     return f"REDUCAO {serie} {diam}".strip()
 
 
+# ============================================================
+# MAPA DIRETO DE JOELHO ESPECIAL (COM ANEL / COM VISITA)
+# ============================================================
+MAPA_JOELHO_ESPECIAL = {
+    "JOELHO 90 ANEL DN40":        623,   # JOELHO 90 BRANCO C/ANEL DN40X40
+    "JOELHO 90 ANEL NORMAL DN40":   623,   # variacao com serie detectada
+    "JOELHO 90 VISITA NORMAL 100X50":  622,   # JOELHO 90 C/VIS ESGOTO PRIM DN100X50
+    "JOELHO 90 VISITA REFORCADA 100X75": 1472, # JOELHO 90 VISITA ESG SR DN100X75
+}
+
+
+def _normalizar_chave_joelho_especial(descricao):
+    """Detecta JOELHO com ANEL ou VISITA e retorna chave para lookup."""
+    import re
+    d = str(descricao or "").upper()
+    if not re.search(r"JOELHO", d):
+        return None
+    if not re.search(r"ANEL|VISITA|C/VIS|C/ VIS", d):
+        return None
+    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
+    tipo = "ANEL" if re.search(r"ANEL", d) else "VISITA"
+    # extrair diâmetros
+    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
+    if pares:
+        nums = [pares[0][0], pares[0][1]]
+    else:
+        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
+                if n not in ("45", "90") and int(n) <= 300]
+    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else (f"DN{nums[0]}" if nums else "")
+    return f"JOELHO 90 {tipo} {serie} {diam}".strip()
+
+
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
@@ -484,6 +516,35 @@ def match_por_descricao(item, base_krona):
     diametro     = extrair_diametro_da_descricao(descricao_limpa)
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
+
+    # lookup direto para JOELHO COM ANEL ou COM VISITA
+    if categoria == "JOELHO":
+        chave_esp = _normalizar_chave_joelho_especial(descricao_limpa)
+        if chave_esp:
+            codigo_direto = MAPA_JOELHO_ESPECIAL.get(chave_esp)
+            if codigo_direto:
+                cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+                if cadastro:
+                    return {
+                        "match_encontrado": True,
+                        "codigo_krona": cadastro.get("codigo_krona"),
+                        "descricao_krona": cadastro.get("descricao_krona"),
+                        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                        "linha_krona_match": cadastro.get("linha_krona"),
+                        "familia_krona_match": cadastro.get("familia_krona"),
+                        "unidade_venda_krona": cadastro.get("unidade_venda"),
+                        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                        "score_estrutura": 1,
+                        "score_textual": 1.0,
+                        "score_total": 1.0,
+                        "tipo_match": "MATCH_DESCRICAO",
+                        "revisao_manual": False,
+                        "motivo_match": f"LOOKUP_JOELHO_ESPECIAL({chave_esp})",
+                        "categoria_krona": cadastro.get("categoria_detectada"),
+                        "eh_tubo_krona": cadastro.get("eh_tubo"),
+                        "diametro_krona_mm": obter_diametro_krona(cadastro),
+                        "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                    }
 
     # lookup direto para TE ESGOTO
     if categoria == "TE" and subcategoria in ("ESGOTO", "REFORCADA"):
