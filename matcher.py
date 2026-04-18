@@ -859,11 +859,11 @@ def match_por_descricao(item, base_krona):
     # regra de negocio: comprimento padrao por linha de tubo
     # SOLDAVEL, ESGOTO → 6M padrao | PPR, ELETRODUTO, ULTRATERM → 3M (unico disponivel)
     if categoria == "TUBO" and "comprimento_final_m" in candidatos.columns:
-        if comprimento_m:
+        if comprimento_oc:
             # OC especificou comprimento — filtrar por ele
             mask_comp = (
                 candidatos["comprimento_final_m"].notna() &
-                (candidatos["comprimento_final_m"] == comprimento_m)
+                (candidatos["comprimento_final_m"] == comprimento_oc)
             )
             if mask_comp.sum() > 0:
                 candidatos = candidatos[mask_comp]
