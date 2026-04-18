@@ -65,16 +65,16 @@ MAPA_JUNCAO_DIRETO = {
 def _normalizar_chave_juncao(descricao):
     """Normaliza descricao de JUNCAO para chave do MAPA_JUNCAO_DIRETO."""
     d = str(descricao or "").upper()
-    serie = "REFORCADA" if re.search(r"REFOR[CÇ]", d) else "NORMAL"
+    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
     tipo = "SIMPLES"
     if re.search(r"INVERT", d): tipo = "INVERTIDA"
     elif re.search(r"DUPLA", d): tipo = "DUPLA"
     # extrair pares DxD ou D X D primeiro
-    pares = re.findall(r"\b(\d{2,3})\s*[Xx]\s*(\d{2,3})\b", d)
+    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
     if pares:
         nums = [pares[0][0], pares[0][1]]
     else:
-        nums = [n for n in re.findall(r"\b(\d{2,3})\b", d)
+        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
                 if n not in ("45", "90") and int(n) <= 300]
     if len(nums) >= 2:
         diam = f"{nums[0]}X{nums[1]}"
@@ -83,6 +83,94 @@ def _normalizar_chave_juncao(descricao):
     else:
         diam = ""
     return f"JUNCAO {tipo} {serie} {diam}".strip()
+
+
+# ============================================================
+# MAPA DIRETO DE TE ESGOTO — evita erros do rapidfuzz
+# ============================================================
+MAPA_TE_ESGOTO_DIRETO = {
+    # SÉRIE NORMAL (PRIM/SEC)
+    "TE SIMPLES NORMAL DN40":       658,
+    "TE SIMPLES NORMAL DN50":       659,
+    "TE SIMPLES NORMAL 50X50":      659,
+    "TE SIMPLES NORMAL DN75":       660,
+    "TE SIMPLES NORMAL 75X75":      660,
+    "TE SIMPLES NORMAL DN100":      661,
+    "TE SIMPLES NORMAL 100X100":    661,
+    "TE SIMPLES NORMAL DN150":      662,
+    "TE SIMPLES NORMAL 150X150":    662,
+    "TE REDUCAO NORMAL 75X50":      663,
+    "TE REDUCAO NORMAL 100X50":     664,
+    "TE REDUCAO NORMAL 100X75":     665,
+    "TE REDUCAO NORMAL 150X100":    666,
+    "TE INSPECAO NORMAL 100X75":    728,
+    # SÉRIE REFORÇADA
+    "TE SIMPLES REFORCADA DN40":   1456,
+    "TE SIMPLES REFORCADA DN50":   1457,
+    "TE SIMPLES REFORCADA DN75":   1458,
+    "TE SIMPLES REFORCADA DN100":  1459,
+    "TE SIMPLES REFORCADA DN150":  1460,
+    "TE REDUCAO REFORCADA 75X50":  1462,
+    "TE REDUCAO REFORCADA 100X50": 1463,
+    "TE SIMPLES REFORCADA 100X50":  1463,  # SR sem palavra REDUCAO
+    "TE REDUCAO REFORCADA 100X75": 1464,
+    "TE REDUCAO REFORCADA 150X100":1465,
+    "TE INSPECAO REFORCADA 75X75": 1467,
+    "TE INSPECAO REFORCADA 100X75":1468,
+    "TE INSPECAO REFORCADA 150X100":1469,
+}
+
+
+# ============================================================
+# MAPA DIRETO DE REDUÇÃO EXCÊNTRICA ESGOTO
+# ============================================================
+MAPA_REDUCAO_ESGOTO_DIRETO = {
+    # SÉRIE NORMAL (PRIM)
+    "REDUCAO NORMAL 75X50":   654,
+    "REDUCAO NORMAL 100X50":  655,
+    "REDUCAO NORMAL 100X75":  656,
+    "REDUCAO NORMAL 150X100": 657,
+    "REDUCAO NORMAL 200X150": 724,
+    # SÉRIE REFORÇADA
+    "REDUCAO REFORCADA 75X50":   1450,
+    "REDUCAO REFORCADA 100X75":  1452,
+    "REDUCAO REFORCADA 150X100": 1453,
+    "REDUCAO REFORCADA 200X150": 1451,
+}
+
+
+def _normalizar_chave_te_esgoto(descricao):
+    """Normaliza descricao de TE ESGOTO para chave do MAPA_TE_ESGOTO_DIRETO."""
+    import re
+    d = str(descricao or "").upper()
+    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
+    tipo = "SIMPLES"
+    if re.search(r"REDU[CÇ]|\bRED\b", d): tipo = "REDUCAO"
+    elif re.search(r"INSPEC", d):  tipo = "INSPECAO"
+    # pares: DN75X50, 100x50, 100 X 50
+    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
+    if pares:
+        nums = [pares[0][0], pares[0][1]]
+    else:
+        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
+                if n not in ("45", "90") and int(n) <= 300]
+    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else (f"DN{nums[0]}" if nums else "")
+    return f"TE {tipo} {serie} {diam}".strip()
+
+
+def _normalizar_chave_reducao_esgoto(descricao):
+    """Normaliza descricao de REDUÇÃO EXCÊNTRICA ESGOTO para chave do mapa."""
+    import re
+    d = str(descricao or "").upper()
+    serie = "REFORCADA" if re.search(r"REFOR[CÇ]|REFOC|\bSR\b", d) else "NORMAL"
+    pares = re.findall(r"DN(\d{2,3})[Xx](\d{2,3})", d) or re.findall(r"(\d{2,3})\s*[Xx]\s*(\d{2,3})", d)
+    if pares:
+        nums = [pares[0][0], pares[0][1]]
+    else:
+        nums = [n for n in re.findall(r"(\d{2,3})(?:MM|\b)", d)
+                if n not in ("45", "90") and int(n) <= 300]
+    diam = f"{nums[0]}X{nums[1]}" if len(nums) >= 2 else ""
+    return f"REDUCAO {serie} {diam}".strip()
 
 
 CODIGOS_EXCLUIDOS_MATCH = {
@@ -396,6 +484,62 @@ def match_por_descricao(item, base_krona):
     diametro     = extrair_diametro_da_descricao(descricao_limpa)
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
+
+    # lookup direto para TE ESGOTO
+    if categoria == "TE" and subcategoria in ("ESGOTO", "REFORCADA"):
+        chave = _normalizar_chave_te_esgoto(descricao_limpa)
+        codigo_direto = MAPA_TE_ESGOTO_DIRETO.get(chave)
+        if codigo_direto:
+            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+            if cadastro:
+                return {
+                    "match_encontrado": True,
+                    "codigo_krona": cadastro.get("codigo_krona"),
+                    "descricao_krona": cadastro.get("descricao_krona"),
+                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                    "linha_krona_match": cadastro.get("linha_krona"),
+                    "familia_krona_match": cadastro.get("familia_krona"),
+                    "unidade_venda_krona": cadastro.get("unidade_venda"),
+                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                    "score_estrutura": 1,
+                    "score_textual": 1.0,
+                    "score_total": 1.0,
+                    "tipo_match": "MATCH_DESCRICAO",
+                    "revisao_manual": False,
+                    "motivo_match": f"LOOKUP_TE({chave})",
+                    "categoria_krona": cadastro.get("categoria_detectada"),
+                    "eh_tubo_krona": cadastro.get("eh_tubo"),
+                    "diametro_krona_mm": obter_diametro_krona(cadastro),
+                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                }
+
+    # lookup direto para REDUCAO EXCENTRICA ESGOTO
+    if categoria == "REDUCAO" and subcategoria in ("ESGOTO", "REFORCADA"):
+        chave = _normalizar_chave_reducao_esgoto(descricao_limpa)
+        codigo_direto = MAPA_REDUCAO_ESGOTO_DIRETO.get(chave)
+        if codigo_direto:
+            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+            if cadastro:
+                return {
+                    "match_encontrado": True,
+                    "codigo_krona": cadastro.get("codigo_krona"),
+                    "descricao_krona": cadastro.get("descricao_krona"),
+                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                    "linha_krona_match": cadastro.get("linha_krona"),
+                    "familia_krona_match": cadastro.get("familia_krona"),
+                    "unidade_venda_krona": cadastro.get("unidade_venda"),
+                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                    "score_estrutura": 1,
+                    "score_textual": 1.0,
+                    "score_total": 1.0,
+                    "tipo_match": "MATCH_DESCRICAO",
+                    "revisao_manual": False,
+                    "motivo_match": f"LOOKUP_REDUCAO({chave})",
+                    "categoria_krona": cadastro.get("categoria_detectada"),
+                    "eh_tubo_krona": cadastro.get("eh_tubo"),
+                    "diametro_krona_mm": obter_diametro_krona(cadastro),
+                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                }
 
     # lookup direto para JUNCAO — evita erros do rapidfuzz em descricoes similares
     if categoria == "JUNCAO":
