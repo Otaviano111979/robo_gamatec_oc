@@ -125,6 +125,19 @@ def verificar_emails(servico, modo_teste: bool = False):
         log(f"Classe : {classificacao.upper()} ({motivo})")
         log(f"Cliente: {cliente_nome} {'[OK]' if cliente_info['identificado'] else '[AVISO] DESCONHECIDO'}")
 
+        # cliente conhecido com score alto → promove revisao para OC
+        # ex: MRV só envia OCs Krona, nao precisa mencionar "Krona" no email
+        if (
+            cliente_info["identificado"]
+            and cliente_info["score"] >= 3
+            and classificacao == "revisar"
+            and motivo == "nao_identificado_como_krona"
+            and any(a["extensao"] == ".pdf" for a in anexos)
+        ):
+            classificacao = "oc"
+            motivo = f"cliente_conhecido_promovido ({cliente_id})"
+            log(f"  → Cliente conhecido com score {cliente_info['score']} — promovido para OC")
+
         # cliente desconhecido com OC/cotação → revisão com badge especial
         if not cliente_info["identificado"] and classificacao in ("oc", "cotacao"):
             classificacao = "revisar"
@@ -194,12 +207,20 @@ def verificar_emails(servico, modo_teste: bool = False):
             else:
                 log(f"     [ERRO] Erro: {resultado['erro']}")
 
-        # resposta automática
+        # resposta automatica
+        # usa reply-to quando cliente usa sistema como SIENGE (naoresponder@)
+        usar_reply_to = cliente_info.get("usar_reply_to", False)
+        destinatario  = (
+            email_info.get("reply_to")
+            if usar_reply_to and email_info.get("reply_to")
+            else email_info["remetente"]
+        )
+        log(f"  Resposta para: {destinatario}")
         try:
             enviar_resposta(
                 servico=servico,
                 thread_id=email_info["thread_id"],
-                para=email_info["reply_to"],
+                para=destinatario,
                 assunto=assunto,
                 tipo=classificacao,
             )

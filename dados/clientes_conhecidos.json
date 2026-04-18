@@ -4,53 +4,192 @@
       "id": "mrv",
       "nome": "MRV Engenharia",
       "formato_oc": "MRV",
-      "dominios_email": ["mrv.com.br", "agilis.com.br"],
-      "cnpjs": ["29657172"],
-      "palavras_cabecalho": ["MRV PRIME", "MRV ENGENHARIA", "MRV&CO"],
-      "marcadores_pdf": ["ITEM Nº PRODUTO", "NCM", "CNPJ/CPF: 00145602"],
+      "dominios_email": [
+        "mrv.com.br",
+        "agilis.com.br",
+        "confirmacaopedidos@mrv.com.br"
+      ],
+      "cnpjs": [
+        "29657172"
+      ],
+      "palavras_cabecalho": [
+        "MRV PRIME",
+        "MRV ENGENHARIA",
+        "MRV&CO",
+        "PEDIDO DE COMPRAS MRV",
+        "PEDIDO DE COMPRA MRV",
+        "CONFIRMACAOPEDIDOS"
+      ],
+      "marcadores_pdf": [
+        "ITEM Nº PRODUTO",
+        "NCM",
+        "CNPJ/CPF: 00145602"
+      ],
       "ativo": true
     },
     {
       "id": "brasal",
       "nome": "Brasal Incorporações",
       "formato_oc": "BRASAL",
-      "dominios_email": ["brasal.com.br", "closer3.com.br"],
-      "cnpjs": ["39286080"],
-      "palavras_cabecalho": ["BRASAL INCORPORAÇÕES", "INC 27 BRASAL", "CLOSER"],
-      "marcadores_pdf": ["KRONA/KRONA", "PROCESSO Nº", "CENTRO DE CUSTO"],
+      "dominios_email": [
+        "brasal.com.br",
+        "closer3.com.br"
+      ],
+      "cnpjs": [
+        "39286080"
+      ],
+      "palavras_cabecalho": [
+        "BRASAL INCORPORAÇÕES",
+        "INC 27 BRASAL",
+        "INC 16 BRASAL",
+        "INC 24 BRASAL",
+        "CLOSER",
+        "PEDIDO DE COMPRA DA BRASAL",
+        "PEDIDO DE COMPRAS DA BRASAL"
+      ],
+      "marcadores_pdf": [
+        "KRONA/KRONA",
+        "PROCESSO Nº",
+        "CENTRO DE CUSTO"
+      ],
       "ativo": true
     },
     {
       "id": "gpl",
       "nome": "GPL Incorporadora",
       "formato_oc": "UAU",
-      "dominios_email": ["gplincorporadora.com.br"],
-      "cnpjs": ["39843541", "53638836"],
-      "palavras_cabecalho": ["GPL", "UNIVERSITARIO", "RIO VERDE", "EMPREENDIMENTO IMOBILIARIO SPE"],
-      "marcadores_pdf": ["UAU! SOFTWARE", "GEROU O.C."],
+      "dominios_email": [
+        "gplincorporadora.com.br"
+      ],
+      "cnpjs": [
+        "39843541",
+        "53638836"
+      ],
+      "palavras_cabecalho": [
+        "GPL",
+        "UNIVERSITARIO",
+        "RIO VERDE",
+        "EMPREENDIMENTO IMOBILIARIO SPE",
+        "O.C.",
+        "COT.",
+        "KRONA TUBOS E CONEXOES DO NORDESTE"
+      ],
+      "marcadores_pdf": [
+        "UAU! SOFTWARE",
+        "GEROU O.C."
+      ],
       "ativo": true
     },
     {
       "id": "krona_direto",
       "nome": "Krona (pedido direto)",
       "formato_oc": "KRONA",
-      "dominios_email": ["kronatubos.com.br", "krona.com.br"],
-      "cnpjs": ["00145602"],
-      "palavras_cabecalho": ["KRONA TUBOS", "PEDIDO DE COMPRA KRONA"],
-      "marcadores_pdf": ["INSUMO", "QUANTIDADE", "PEDIDO DE COMPRA"],
+      "dominios_email": [
+        "kronatubos.com.br",
+        "krona.com.br"
+      ],
+      "cnpjs": [
+        "00145602"
+      ],
+      "palavras_cabecalho": [
+        "KRONA TUBOS",
+        "PEDIDO DE COMPRA KRONA"
+      ],
+      "marcadores_pdf": [
+        "INSUMO",
+        "QUANTIDADE",
+        "PEDIDO DE COMPRA"
+      ],
+      "ativo": true
+    },
+    {
+      "id": "ebm",
+      "nome": "EBM Incorporações",
+      "formato_oc": "SIENGE",
+      "dominios_email": [
+        "ebm.com.br",
+        "sistemas.sienge.com.br"
+      ],
+      "cnpjs": [
+        "40957315"
+      ],
+      "palavras_cabecalho": [
+        "EBM",
+        "BRASIL INCORPORACAO",
+        "WIDE",
+        "PEDIDO DE COMPRA",
+        "SIENGE"
+      ],
+      "marcadores_pdf": [
+        "sienge",
+        "starian",
+        "pedido de compra"
+      ],
+      "usar_reply_to": true,
+      "ativo": true
+    },
+    {
+      "id": "city",
+      "nome": "City Inc",
+      "formato_oc": "UAU",
+      "dominios_email": [
+        "cityinc.com.br"
+      ],
+      "cnpjs": [
+        "36153010"
+      ],
+      "palavras_cabecalho": [
+        "CITY",
+        "SPE RESIDENCIAL CITY",
+        "ORDEM DE COMPRA",
+        "CITYHOUSE",
+        "CITYINC"
+      ],
+      "marcadores_pdf": [
+        "uau! software",
+        "city"
+      ],
+      "usar_reply_to": false,
       "ativo": true
     }
   ],
-
   "cnpj_krona": [
     "00145602000137",
     "11907140000245"
   ],
-
   "config": {
     "score_minimo_identificacao": 2,
     "processar_cliente_desconhecido": false,
     "label_cliente_novo": "Vortex/Cliente Novo",
     "label_formato_desconhecido": "Vortex/Formato Desconhecido"
-  }
+  },
+  "sistemas": [
+    {
+      "id": "sienge",
+      "nome": "Sistema SIENGE/STARIAN",
+      "detecta_por_sistema": true,
+      "marcadores_sistema": [
+        "sistemas.sienge.com.br",
+        "sienge",
+        "starian",
+        "naoresponder@sistemas.sienge"
+      ],
+      "formato_oc": "SIENGE",
+      "usar_reply_to": true,
+      "ativo": true
+    },
+    {
+      "id": "uau",
+      "nome": "Sistema UAU",
+      "detecta_por_sistema": true,
+      "marcadores_sistema": [
+        "uau! software",
+        "automacao e gestao empresarial",
+        "uau.com.br"
+      ],
+      "formato_oc": "UAU",
+      "usar_reply_to": false,
+      "ativo": true
+    }
+  ]
 }

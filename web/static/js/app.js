@@ -857,6 +857,42 @@ function restaurarDestaqueAoCarregar() {
 }
 
 // =========================
+// UPLOAD FEEDBACK
+// =========================
+function mostrarArquivoSelecionado(input) {
+  const preview  = document.getElementById("upload-preview");
+  const nomeEl   = document.getElementById("upload-nome-arquivo");
+  const texto    = document.getElementById("upload-texto");
+  const btnEnviar = document.getElementById("btn-enviar-pdf");
+  const label    = document.getElementById("upload-label");
+
+  if (input.files && input.files.length > 0) {
+    const arquivo = input.files[0];
+    nomeEl.textContent = "📄 " + arquivo.name;
+    preview.style.display = "flex";
+    texto.textContent = "Trocar arquivo";
+    label.classList.add("arquivo-selecionado");
+    if (btnEnviar) btnEnviar.disabled = false;
+  } else {
+    limparUpload();
+  }
+}
+
+function limparUpload() {
+  const input    = document.getElementById("file");
+  const preview  = document.getElementById("upload-preview");
+  const texto    = document.getElementById("upload-texto");
+  const btnEnviar = document.getElementById("btn-enviar-pdf");
+  const label    = document.getElementById("upload-label");
+
+  if (input) input.value = "";
+  if (preview) preview.style.display = "none";
+  if (texto) texto.textContent = "📎 Selecionar PDF da OC";
+  if (label) label.classList.remove("arquivo-selecionado");
+  if (btnEnviar) btnEnviar.disabled = true;
+}
+
+// =========================
 // AGENTE EMAIL
 // =========================
 let _aepPollingId = null;
