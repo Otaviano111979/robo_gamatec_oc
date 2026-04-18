@@ -45,6 +45,15 @@ PADRAO_INICIO_ITEM_UAU = re.compile(
     re.IGNORECASE
 )
 
+# Formato item quebrado entre paginas do UAU
+# Ex: "24 ITEM 24 SEM DESCRICAO - REVISAR MANUALMENTE Un.UN 14,000 Preço Unit.16,470000 Total230,58"
+PADRAO_ITEM_QUEBRADO_PAGINA = re.compile(
+    r"^(?P<idx>\d{1,4})\s+"
+    r"ITEM\s+\d+\s+SEM\s+DESCRICAO[^\d]*"
+    r"(?P<quantidade>[\d.,]+)\s+",
+    re.IGNORECASE
+)
+
 # Formato UAU com quantidade quebrada (sem total no final)
 PADRAO_INICIO_ITEM_UAU_QUEBRADO = re.compile(
     r"^(?P<idx>\d{1,4})\s+"
@@ -228,9 +237,25 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
                 item.observacoes.append("quantidade_reconstruida_da_quebra")
 
             else:
-                item.status_extracao = "falhou"
-                item.observacoes.append("regex_inicio_item_nao_casou_mrv_nem_krona_nem_uau")
-                return item
+                # ultimo recurso: item quebrado entre paginas
+                # Ex: "24 ITEM 24 SEM DESCRICAO - REVISAR MANUALMENTE Un.UN 14,000 ..."
+                match_quebrado = PADRAO_ITEM_QUEBRADO_PAGINA.match(texto_inicio)
+                if match_quebrado:
+                    item.idx_item = int(match_quebrado.group("idx"))
+                    item.codigo_interno_oc = match_quebrado.group("idx")
+                    item.quantidade = numero_brasileiro_para_float(match_quebrado.group("quantidade"))
+                    item.unidade_original = "UN"
+                    item.unidade_normalizada = "UN"
+                    item.descricao_original = ""
+                    item.descricao_reconstruida = ""
+                    item.status_extracao = "duvidoso"
+                    item.observacoes.append("item_quebrado_entre_paginas")
+                    item.observacoes.append("descricao_indisponivel_revisar_manualmente")
+                    return item
+                else:
+                    item.status_extracao = "falhou"
+                    item.observacoes.append("regex_inicio_item_nao_casou_mrv_nem_krona_nem_uau")
+                    return item
 
     descricao_partes, observacao_partes = separar_descricao_e_observacao(bloco)
 

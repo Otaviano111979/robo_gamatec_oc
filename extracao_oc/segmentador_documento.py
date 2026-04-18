@@ -70,6 +70,12 @@ PADRAO_RODAPE_UAU = re.compile(
 
 PADRAO_CONTINUACAO_UAU = re.compile(r"^\d{1,4}$")
 
+# Item quebrado entre paginas — ex: "24 ITEM 24 SEM DESCRICAO - REVISAR MANUALMENTE Un.UN 14,000 ..."
+PADRAO_ITEM_QUEBRADO_PAGINA_UAU = re.compile(
+    r"^\d{1,4}\s+ITEM\s+\d+\s+SEM\s+DESCRICAO",
+    re.IGNORECASE
+)
+
 # ================================================================
 # FORMATO BRASAL/CLOSER
 # Ex: "8926 TUBO PVC ESGOTO SERIE R DN100MM M 66,000 14,55000 960,30"
@@ -380,6 +386,13 @@ def classificar_linha_uau(linha: LinhaDocumento) -> LinhaDocumento:
         linha.classe = "DESCRICAO_ITEM"
         linha.score = 0.80
         linha.motivos.append("continuacao_quantidade_uau")
+        return linha
+
+    # item quebrado entre paginas — sem descricao, vai para revisao manual
+    if PADRAO_ITEM_QUEBRADO_PAGINA_UAU.match(texto):
+        linha.classe = "INICIO_ITEM"
+        linha.score = 0.60
+        linha.motivos.append("item_quebrado_entre_paginas_sem_descricao")
         return linha
 
     # qualquer outra linha — ruído administrativo

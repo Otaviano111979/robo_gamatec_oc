@@ -100,7 +100,9 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
     numero_linha_global = 0
 
     with pdfplumber.open(caminho_pdf) as pdf:
-        col_ultimo = None  # reutiliza colunas de paginas sem cabecalho
+        col_ultimo = None       # reutiliza colunas de paginas sem cabecalho
+        desc_pendente = None    # descricao de item truncado na virada de pagina
+        idx_pendente = None     # idx do item com descricao truncada
 
         for numero_pagina, pagina in enumerate(pdf.pages, start=1):
             tabelas = pagina.extract_tables()
@@ -133,7 +135,16 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
                     if not row:
                         continue
 
-                    idx = _limpar_celula(row[col["idx"]]) if col["idx"] < len(row) else ""
+                    idx_raw = row[col["idx"]] if col["idx"] < len(row) else ""
+                    idx = _limpar_celula(idx_raw)
+
+                    # caso especial: item quebrado entre paginas — idx = "Item\n24"
+                    # a celula contem cabecalho + numero do item juntos
+                    if idx_raw and '\n' in str(idx_raw) and _re.search(r'\bItem\b', str(idx_raw), _re.I):
+                        # extrair apenas o numero
+                        nums = _re.findall(r'\d+', str(idx_raw))
+                        if nums:
+                            idx = nums[-1]  # pegar o ultimo numero (o idx real)
 
                     # idx deve ser numerico para ser item valido
                     if not idx or not _re.sub(r'[^0-9]', '', idx):
@@ -143,6 +154,10 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
                     # descricao pode estar espalhada em multiplas colunas
                     if col["desc"] < len(row):
                         descricao = _limpar_celula(row[col["desc"]])
+                        # caso especial: descricao = "Descrição" (cabecalho repetido)
+                        # item quebrado entre paginas — descricao real esta na pagina anterior
+                        if descricao.lower() in ('descrição', 'descricao', 'descriã§ã£o'):
+                            descricao = ""
                         # se colunas seguintes forem vazias mas a descricao continuar
                         # em merged cells (common no City), une as colunas
                         if not descricao:
@@ -153,12 +168,40 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
                                     break
 
                     unidade = _limpar_celula(row[col["un"]]) if col["un"] >= 0 and col["un"] < len(row) else ""
-                    qtd_raw = _limpar_celula(row[col["qtd"]]) if col["qtd"] >= 0 and col["qtd"] < len(row) else ""
+                    qtd_raw_cell = row[col["qtd"]] if col["qtd"] >= 0 and col["qtd"] < len(row) else ""
+                    qtd_raw = _limpar_celula(qtd_raw_cell)
+                    # caso especial: qtd = "Qtde\n14,000" — extrair numero apos \n
+                    if qtd_raw_cell and "\n" in str(qtd_raw_cell):
+                        nums_qtd = _re.findall(r"[\d.,]+", str(qtd_raw_cell).split("\n")[-1])
+                        if nums_qtd: qtd_raw = nums_qtd[0]
                     preco   = _limpar_celula(row[col["preco"]]) if col["preco"] >= 0 and col["preco"] < len(row) else ""
                     total   = _limpar_celula(row[col["total"]]) if col["total"] >= 0 and col["total"] < len(row) else ""
 
-                    if not descricao or not qtd_raw:
+                    # item sem descricao mas com quantidade — pode ser item quebrado entre paginas
+                    # incluir com descricao marcada para revisao manual em vez de descartar
+                    if not qtd_raw:
+                        # sem quantidade — pode ser descricao truncada na virada de pagina
+                        if descricao and idx:
+                            desc_pendente = descricao
+                            idx_pendente = idx
                         continue
+
+                    if not descricao and desc_pendente and idx_pendente == idx:
+                        # item quebrado entre paginas — usar descricao da pagina anterior
+                        # tentar complementar com linha seguinte (ex: "(NBR- 5688)")
+                        desc_complemento = ""
+                        idx_row = tabela.index(row) if row in tabela else -1
+                        if idx_row >= 0 and idx_row + 1 < len(tabela):
+                            prox = tabela[idx_row + 1]
+                            if prox and col["desc"] < len(prox):
+                                comp = _limpar_celula(prox[col["desc"]])
+                                if comp and not _re.match(r'^\d', comp):
+                                    desc_complemento = comp
+                        descricao = (desc_pendente + " " + desc_complemento).strip()
+                        desc_pendente = None
+                        idx_pendente = None
+                    elif not descricao:
+                        descricao = f"ITEM {idx} SEM DESCRICAO - REVISAR MANUALMENTE"
 
                     texto = f"{idx} {descricao} {unidade} {qtd_raw} {preco} {total}".strip()
 
