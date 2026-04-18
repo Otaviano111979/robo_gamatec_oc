@@ -20,6 +20,71 @@ CAMINHO_BASE_MRV = os.path.join(BASE_DIR, "dados", "base_mrv.csv")
 # Produtos que não existem mais no catálogo ativo ou que causam
 # matches incorretos. Adicione aqui quando identificar problemas.
 # ============================================================
+
+# ============================================================
+# MAPA DIRETO DE JUNÇÃO — evita erros do rapidfuzz
+# Chave: "JUNCAO {TIPO} {SERIE} {DIAM}" → codigo_krona
+# ============================================================
+MAPA_JUNCAO_DIRETO = {
+    # SÉRIE NORMAL (PRIM/SEC na Krona)
+    "JUNCAO SIMPLES NORMAL DN40":        626,
+    "JUNCAO SIMPLES NORMAL 40X40":       626,
+    "JUNCAO SIMPLES NORMAL DN50":        627,
+    "JUNCAO SIMPLES NORMAL 50X50":       627,
+    "JUNCAO SIMPLES NORMAL DN75":        628,
+    "JUNCAO SIMPLES NORMAL 75X75":       628,
+    "JUNCAO SIMPLES NORMAL DN100":       629,
+    "JUNCAO SIMPLES NORMAL 100X100":     629,
+    "JUNCAO SIMPLES NORMAL DN150":       630,
+    "JUNCAO SIMPLES NORMAL 150X150":     630,
+    "JUNCAO SIMPLES NORMAL 75X50":       638,
+    "JUNCAO SIMPLES NORMAL 100X50":      639,
+    "JUNCAO SIMPLES NORMAL 100X75":      640,
+    "JUNCAO SIMPLES NORMAL 150X100":     641,
+    "JUNCAO INVERTIDA NORMAL 75X50":     700,
+    "JUNCAO INVERTIDA NORMAL 100X50":    701,
+    "JUNCAO INVERTIDA NORMAL 100X75":    702,
+    "JUNCAO INVERTIDA NORMAL 75X75":     704,
+    "JUNCAO DUPLA NORMAL 75X75":         708,
+    "JUNCAO INVERTIDA NORMAL 100X100":   709,
+    "JUNCAO DUPLA NORMAL 100X100":       710,
+    # SÉRIE REFORÇADA
+    "JUNCAO SIMPLES REFORCADA DN40":    1427,
+    "JUNCAO SIMPLES REFORCADA DN50":    1428,
+    "JUNCAO SIMPLES REFORCADA DN75":    1429,
+    "JUNCAO SIMPLES REFORCADA DN100":   1430,
+    "JUNCAO SIMPLES REFORCADA DN150":   1431,
+    "JUNCAO SIMPLES REFORCADA 75X50":   1433,
+    "JUNCAO SIMPLES REFORCADA 100X50":  1434,
+    "JUNCAO SIMPLES REFORCADA 100X75":  1435,
+    "JUNCAO SIMPLES REFORCADA 150X100": 1436,
+    "JUNCAO DUPLA REFORCADA DN100":     1426,
+}
+
+
+def _normalizar_chave_juncao(descricao):
+    """Normaliza descricao de JUNCAO para chave do MAPA_JUNCAO_DIRETO."""
+    d = str(descricao or "").upper()
+    serie = "REFORCADA" if re.search(r"REFOR[CÇ]", d) else "NORMAL"
+    tipo = "SIMPLES"
+    if re.search(r"INVERT", d): tipo = "INVERTIDA"
+    elif re.search(r"DUPLA", d): tipo = "DUPLA"
+    # extrair pares DxD ou D X D primeiro
+    pares = re.findall(r"\b(\d{2,3})\s*[Xx]\s*(\d{2,3})\b", d)
+    if pares:
+        nums = [pares[0][0], pares[0][1]]
+    else:
+        nums = [n for n in re.findall(r"\b(\d{2,3})\b", d)
+                if n not in ("45", "90") and int(n) <= 300]
+    if len(nums) >= 2:
+        diam = f"{nums[0]}X{nums[1]}"
+    elif len(nums) == 1:
+        diam = f"DN{nums[0]}"
+    else:
+        diam = ""
+    return f"JUNCAO {tipo} {serie} {diam}".strip()
+
+
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
@@ -332,25 +397,78 @@ def match_por_descricao(item, base_krona):
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
 
+    # lookup direto para JUNCAO — evita erros do rapidfuzz em descricoes similares
+    if categoria == "JUNCAO":
+        chave = _normalizar_chave_juncao(descricao_limpa)
+        codigo_direto = MAPA_JUNCAO_DIRETO.get(chave)
+        if codigo_direto:
+            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+            if cadastro:
+                return {
+                    "match_encontrado": True,
+                    "codigo_krona": cadastro.get("codigo_krona"),
+                    "descricao_krona": cadastro.get("descricao_krona"),
+                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                    "linha_krona_match": cadastro.get("linha_krona"),
+                    "familia_krona_match": cadastro.get("familia_krona"),
+                    "unidade_venda_krona": cadastro.get("unidade_venda"),
+                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                    "score_estrutura": 1,
+                    "score_textual": 1.0,
+                    "score_total": 1.0,
+                    "tipo_match": "MATCH_DESCRICAO",
+                    "revisao_manual": False,
+                    "motivo_match": f"LOOKUP_JUNCAO({chave})",
+                    "categoria_krona": cadastro.get("categoria_detectada"),
+                    "eh_tubo_krona": cadastro.get("eh_tubo"),
+                    "diametro_krona_mm": obter_diametro_krona(cadastro),
+                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                }
+
     candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
 
     # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
-    # refinar candidatos por texto dos dois numeros da descricao OC
-    if categoria == "JUNCAO" and diametro is not None:
-        nums_oc = re.findall(r"\b(\d{2,3})\b", descricao_limpa)
-        if len(nums_oc) >= 2:
-            mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
-            candidatos_sem_diam = candidatos[mask_sem_diam]
-            candidatos_com_diam = candidatos[~mask_sem_diam]
-            if not candidatos_sem_diam.empty:
-                mask_num = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
+    # filtrar por AMBOS os diametros presentes no texto (AND, nao OR)
+    if categoria == "JUNCAO":
+        # extrair numeros 2-3 digitos da descricao OC, excluindo angulos (45, 90)
+        nums_oc = [n for n in re.findall(r"\b(\d{2,3})\b", descricao_limpa)
+                   if n not in ("45", "90")]
+
+        mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
+        candidatos_sem_diam = candidatos[mask_sem_diam]
+        candidatos_com_diam = candidatos[~mask_sem_diam]
+
+        if len(nums_oc) >= 2 and not candidatos_sem_diam.empty:
+            # OC tem dois diametros — filtrar por AND (ambos devem estar no texto)
+            desc_k = candidatos_sem_diam["descricao_krona"].fillna("").str.upper()
+            mask_and = pd.Series([True] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
+            for num in nums_oc[:2]:
+                mask_and = mask_and & desc_k.str.contains(rf"\b{num}\b", regex=True, na=False)
+            filtrados_and = candidatos_sem_diam[mask_and]
+
+            if not filtrados_and.empty:
+                candidatos = filtrados_and  # apenas os que tem ambos os diametros
+            else:
+                # fallback: pelo menos um diametro
+                mask_or = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
                 for num in nums_oc[:2]:
-                    mask_num = mask_num | candidatos_sem_diam["descricao_krona"].fillna("").str.upper().str.contains(rf"\b{num}\b", regex=True, na=False)
-                candidatos_filtrados = candidatos_sem_diam[mask_num]
-                if not candidatos_filtrados.empty:
-                    candidatos = pd.concat([candidatos_com_diam, candidatos_filtrados])
+                    mask_or = mask_or | desc_k.str.contains(rf"\b{num}\b", regex=True, na=False)
+                filtrados_or = candidatos_sem_diam[mask_or]
+                if not filtrados_or.empty:
+                    candidatos = pd.concat([candidatos_com_diam, filtrados_or])
                 elif not candidatos_com_diam.empty:
                     candidatos = candidatos_com_diam
+
+        elif len(nums_oc) == 1 and not candidatos_sem_diam.empty:
+            # OC tem um diametro — filtrar sem diametro por texto
+            desc_k = candidatos_sem_diam["descricao_krona"].fillna("").str.upper()
+            mask_n = desc_k.str.contains(rf"\b{nums_oc[0]}\b", regex=True, na=False)
+            filtrados = candidatos_sem_diam[mask_n]
+            if not filtrados.empty:
+                candidatos = pd.concat([candidatos_com_diam, filtrados])
+            elif not candidatos_com_diam.empty:
+                candidatos = candidatos_com_diam
+
 
     if candidatos.empty:
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
@@ -382,12 +500,24 @@ def match_por_descricao(item, base_krona):
                 "motivo_match": "sem_candidatos_apos_filtro_serie"}
 
     registros = []
+    # extrair diametros da OC para bonus de match exato
+    nums_oc_score = set(n for n in re.findall(r"\b(\d{2,3})\b", descricao_limpa)
+                        if n not in ("45", "90"))
+
     for _, row in candidatos.iterrows():
         cand = row.to_dict()
         desc_krona = str(cand.get("descricao_normalizada") or cand.get("descricao_krona") or "").upper()
         score_txt = rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, desc_krona) / 100.0
         score_str = rapidfuzz_fuzz.ratio(descricao_limpa, desc_krona) / 100.0
         score_final = round((score_txt * 0.70) + (score_str * 0.30), 4)
+
+        # bonus para JUNCAO: cada diametro da OC que esta no produto Krona
+        if categoria == "JUNCAO" and nums_oc_score:
+            nums_krona = set(re.findall(r"\b(\d{2,3})\b", desc_krona))
+            matches_diam = len(nums_oc_score & nums_krona)
+            bonus = matches_diam * 0.08  # +0.08 por diametro correto
+            score_final = round(min(score_final + bonus, 1.0), 4)
+
         registros.append({**cand, "score_total": score_final, "score_textual": score_txt})
 
     df_scores = pd.DataFrame(registros).sort_values("score_total", ascending=False)
