@@ -14,5 +14,9 @@
   "samuel": {
     "senha": "$2b$12$I3HfQnrnSUtKi6iBmqnnZukam8.pstYbDb1MUjgevMDvgbhwQpTK2",
     "tipo": "user"
+  },
+  "junior": {
+    "senha": "$2b$12$TYkcIVBuA/wInKmbp5/TieV5pi0onET1bPUdbybwaql8ayPIo0nke",
+    "tipo": "supervisor"
   }
 }

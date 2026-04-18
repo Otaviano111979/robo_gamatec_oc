@@ -64,11 +64,34 @@ def _e_linha_item_uau(row: list) -> bool:
     return bool(_re.match(r"^\d{1,4}$", idx))
 
 
+def _detectar_colunas_uau(header_row: list) -> dict:
+    """
+    Detecta indices das colunas pelo cabecalho da tabela UAU.
+    Funciona para GPL, City Inc e qualquer variacao do layout UAU.
+    """
+    col = {"idx": 0, "desc": 1, "un": -1, "qtd": -1, "preco": -1, "total": -1}
+    for i, cell in enumerate(header_row):
+        v = _limpar_celula(cell).lower()
+        if v in ("item",):
+            col["idx"] = i
+        elif v in ("descricao", "descrição", "description"):
+            col["desc"] = i
+        elif v in ("un.", "un", "und", "unidade"):
+            col["un"] = i
+        elif v in ("qtde", "qtd", "qtd.", "quantidade"):
+            col["qtd"] = i
+        elif v in ("preco unit.", "preço unit.", "preco unitario", "preço unitário", "vl. unit.", "r$ unit.", "valor unitario"):
+            col["preco"] = i
+        elif v in ("total", "vl. total", "r$ total", "valor total"):
+            col["total"] = i
+    return col
+
+
 def extrair_linhas_pdf_uau(caminho_pdf: str):
     """
-    Extrator especifico para PDFs do sistema UAU (GPL Incorporadora e similares).
-    Usa extract_tables() que preserva a estrutura de colunas corretamente.
-    Retorna lista de LinhaDocumento igual ao extrator original.
+    Extrator para PDFs do sistema UAU (GPL, City Inc e similares).
+    Detecta colunas dinamicamente pelo cabecalho — funciona com qualquer
+    variacao de layout do UAU.
     """
     import pdfplumber
     from extracao_oc.modelos import LinhaDocumento
@@ -77,26 +100,67 @@ def extrair_linhas_pdf_uau(caminho_pdf: str):
     numero_linha_global = 0
 
     with pdfplumber.open(caminho_pdf) as pdf:
+        col_ultimo = None  # reutiliza colunas de paginas sem cabecalho
+
         for numero_pagina, pagina in enumerate(pdf.pages, start=1):
             tabelas = pagina.extract_tables()
 
             for tabela in tabelas:
-                for row in tabela:
-                    if not row or not _e_linha_item_uau(row):
+                if not tabela or len(tabela) < 2:
+                    continue
+
+                # detecta cabecalho de itens em qualquer linha da tabela
+                col = None
+                inicio_dados = 0
+                for i, row in enumerate(tabela):
+                    textos = [_limpar_celula(c).lower() for c in (row or [])]
+                    if "item" in textos and any(t in textos for t in ("descricao", "descrição", "qtde", "qtd")):
+                        col = _detectar_colunas_uau(row)
+                        col_ultimo = col  # salva para proximas paginas
+                        inicio_dados = i + 1
+                        break
+
+                # pagina sem cabecalho — reutiliza colunas da pagina anterior
+                # (comum em OCs de multiplas paginas como City Inc)
+                if not col and col_ultimo is not None:
+                    col = col_ultimo
+                    inicio_dados = 0
+
+                if not col:
+                    continue
+
+                for row in tabela[inicio_dados:]:
+                    if not row:
                         continue
 
-                    # colunas esperadas:
-                    # [0]=idx [1]=descricao [2..5]=merged [6]=unidade [7]=marca [8]=qtd [9..10]=merged [11]=preco_unit [12]=total
-                    idx        = _limpar_celula(row[0])
-                    descricao  = _limpar_celula(row[1]) if len(row) > 1 else ""
-                    unidade    = _limpar_celula(row[6]) if len(row) > 6 else ""
-                    qtd_raw    = _limpar_celula(row[8]) if len(row) > 8 else ""
-                    preco_unit = _limpar_celula(row[11]) if len(row) > 11 else ""
-                    total      = _limpar_celula(row[12]) if len(row) > 12 else ""
+                    idx = _limpar_celula(row[col["idx"]]) if col["idx"] < len(row) else ""
 
-                    # monta texto normalizado no formato que o estruturador UAU espera:
-                    # "idx descricao unidade quantidade preco_unit total"
-                    texto = f"{idx} {descricao} {unidade} {qtd_raw} {preco_unit} {total}".strip()
+                    # idx deve ser numerico para ser item valido
+                    if not idx or not _re.sub(r'[^0-9]', '', idx):
+                        continue
+
+                    descricao = ""
+                    # descricao pode estar espalhada em multiplas colunas
+                    if col["desc"] < len(row):
+                        descricao = _limpar_celula(row[col["desc"]])
+                        # se colunas seguintes forem vazias mas a descricao continuar
+                        # em merged cells (common no City), une as colunas
+                        if not descricao:
+                            for j in range(col["desc"]+1, min(col["desc"]+5, len(row))):
+                                v = _limpar_celula(row[j])
+                                if v and col.get("un", -1) != j and col.get("qtd", -1) != j:
+                                    descricao = v
+                                    break
+
+                    unidade = _limpar_celula(row[col["un"]]) if col["un"] >= 0 and col["un"] < len(row) else ""
+                    qtd_raw = _limpar_celula(row[col["qtd"]]) if col["qtd"] >= 0 and col["qtd"] < len(row) else ""
+                    preco   = _limpar_celula(row[col["preco"]]) if col["preco"] >= 0 and col["preco"] < len(row) else ""
+                    total   = _limpar_celula(row[col["total"]]) if col["total"] >= 0 and col["total"] < len(row) else ""
+
+                    if not descricao or not qtd_raw:
+                        continue
+
+                    texto = f"{idx} {descricao} {unidade} {qtd_raw} {preco} {total}".strip()
 
                     numero_linha_global += 1
                     linhas_extraidas.append(
