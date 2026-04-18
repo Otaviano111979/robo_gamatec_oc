@@ -205,6 +205,54 @@ def _normalizar_chave_joelho_especial(descricao):
     return f"JOELHO 90 {tipo} {serie} {diam}".strip()
 
 
+# ============================================================
+# MAPA DIRETO — PRODUTOS C/ BUCHA DE LATÃO
+# Crítico: ignorar LATAO leva a match errado (produto mais barato)
+# ============================================================
+MAPA_BUCHA_LATAO = {
+    # JOELHO SOLDÁVEL C/ BUCHA LATÃO
+    "JOELHO 90 SOLD LATAO 20X12":  497,  # 20MM X 1/2
+    "JOELHO 90 SOLD LATAO 25X34":  498,  # 25MM X 3/4
+    "JOELHO 90 SOLD LATAO 25X12":  499,  # 25MM X 1/2
+    "JOELHO 90 SOLD LATAO 32X34":  500,  # 32MM X 3/4
+    # LUVA SOLDÁVEL C/ BUCHA LATÃO
+    "LUVA SOLD LATAO 20X12":       501,
+    "LUVA SOLD LATAO 25X34":       502,
+    "LUVA SOLD LATAO 25X12":       503,
+    # TE SOLDÁVEL C/ BUCHA LATÃO
+    "TE SOLD LATAO 20X12":         504,
+    "TE SOLD LATAO 25X34":         505,
+    "TE SOLD LATAO 25X12":         506,
+    "TE SOLD LATAO 32X34":         507,
+}
+
+
+def _normalizar_chave_latao(descricao):
+    """
+    Detecta produtos C/ BUCHA DE LATÃO e retorna chave para lookup.
+    Retorna None se nao tiver LATAO na descricao.
+    """
+    import re
+    d = str(descricao or "").upper()
+    if not re.search(r"LATAO|LAT[AÃ]O", d):
+        return None
+    # tipo de produto
+    tipo = None
+    if re.search(r"\bJOELHO\b", d):  tipo = "JOELHO 90"
+    elif re.search(r"\bLUVA\b", d):  tipo = "LUVA"
+    elif re.search(r"\bTE\b|\bTEE\b", d): tipo = "TE"
+    if not tipo:
+        return None
+    # dimensoes: formato "20MM X 1/2" ou "20 X 1/2" ou "20MMX1/2"
+    # extrair par MM x polegada
+    par = re.search(r"(\d{2,3})(?:MM)?\s*[Xx]\s*(\d+/\d+(?:\.\d+/\d+)?)", d)
+    if not par:
+        return None
+    mm = par.group(1)
+    pol = par.group(2).replace("/", "")  # "1/2" → "12", "3/4" → "34"
+    return f"{tipo} SOLD LATAO {mm}X{pol}"
+
+
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
@@ -516,6 +564,59 @@ def match_por_descricao(item, base_krona):
     diametro     = extrair_diametro_da_descricao(descricao_limpa)
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
+
+    # lookup direto para produtos C/ BUCHA DE LATÃO
+    # CRITICO: ignorar LATAO leva a cotar produto mais barato (ex: LUVA SOLD 25MM em vez de LUVA SOLD C/BUCHA LATAO 25MM X 1/2)
+    if categoria in ("JOELHO", "LUVA", "TE"):
+        chave_latao = _normalizar_chave_latao(descricao_limpa)
+        if chave_latao:
+            codigo_direto = MAPA_BUCHA_LATAO.get(chave_latao)
+            if codigo_direto:
+                cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+                if cadastro:
+                    return {
+                        "match_encontrado": True,
+                        "codigo_krona": cadastro.get("codigo_krona"),
+                        "descricao_krona": cadastro.get("descricao_krona"),
+                        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                        "linha_krona_match": cadastro.get("linha_krona"),
+                        "familia_krona_match": cadastro.get("familia_krona"),
+                        "unidade_venda_krona": cadastro.get("unidade_venda"),
+                        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                        "score_estrutura": 1,
+                        "score_textual": 1.0,
+                        "score_total": 1.0,
+                        "tipo_match": "MATCH_DESCRICAO",
+                        "revisao_manual": False,
+                        "motivo_match": f"LOOKUP_LATAO({chave_latao})",
+                        "categoria_krona": cadastro.get("categoria_detectada"),
+                        "eh_tubo_krona": cadastro.get("eh_tubo"),
+                        "diametro_krona_mm": obter_diametro_krona(cadastro),
+                        "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                    }
+            else:
+                # LATAO detectado mas nao mapeado — forcar revisao manual
+                # evita match errado com produto sem bucha
+                return {
+                    "match_encontrado": False,
+                    "codigo_krona": None,
+                    "descricao_krona": None,
+                    "descricao_krona_normalizada": None,
+                    "linha_krona_match": None,
+                    "familia_krona_match": None,
+                    "unidade_venda_krona": None,
+                    "quantidade_embalagem_krona": None,
+                    "score_estrutura": 0,
+                    "score_textual": 0,
+                    "score_total": 0,
+                    "tipo_match": "SEM_MATCH",
+                    "revisao_manual": True,
+                    "motivo_match": f"LATAO_NAO_MAPEADO({chave_latao}) - revisar manualmente",
+                    "categoria_krona": categoria,
+                    "eh_tubo_krona": None,
+                    "diametro_krona_mm": None,
+                    "comprimento_krona_m": None,
+                }
 
     # lookup direto para JOELHO COM ANEL ou COM VISITA
     if categoria == "JOELHO":
