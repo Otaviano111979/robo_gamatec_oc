@@ -185,6 +185,20 @@ MAPA_JOELHO_ESPECIAL = {
 }
 
 
+# mapas diretos para JOELHO 45 e 90 — serie normal e reforcada
+MAPA_JOELHO45_REFORCADA = {
+    "DN40":1413,"DN50":1414,"DN75":1415,"DN100":1416,"DN150":1417,
+}
+MAPA_JOELHO45_NORMAL = {
+    "DN40":611,"DN50":612,"DN75":613,"DN100":614,"DN150":615,
+}
+MAPA_JOELHO90_REFORCADA = {
+    "DN40":1419,"DN50":1420,"DN75":1421,"DN100":1422,"DN150":1423,
+}
+MAPA_JOELHO90_NORMAL = {
+    "DN40":616,"DN50":617,"DN75":618,"DN100":619,"DN150":621,
+}
+
 def _normalizar_chave_joelho_especial(descricao):
     """Detecta JOELHO com ANEL ou VISITA e retorna chave para lookup."""
     import re
@@ -481,7 +495,23 @@ def extrair_subcategoria_da_descricao(descricao):
     return None
 
 
-def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None):
+# regra de negocio Gamatec: comprimento padrao por linha de tubo
+# PPR, ELETRODUTO e ULTRATERM so existem em 3M — nao aplicar regra 6M
+# SOLDAVEL, ESGOTO (PRIM/SEC/SR) — sempre 6M quando nao especificado na OC
+LINHAS_TUBO_6M = {
+    "TUBOS PVC SOLDAVEL",
+    "TUBOS PVC ESGOTO",
+    "TUBOS PVC BRANCO",
+}
+LINHAS_TUBO_3M_APENAS = {
+    "TUBOS PPR",
+    "TUBOS ELETRODUTO RÍGIDOS",
+    "TUBOS ELETRODUTO RIGIDOS",
+    "CPVC - ULTRATERM - TUBOS",
+}
+
+
+def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None, comprimento_m=None):
     MIN_CANDIDATOS = 3
 
     # filtro mais preciso: categoria + diametro + subcategoria
@@ -619,8 +649,9 @@ def match_por_descricao(item, base_krona):
                     "comprimento_krona_m": None,
                 }
 
-    # lookup direto para JOELHO COM ANEL ou COM VISITA
+    # lookup direto para JOELHO — cobre 45/90, series normal e reforcada, e especiais (anel/visita)
     if categoria == "JOELHO":
+        # primeiro verificar anel/visita (produtos especiais)
         chave_esp = _normalizar_chave_joelho_especial(descricao_limpa)
         if chave_esp:
             codigo_direto = MAPA_JOELHO_ESPECIAL.get(chave_esp)
@@ -647,6 +678,42 @@ def match_por_descricao(item, base_krona):
                         "diametro_krona_mm": obter_diametro_krona(cadastro),
                         "comprimento_krona_m": obter_comprimento_krona(cadastro),
                     }
+
+        # lookup para joelho 45 e 90 esgoto (serie normal e reforcada)
+        if subcategoria in ("ESGOTO", "REFORCADA") and diametro is not None:
+            angulo = None
+            if re.search(r"\b45\b", descricao_limpa): angulo = 45
+            elif re.search(r"\b90\b", descricao_limpa): angulo = 90
+            if angulo and diametro:
+                diam_key = f"DN{int(diametro)}"
+                if angulo == 45:
+                    mapa = MAPA_JOELHO45_REFORCADA if subcategoria == "REFORCADA" else MAPA_JOELHO45_NORMAL
+                else:
+                    mapa = MAPA_JOELHO90_REFORCADA if subcategoria == "REFORCADA" else MAPA_JOELHO90_NORMAL
+                codigo_direto = mapa.get(diam_key)
+                if codigo_direto:
+                    cadastro = buscar_cadastro_krona_por_codigo(str(codigo_direto), base_krona)
+                    if cadastro:
+                        return {
+                            "match_encontrado": True,
+                            "codigo_krona": cadastro.get("codigo_krona"),
+                            "descricao_krona": cadastro.get("descricao_krona"),
+                            "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                            "linha_krona_match": cadastro.get("linha_krona"),
+                            "familia_krona_match": cadastro.get("familia_krona"),
+                            "unidade_venda_krona": cadastro.get("unidade_venda"),
+                            "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                            "score_estrutura": 1,
+                            "score_textual": 1.0,
+                            "score_total": 1.0,
+                            "tipo_match": "MATCH_DESCRICAO",
+                            "revisao_manual": False,
+                            "motivo_match": f"LOOKUP_JOELHO{angulo}({'REF' if subcategoria=='REFORCADA' else 'NOR'})({diam_key})",
+                            "categoria_krona": cadastro.get("categoria_detectada"),
+                            "eh_tubo_krona": cadastro.get("eh_tubo"),
+                            "diametro_krona_mm": obter_diametro_krona(cadastro),
+                            "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                        }
 
     # lookup direto para TE ESGOTO
     if categoria == "TE" and subcategoria in ("ESGOTO", "REFORCADA"):
@@ -732,7 +799,15 @@ def match_por_descricao(item, base_krona):
                     "comprimento_krona_m": obter_comprimento_krona(cadastro),
                 }
 
-    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
+    # extrair comprimento especificado na OC (ex: "6M", "3M")
+    comprimento_oc = None
+    if categoria == "TUBO":
+        import re as _re
+        m_comp = _re.search(r"\b([36])\.?0?\s*M\b", descricao_limpa)
+        if m_comp:
+            comprimento_oc = float(m_comp.group(1))
+
+    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria, comprimento_oc)
 
     # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
     # filtrar por AMBOS os diametros presentes no texto (AND, nao OR)
@@ -780,6 +855,33 @@ def match_por_descricao(item, base_krona):
     if candidatos.empty:
         return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
                 "motivo_match": "sem_candidatos_krona"}
+
+    # regra de negocio: comprimento padrao por linha de tubo
+    # SOLDAVEL, ESGOTO → 6M padrao | PPR, ELETRODUTO, ULTRATERM → 3M (unico disponivel)
+    if categoria == "TUBO" and "comprimento_final_m" in candidatos.columns:
+        if comprimento_m:
+            # OC especificou comprimento — filtrar por ele
+            mask_comp = (
+                candidatos["comprimento_final_m"].notna() &
+                (candidatos["comprimento_final_m"] == comprimento_m)
+            )
+            if mask_comp.sum() > 0:
+                candidatos = candidatos[mask_comp]
+        else:
+            # OC nao especificou — verificar se a linha e de 6M padrao
+            # detectar linha pelos candidatos ou pela descricao
+            linhas_cand = set(candidatos["linha_krona"].dropna().str.strip().tolist())
+            eh_linha_6m = bool(linhas_cand & LINHAS_TUBO_6M)
+            eh_linha_3m = bool(linhas_cand & LINHAS_TUBO_3M_APENAS)
+
+            if eh_linha_6m and not eh_linha_3m:
+                # linha que vem em 6M — excluir tubos de 3M
+                mask_6m = (
+                    candidatos["comprimento_final_m"].notna() &
+                    (candidatos["comprimento_final_m"] == 6.0)
+                )
+                if mask_6m.sum() > 0:
+                    candidatos = candidatos[mask_6m]
 
     # filtro critico: distingue serie REFORCADA vs NORMAL
     # na base Krona: serie reforcada usa REFORC ou SR (para tubos)
