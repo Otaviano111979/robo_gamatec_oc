@@ -650,12 +650,68 @@ def login():
                 session.permanent = True  # ativa o timeout configurado
                 session["user"] = user
                 session["tipo"] = usuarios[user].get("tipo", "user")
-                return redirect("/dashboard")
+                return redirect("/launcher")
 
         registrar_tentativa_falha(ip)
         erro = "Usuário ou senha incorretos."
 
     return render_template("login.html", erro=erro)
+
+
+# =========================
+# LAUNCHER
+# =========================
+@app.route("/launcher")
+def launcher():
+    if "user" not in session:
+        return redirect("/")
+
+    try:
+        from launcher import listar_empresas, VORTEX_ROOT
+        empresas_raw = listar_empresas()
+    except Exception:
+        # modo legado — monta empresa UNE direto
+        empresas_raw = [{
+            "id": "une", "nome": "UNE Representações",
+            "modulos_ativos": ["oc", "email"], "modulos_trial": [],
+            "ativo": True,
+        }]
+
+    # paleta de avatars
+    av_classes = ["av-blue", "av-teal", "av-amber", "av-blue"]
+    empresas = []
+    for i, e in enumerate(empresas_raw):
+        nome  = e["nome"]
+        sigla = "".join(p[0].upper() for p in nome.split()[:3])
+        empresas.append({
+            "id":           e["id"],
+            "nome":         nome,
+            "sigla":        sigla,
+            "avatar_class": av_classes[i % len(av_classes)],
+            "ativo":        e.get("ativo", True),
+            "meta":         f"módulos: {', '.join(e.get('modulos_ativos',[]))}",
+        })
+
+    import json as _json
+    modulos_json = _json.dumps({
+        e["id"]: {
+            "ativos": e.get("modulos_ativos", []),
+            "trial":  e.get("modulos_trial",  []),
+        }
+        for e in empresas_raw
+    })
+
+    # urls por empresa (porta pode variar no futuro)
+    empresa_urls = _json.dumps({e["id"]: "" for e in empresas_raw})
+
+    from config import VERSAO_SISTEMA
+    return render_template(
+        "launcher.html",
+        empresas=empresas,
+        modulos_json=modulos_json,
+        empresa_urls=empresa_urls,
+        versao=VERSAO_SISTEMA,
+    )
 
 
 # =========================
