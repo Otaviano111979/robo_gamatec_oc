@@ -10,12 +10,18 @@ from base_brasal_loader import carregar_base_brasal
 from matcher_brasal import match_por_codigo_brasal
 from regra_quantidade import ajustar_quantidade_tubo
 
-# historico de aprendizado — importacao opcional para nao quebrar se nao existir
+# historico e aprendizado — importacao opcional
 try:
     from historico_aprendizado import obter_melhor_sugestao_historico, registrar_validacao_manual
     HISTORICO_DISPONIVEL = True
 except ImportError:
     HISTORICO_DISPONIVEL = False
+
+try:
+    from aprendizado_regras import buscar_regra_aprendida
+    REGRAS_APRENDIDAS_DISPONIVEL = True
+except ImportError:
+    REGRAS_APRENDIDAS_DISPONIVEL = False
 
 
 CAMINHO_BASE_KRONA = CAMINHO_BASE_KRONA_FINAL
@@ -511,6 +517,41 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
+
+    # =========================================================
+    # PRIORIDADE 0A — REGRAS APRENDIDAS (promovidas do histórico)
+    # Mais rápidas que o banco — ficam em JSON em memória
+    # =========================================================
+    if REGRAS_APRENDIDAS_DISPONIVEL:
+        descricao_busca = (
+            item.get("descricao_oc")
+            or item.get("descricao_reconstruida")
+            or ""
+        )
+        codigo_regra = buscar_regra_aprendida(descricao_busca)
+        if codigo_regra:
+            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_regra), base_krona)
+            if cadastro:
+                return {
+                    "match_encontrado": True,
+                    "codigo_krona": cadastro.get("codigo_krona"),
+                    "descricao_krona": cadastro.get("descricao_krona"),
+                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                    "linha_krona_match": cadastro.get("linha_krona"),
+                    "familia_krona_match": cadastro.get("familia_krona"),
+                    "unidade_venda_krona": cadastro.get("unidade_venda"),
+                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                    "score_estrutura": 1.0,
+                    "score_textual": 1.0,
+                    "score_total": 1.0,
+                    "tipo_match": "MATCH_REGRA_APRENDIDA",
+                    "revisao_manual": False,
+                    "motivo_match": f"REGRA_APRENDIDA({codigo_regra})",
+                    "categoria_krona": cadastro.get("categoria_detectada"),
+                    "eh_tubo_krona": cadastro.get("eh_tubo"),
+                    "diametro_krona_mm": obter_diametro_krona(cadastro),
+                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                }
 
     # =========================================================
     # PRIORIDADE 0 — HISTÓRICO DE CORREÇÕES MANUAIS

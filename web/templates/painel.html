@@ -349,6 +349,7 @@
       <a href="#saude" class="ativo" onclick="navAtivo(this)">Saúde</a>
       <span class="painel-nav-sep">·</span>
       <a href="#metricas" onclick="navAtivo(this)">Métricas</a>
+      <a href="#aprendizado" onclick="navAtivo(this)">Aprendizado</a>
       <span class="painel-nav-sep">·</span>
       <a href="#revisao" onclick="navAtivo(this)">Revisão Emails</a>
       <span class="painel-nav-sep">·</span>
@@ -385,6 +386,37 @@
       <div class="painel-secao-titulo" style="margin-top:8px;">Clientes ativos</div>
       <div class="clientes-wrap" id="met-clientes">
         <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--subtext);">Carregando...</span>
+      </div>
+    </div>
+
+    <!-- APRENDIZADO -->
+    <div class="painel-secao painel-secao-full" id="aprendizado">
+      <div class="painel-secao-titulo">
+        <span>🧠</span> Aprendizado do Sistema
+      </div>
+      <div class="metricas-grid" id="aprendizado-nums">
+        <div class="metrica-card">
+          <div class="metrica-numero" id="apr-correcoes">—</div>
+          <div class="metrica-label">Correções registradas</div>
+        </div>
+        <div class="metrica-card">
+          <div class="metrica-numero" id="apr-regras">—</div>
+          <div class="metrica-label">Regras automáticas</div>
+        </div>
+        <div class="metrica-card">
+          <div class="metrica-numero" id="apr-clientes">—</div>
+          <div class="metrica-label">Clientes com histórico</div>
+        </div>
+        <div class="metrica-card">
+          <div class="metrica-numero" id="apr-proxima">2</div>
+          <div class="metrica-label">Correções p/ virar regra</div>
+        </div>
+      </div>
+      <div class="painel-secao-titulo" style="margin-top:12px;">
+        Últimas regras promovidas
+      </div>
+      <div id="apr-ultimas" style="font-size:12px;color:var(--subtext);">
+        Carregando...
       </div>
     </div>
 
@@ -578,6 +610,29 @@
         }
       } catch (e) {
         console.warn("Erro ao carregar metricas.", e);
+
+        // carregar stats de aprendizado
+        try {
+          const ra = await fetch("/api/aprendizado/stats", { cache: "no-store" });
+          const da = await ra.json();
+          document.getElementById("apr-correcoes").textContent = da.total_correcoes ?? "—";
+          document.getElementById("apr-regras").textContent    = da.total_regras ?? "—";
+          document.getElementById("apr-clientes").textContent  = da.total_clientes ?? "—";
+          document.getElementById("apr-proxima").textContent   = da.proxima_promocao ?? 2;
+          const ul = document.getElementById("apr-ultimas");
+          if (da.ultimas_regras && da.ultimas_regras.length > 0) {
+            ul.innerHTML = da.ultimas_regras.map(r =>
+              `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+                <span style="font-weight:500;color:var(--accent)">[${r.codigo}]</span>
+                ${r.descricao} <span style="color:var(--subtext)">(${r.confirmacoes}x)</span>
+              </div>`
+            ).join("");
+          } else {
+            ul.textContent = "Nenhuma regra promovida ainda. Registre correções para o sistema aprender.";
+          }
+        } catch(e) {
+          console.warn("Erro ao carregar aprendizado.", e);
+        }
       }
     }
 

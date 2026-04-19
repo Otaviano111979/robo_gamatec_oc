@@ -105,6 +105,14 @@ def registrar_validacao_manual(
         ))
         conn.commit()
 
+    # verificar se deve promover para regra automatica
+    try:
+        from aprendizado_regras import verificar_e_promover
+        desc_norm = str(descricao_oc_normalizada or descricao_oc_original or "").strip().upper()
+        verificar_e_promover(desc_norm, codigo_krona_aprovado)
+    except Exception:
+        pass  # nao bloquear se aprendizado falhar
+
 
 def carregar_historico(cliente_id=None, cliente_nome=None):
     inicializar_banco()

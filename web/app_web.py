@@ -761,6 +761,29 @@ def status_oc(arquivo):
 # =========================
 # BAIXAR PLANILHA
 # =========================
+@app.route("/api/aprendizado/stats")
+def api_aprendizado_stats():
+    """Estatísticas do sistema de aprendizado para o painel."""
+    try:
+        from aprendizado_regras import stats_aprendizado, carregar_regras
+        stats = stats_aprendizado()
+        regras = carregar_regras()
+        # ultimas 5 regras promovidas
+        ultimas = sorted(regras.items(),
+                         key=lambda x: x[1].get("promovido_em",""),
+                         reverse=True)[:5]
+        stats["ultimas_regras"] = [
+            {"descricao": v["descricao_original"][:60],
+             "codigo": v["codigo_krona"],
+             "confirmacoes": v["confirmacoes"]}
+            for _, v in ultimas
+        ]
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({"total_correcoes": 0, "total_regras": 0,
+                        "total_clientes": 0, "ultimas_regras": []})
+
+
 @app.route("/api/registrar-correcao", methods=["POST"])
 def api_registrar_correcao():
     """
