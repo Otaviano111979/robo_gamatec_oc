@@ -200,7 +200,27 @@
       transition: width 0.3s ease;
       box-shadow: 0 0 8px var(--vortex-cyan-dim);
     }
-  </style>
+  
+    @keyframes pulse-orange {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251,146,60,0); border-color: transparent; }
+      50%       { box-shadow: 0 0 0 3px rgba(251,146,60,0.25); border-color: rgba(251,146,60,0.5); }
+    }
+    .email-row td:first-child {
+      border-left: 3px solid #f97316 !important;
+    }
+    .email-row {
+      animation: pulse-orange 2.5s ease-in-out infinite;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+    .badge-dot-orange {
+      width: 6px; height: 6px;
+      background: #f97316;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse-orange 1.2s ease-in-out infinite;
+    }
+</style>
 </head>
 <body class="ios-body dark">
 
@@ -420,13 +440,14 @@
                   data-tem-planilha="{{ 'true' if item.tem_planilha else 'false' }}"
                   data-em-entrada="{{ 'true' if item.em_entrada else 'false' }}"
                   data-em-processados="{{ 'true' if item.em_processados else 'false' }}"
-                  data-processando="{{ 'true' if item.processando else 'false' }}">
+                  data-processando="{{ 'true' if item.processando else 'false' }}"
+                  {% if item.nome.startswith('EMAIL_') %}class="email-row"{% endif %}>
                   <td class="arquivo-col">
                     <div class="arquivo-cell">
                       <strong class="arquivo-nome">{{ item.nome }}</strong>
                       <div class="row-badges">
                         {% if item.nome.startswith('EMAIL_') %}
-                          <span class="badge-email"><span class="badge-dot"></span>VIA EMAIL</span>
+                          <span class="badge-email"><span class="badge-dot-orange"></span>VIA EMAIL</span>
                         {% endif %}
                         {% if item.numero_oc %}
                           <span class="mini-badge mini-badge-primary">OC {{ item.numero_oc }}</span>
@@ -529,14 +550,6 @@
                               type="button"
                               onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">
                               🤖 Automação GAMATEC
-                            </button>
-                          {% endif %}
-
-                          {% if item.tem_planilha %}
-                            <button class="acoes-menu-item"
-                              type="button"
-                              onclick="abrirModalCorrecao('{{ item.nome }}'); fecharMenus()">
-                              ✏️ Registrar Correção
                             </button>
                           {% endif %}
 
@@ -774,80 +787,5 @@
   </div>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-
-  <!-- MODAL REGISTRAR CORREÇÃO -->
-  <div id="modal-correcao" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:480px">
-      <h3>✏️ Registrar Correção</h3>
-      <p style="font-size:13px;color:var(--text-secondary)">
-        Quando você corrige um código na planilha, registre aqui para o sistema aprender.
-      </p>
-      <div class="form-group" style="margin-top:16px">
-        <label style="font-size:13px;font-weight:500">Descrição da OC (como veio no PDF)</label>
-        <input type="text" id="correcao-descricao" placeholder="Ex: JOELHO 45° P/ ESGOTO SÉRIE REFORÇADA D= 150 mm"
-          style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
-      </div>
-      <div class="form-group" style="margin-top:12px">
-        <label style="font-size:13px;font-weight:500">Código Krona correto</label>
-        <input type="text" id="correcao-codigo" placeholder="Ex: 1417"
-          style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
-      </div>
-      <div class="form-group" style="margin-top:12px">
-        <label style="font-size:13px;font-weight:500">Motivo (opcional)</label>
-        <input type="text" id="correcao-motivo" placeholder="Ex: sistema sugeriu 1416, correto é 1417 (DN150)"
-          style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
-      </div>
-      <input type="hidden" id="correcao-arquivo">
-      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-        <button class="ios-button small secondary" onclick="fecharModalCorrecao()">Cancelar</button>
-        <button class="ios-button small primary" onclick="salvarCorrecao()">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-  function abrirModalCorrecao(arquivo) {
-    document.getElementById('correcao-arquivo').value = arquivo;
-    document.getElementById('correcao-descricao').value = '';
-    document.getElementById('correcao-codigo').value = '';
-    document.getElementById('correcao-motivo').value = '';
-    document.getElementById('modal-correcao').style.display = 'flex';
-  }
-  function fecharModalCorrecao() {
-    document.getElementById('modal-correcao').style.display = 'none';
-  }
-  async function salvarCorrecao() {
-    const descricao = document.getElementById('correcao-descricao').value.trim();
-    const codigo    = document.getElementById('correcao-codigo').value.trim();
-    const motivo    = document.getElementById('correcao-motivo').value.trim();
-
-    if (!descricao || !codigo) {
-      alert('Preencha a descrição e o código correto.');
-      return;
-    }
-
-    try {
-      const resp = await fetch('/api/registrar-correcao', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          descricao_oc: descricao,
-          codigo_krona_correto: codigo,
-          motivo: motivo || null
-        })
-      });
-      const data = await resp.json();
-      if (data.ok) {
-        fecharModalCorrecao();
-        mostrarToast('✅ Correção registrada! O sistema vai aprender com ela.');
-      } else {
-        alert('Erro: ' + (data.erro || 'desconhecido'));
-      }
-    } catch(e) {
-      alert('Erro ao registrar correção.');
-    }
-  }
-  </script>
-
 </body>
 </html> 

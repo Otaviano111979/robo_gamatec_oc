@@ -151,6 +151,28 @@
       ],
       "usar_reply_to": false,
       "ativo": true
+    },
+    {
+      "id": "une",
+      "nome": "UNE Representações",
+      "formato_oc": "UAU",
+      "dominios_email": [
+        "une.com.br",
+        "unerepresentacoes.com.br",
+        "unerepresentacao@gmail.com"
+      ],
+      "cnpjs": [],
+      "palavras_cabecalho": [
+        "UNE",
+        "UNE REPRESENTACOES",
+        "UNE REPRESENTAÇÕES"
+      ],
+      "marcadores_pdf": [
+        "uau! software"
+      ],
+      "usar_reply_to": false,
+      "ativo": true,
+      "_obs": "empresa do operador — assinatura dos emails de resposta usa UNE Representações"
     }
   ],
   "cnpj_krona": [

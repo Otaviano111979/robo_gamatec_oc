@@ -492,7 +492,7 @@ Prazo de entrega: 15 dias úteis após a confirmação do pedido.
 Em breve nossa equipe entrará em contato com as informações necessárias.
 
 Atenciosamente,
-UNI Representações
+UNE Representações
 Representante Oficial KRONA Tubos e Conexões"""
     else:
         corpo = f"""Olá, {nome}!
@@ -504,7 +504,7 @@ Prazo de resposta: em até 2 dias úteis.
 Em breve retornaremos com as informações completas.
 
 Atenciosamente,
-UNI Representações
+UNE Representações
 Representante Oficial KRONA Tubos e Conexões"""
 
     msg = email.mime.text.MIMEText(corpo, "plain", "utf-8")
