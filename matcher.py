@@ -10,19 +10,6 @@ from base_brasal_loader import carregar_base_brasal
 from matcher_brasal import match_por_codigo_brasal
 from regra_quantidade import ajustar_quantidade_tubo
 
-# historico e aprendizado — importacao opcional
-try:
-    from historico_aprendizado import obter_melhor_sugestao_historico, registrar_validacao_manual
-    HISTORICO_DISPONIVEL = True
-except ImportError:
-    HISTORICO_DISPONIVEL = False
-
-try:
-    from aprendizado_regras import buscar_regra_aprendida
-    REGRAS_APRENDIDAS_DISPONIVEL = True
-except ImportError:
-    REGRAS_APRENDIDAS_DISPONIVEL = False
-
 
 CAMINHO_BASE_KRONA = CAMINHO_BASE_KRONA_FINAL
 # caminho lido do config, sem valor fixo no codigo
@@ -519,87 +506,6 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
         indice_brasal = carregar_base_brasal()
 
     # =========================================================
-    # PRIORIDADE 0A — REGRAS APRENDIDAS (promovidas do histórico)
-    # Mais rápidas que o banco — ficam em JSON em memória
-    # =========================================================
-    if REGRAS_APRENDIDAS_DISPONIVEL:
-        descricao_busca = (
-            item.get("descricao_oc")
-            or item.get("descricao_reconstruida")
-            or ""
-        )
-        codigo_regra = buscar_regra_aprendida(descricao_busca)
-        if codigo_regra:
-            cadastro = buscar_cadastro_krona_por_codigo(str(codigo_regra), base_krona)
-            if cadastro:
-                return {
-                    "match_encontrado": True,
-                    "codigo_krona": cadastro.get("codigo_krona"),
-                    "descricao_krona": cadastro.get("descricao_krona"),
-                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                    "linha_krona_match": cadastro.get("linha_krona"),
-                    "familia_krona_match": cadastro.get("familia_krona"),
-                    "unidade_venda_krona": cadastro.get("unidade_venda"),
-                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                    "score_estrutura": 1.0,
-                    "score_textual": 1.0,
-                    "score_total": 1.0,
-                    "tipo_match": "MATCH_REGRA_APRENDIDA",
-                    "revisao_manual": False,
-                    "motivo_match": f"REGRA_APRENDIDA({codigo_regra})",
-                    "categoria_krona": cadastro.get("categoria_detectada"),
-                    "eh_tubo_krona": cadastro.get("eh_tubo"),
-                    "diametro_krona_mm": obter_diametro_krona(cadastro),
-                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                }
-
-    # =========================================================
-    # PRIORIDADE 0 — HISTÓRICO DE CORREÇÕES MANUAIS
-    # Aprende com correções anteriores do operador
-    # =========================================================
-    if HISTORICO_DISPONIVEL:
-        descricao_busca = (
-            item.get("descricao_oc")
-            or item.get("descricao_reconstruida")
-            or ""
-        )
-        cliente_id = item.get("cliente_id") or item.get("sistema_origem")
-        cliente_nome = item.get("cliente_nome")
-
-        sugestao = obter_melhor_sugestao_historico(
-            descricao_oc=descricao_busca,
-            cliente_id=cliente_id,
-            cliente_nome=cliente_nome,
-            score_minimo=0.92,  # alta confiança — só usa se for muito similar
-        )
-
-        if sugestao:
-            cod_krona = str(sugestao.get("codigo_krona_aprovado") or "").strip()
-            cadastro = buscar_cadastro_krona_por_codigo(cod_krona, base_krona) if cod_krona else None
-
-            if cadastro:
-                return {
-                    "match_encontrado": True,
-                    "codigo_krona": cadastro.get("codigo_krona"),
-                    "descricao_krona": cadastro.get("descricao_krona"),
-                    "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
-                    "linha_krona_match": cadastro.get("linha_krona"),
-                    "familia_krona_match": cadastro.get("familia_krona"),
-                    "unidade_venda_krona": cadastro.get("unidade_venda"),
-                    "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
-                    "score_estrutura": 1.0,
-                    "score_textual": sugestao.get("score_historico", 1.0),
-                    "score_total": sugestao.get("score_historico", 1.0),
-                    "tipo_match": "MATCH_HISTORICO",
-                    "revisao_manual": False,
-                    "motivo_match": f"HISTORICO({sugestao.get('origem_historico','?')},score={sugestao.get('score_historico',0):.2f})",
-                    "categoria_krona": cadastro.get("categoria_detectada"),
-                    "eh_tubo_krona": cadastro.get("eh_tubo"),
-                    "diametro_krona_mm": obter_diametro_krona(cadastro),
-                    "comprimento_krona_m": obter_comprimento_krona(cadastro),
-                }
-
-    # =========================================================
     # PRIORIDADE 1 — MRV
     # =========================================================
     if indice_mrv:
@@ -673,6 +579,48 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 
     # se o melhor resultado nao atinge o minimo, nao força o match
     if score_melhor < SCORE_MINIMO:
+        # PRIORIDADE IA — tentar Claude API antes de desistir
+        if IA_DISPONIVEL and ia_disponivel():
+            descricao_busca = (
+                item.get("descricao_oc")
+                or item.get("descricao_reconstruida")
+                or ""
+            )
+            # montar lista de candidatos para o Claude
+            candidatos_ia = df.head(MAX_CANDIDATOS_IA if "MAX_CANDIDATOS_IA" in dir() else 15).apply(
+                lambda r: {
+                    "codigo_krona":   str(r.get("codigo_krona", "")),
+                    "descricao_krona": str(r.get("descricao_krona", "")),
+                }, axis=1
+            ).tolist()
+
+            sugestao_ia = ia_sugerir_match(descricao_busca, candidatos_ia)
+
+            if sugestao_ia:
+                cod_ia   = sugestao_ia["codigo_krona"]
+                cadastro = buscar_cadastro_krona_por_codigo(cod_ia, base_krona)
+                if cadastro:
+                    return {
+                        "match_encontrado": True,
+                        "codigo_krona": cadastro.get("codigo_krona"),
+                        "descricao_krona": cadastro.get("descricao_krona"),
+                        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+                        "linha_krona_match": cadastro.get("linha_krona"),
+                        "familia_krona_match": cadastro.get("familia_krona"),
+                        "unidade_venda_krona": cadastro.get("unidade_venda"),
+                        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+                        "score_estrutura": score_melhor,
+                        "score_textual": score_melhor,
+                        "score_total": score_melhor,
+                        "tipo_match": "MATCH_IA",
+                        "revisao_manual": True,  # sempre revisar match por IA
+                        "motivo_match": sugestao_ia.get("justificativa", "MATCH_IA"),
+                        "categoria_krona": cadastro.get("categoria_detectada"),
+                        "eh_tubo_krona": cadastro.get("eh_tubo"),
+                        "diametro_krona_mm": obter_diametro_krona(cadastro),
+                        "comprimento_krona_m": obter_comprimento_krona(cadastro),
+                    }
+
         return {
             "match_encontrado": False,
             "codigo_krona": None,

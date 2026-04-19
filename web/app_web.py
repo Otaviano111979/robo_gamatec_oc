@@ -761,6 +761,33 @@ def status_oc(arquivo):
 # =========================
 # BAIXAR PLANILHA
 # =========================
+@app.route("/api/ia/status")
+def api_ia_status():
+    """Status da IA para o painel."""
+    try:
+        from ia_helper import status_ia
+        return jsonify(status_ia())
+    except Exception:
+        return jsonify({"disponivel": False, "modo": "SIMULADO", "modelo": "-"})
+
+
+@app.route("/api/ia/configurar", methods=["POST"])
+def api_ia_configurar():
+    """Salva a chave API da IA. Chamada pelo painel do operador."""
+    try:
+        from ia_helper import salvar_chave
+        dados = request.get_json(force=True) or {}
+        chave = str(dados.get("chave") or "").strip()
+        if not chave:
+            return jsonify({"ok": False, "erro": "Chave não informada"}), 400
+        if not chave.startswith("sk-ant-"):
+            return jsonify({"ok": False, "erro": "Chave inválida — deve começar com sk-ant-"}), 400
+        salvar_chave(chave)
+        return jsonify({"ok": True, "mensagem": "Chave salva! Reinicie o servidor para ativar."})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
 @app.route("/api/aprendizado/stats")
 def api_aprendizado_stats():
     """Estatísticas do sistema de aprendizado para o painel."""
