@@ -1,0 +1,11 @@
+{
+  "id": "une",
+  "nome": "UNE Representações",
+  "ativo": true,
+  "modulos_ativos": ["oc", "email"],
+  "modulos_trial": [],
+  "versao": "1.0",
+  "criado_em": "2026-04-18",
+  "porta": 5000,
+  "_instrucoes": "Copie os dados de C:\\robo_gamatec_oc\\dados\\ para C:\\Vortex\\empresas\\une\\dados\\"
+}

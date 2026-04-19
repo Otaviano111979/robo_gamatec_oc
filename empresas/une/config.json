@@ -1,0 +1,14 @@
+{
+  "id": "une",
+  "nome": "UNE Representacoes",
+  "ativo": true,
+  "modulos_ativos": [
+    "oc",
+    "email"
+  ],
+  "modulos_trial": [],
+  "versao": "1.0",
+  "criado_em": "2026-04-18 21:59:23",
+  "porta": 5000,
+  "_instrucoes": "Copie os arquivos de dados para a pasta dados/: DADOS DE PRODUTOS KRONA(1).xlsx, base_mrv.csv, etc."
+}
