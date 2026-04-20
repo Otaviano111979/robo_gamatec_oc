@@ -18,11 +18,20 @@ from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 # CONFIGURAÇÕES GERAIS
 # ============================================================
 
-PASTA_SAIDA = r"C:\robo_gamatec_oc\saida"
+try:
+    from config import BASE_DIR as _BASE_DIR
+except ImportError:
+    _BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+
+PASTA_SAIDA = os.environ.get("GAMATEC_BASE_DIR", _BASE_DIR)
+PASTA_SAIDA = os.path.join(PASTA_SAIDA, "saida")
 CAMINHO_DESCONTOS = os.path.join(PASTA_SAIDA, "descontos_gamatec.csv")
 CAMINHO_LOG = os.path.join(PASTA_SAIDA, "log_automacao_gamatec.txt")
 
-TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+TESSERACT_PATH = os.environ.get(
+    "TESSERACT_PATH",
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
 
 # Segurança
 TECLA_PAUSA = "f8"

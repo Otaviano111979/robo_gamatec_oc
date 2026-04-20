@@ -225,7 +225,12 @@ def buscar_codigo_mrv(
 
 
 if __name__ == "__main__":
-    caminho = r"C:\robo_gamatec_oc\dados\base_mrv.csv"
+    import os as _os
+    try:
+        from config import BASE_DIR as _BASE_DIR
+    except ImportError:
+        _BASE_DIR = _os.path.abspath(_os.path.join(_os.path.dirname(__file__)))
+    caminho = _os.path.join(_os.environ.get("GAMATEC_BASE_DIR", _BASE_DIR), "dados", "base_mrv.csv")
 
     print("\n[TESTE BASE MRV]")
     print(f"Caminho esperado: {caminho}")

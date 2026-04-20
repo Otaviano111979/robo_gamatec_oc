@@ -1,5 +1,13 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash
 import os
+import sys
+
+# ── Garante que a pasta raiz do projeto (onde fica config.py) está no path ──
+# Funciona rodando de qualquer pasta: web\, raiz, ou atalho
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
 import json
 import subprocess
 import shutil
@@ -11,12 +19,22 @@ import bcrypt
 
 # carrega variaveis do arquivo .env (fora do codigo-fonte)
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(_ROOT_DIR, ".env"))
 
 from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("GAMATEC_SECRET_KEY", "chave_fallback_local")
+
+# ── Catálogo Steck/Schneider ─────────────────────────────────────────────────
+# Integração gerada a partir de INTEGRACAO_VORTEX.py
+try:
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(__file__))
+    from catalogo_steck import catalogo_bp, init_catalogo
+    _STECK_OK = True
+except ImportError:
+    _STECK_OK = False
 
 # diretorio raiz do projeto — lido do .env, com fallback para a pasta pai deste arquivo
 BASE_DIR = os.environ.get(
@@ -29,6 +47,14 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
 # limite maximo de upload: 20MB (protege contra arquivos gigantes)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
+
+# ── Registra blueprint do catálogo Steck (se o módulo foi importado com sucesso)
+if _STECK_OK:
+    init_catalogo(app)
+    app.register_blueprint(catalogo_bp)
+    print("[STECK] Catálogo Steck/Schneider registrado em /catalogo/steck/")
+else:
+    print("[STECK] Módulo catalogo_steck não encontrado — catálogo desativado")
 
 PASTA_ENTRADA = os.path.join(BASE_DIR, "entrada_oc")
 PASTA_LOGS = os.path.join(BASE_DIR, "web", "logs")
@@ -704,7 +730,10 @@ def launcher():
     # urls por empresa (porta pode variar no futuro)
     empresa_urls = _json.dumps({e["id"]: "" for e in empresas_raw})
 
-    from config import VERSAO_SISTEMA
+    try:
+        from config import VERSAO_SISTEMA
+    except ImportError:
+        VERSAO_SISTEMA = "1.0"
     return render_template(
         "launcher.html",
         empresas=empresas,

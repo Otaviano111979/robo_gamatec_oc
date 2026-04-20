@@ -4,7 +4,8 @@
   "ativo": true,
   "modulos_ativos": [
     "oc",
-    "email"
+    "email",
+    "steck"
   ],
   "modulos_trial": [],
   "versao": "1.0",

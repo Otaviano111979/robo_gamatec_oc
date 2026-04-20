@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vortex | Plataforma</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #080810;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .grid-bg {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .glow-bg {
+      position: fixed;
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, #00d4ff06 0%, transparent 65%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 0;
+      animation: bg-pulse 4s ease-in-out infinite;
+    }
+    @keyframes bg-pulse {
+      0%,100% { transform: translate(-50%,-50%) scale(1); opacity:1; }
+      50%      { transform: translate(-50%,-50%) scale(1.2); opacity:0.6; }
+    }
+
+    .container {
+      width: 100%; max-width: 480px;
+      position: relative; z-index: 1;
+    }
+
+    /* BRAND */
+    .brand {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 16px; margin-bottom: 36px;
+    }
+    .spinner { width: 56px; height: 56px; position: relative; }
+    .vls-ring {
+      position: absolute; border-radius: 50%;
+      border: 2px solid transparent;
+    }
+    .vls-ring:nth-child(1) {
+      inset: 0;
+      border-top-color: #00d4ff; border-right-color: #00d4ff44;
+      animation: spin 2.5s linear infinite;
+    }
+    .vls-ring:nth-child(2) {
+      inset: 8px;
+      border-top-color: #0077ff; border-left-color: #0077ff33;
+      animation: spin 2s linear infinite reverse;
+    }
+    .vls-ring:nth-child(3) {
+      inset: 16px;
+      border-top-color: #00d4ff66;
+      animation: spin 1.5s linear infinite;
+    }
+    .vls-dot {
+      position: absolute; inset: 22px;
+      background: #00d4ff; border-radius: 50%;
+      box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44;
+      animation: vls-pulse 2s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes vls-pulse {
+      0%,100% { box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44; }
+      50%      { box-shadow: 0 0 24px #00d4ff, 0 0 48px #00d4ff33; }
+    }
+
+    .wordmark {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 24px; font-weight: 700;
+      letter-spacing: 0.1em; color: #fff;
+      text-align: center; line-height: 1;
+    }
+    .wordmark span { color: #00d4ff; text-shadow: 0 0 20px #00d4ff66; }
+
+    .sub-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: 0.3em;
+      color: #00d4ff33; text-transform: uppercase;
+      margin-top: 4px; text-align: center;
+    }
+    .sub-label.cyan { color: #00d4ff88; }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+      margin-bottom: 28px;
+    }
+
+    /* SCREENS */
+    .screen { display: none; animation: fadeUp .25s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* EMPRESA CARDS */
+    .empresa-card {
+      background: rgba(14,14,26,0.95);
+      border: 1px solid rgba(0,212,255,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; margin-bottom: 8px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .empresa-card:hover {
+      border-color: rgba(0,212,255,0.2);
+      box-shadow: 0 0 20px rgba(0,212,255,0.06);
+    }
+    .empresa-card.selected {
+      border-color: rgba(0,212,255,0.35);
+      box-shadow: 0 0 24px rgba(0,212,255,0.08);
+    }
+
+    .avatar {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .av-cyan   { background: rgba(0,212,255,0.1);  color: #00d4ff;  border: 1px solid rgba(0,212,255,0.2); }
+    .av-blue   { background: rgba(0,119,255,0.1);  color: #4499ff;  border: 1px solid rgba(0,119,255,0.2); }
+    .av-purple { background: rgba(127,119,221,0.1);color: #9f99dd;  border: 1px solid rgba(127,119,221,0.2); }
+
+    .card-info { flex: 1; min-width: 0; }
+    .card-nome { font-size: 14px; font-weight: 500; color: #e8eeff; }
+    .card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #ffffff33; margin-top: 3px; }
+
+    .tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; padding: 3px 8px;
+      border-radius: 20px; letter-spacing: 0.1em; flex-shrink: 0;
+    }
+    .tag-ativo { background: rgba(0,212,255,0.08); color: #00d4ff88; border: 1px solid rgba(0,212,255,0.15); }
+    .tag-trial { background: rgba(255,200,0,0.08); color: #ffcc0088; border: 1px solid rgba(255,200,0,0.15); }
+
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-cyan { background: #00d4ff; animation: pulse-dot 2s infinite; box-shadow: 0 0 6px #00d4ff88; }
+    .dot-gray { background: rgba(255,255,255,0.15); }
+
+    .btn-entrar {
+      background: linear-gradient(135deg, #0077ff, #00d4ff);
+      border: none; border-radius: 10px;
+      padding: 7px 16px;
+      font-family: 'Syncopate', sans-serif;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
+      color: #fff; cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 12px rgba(0,212,255,0.2);
+      transition: box-shadow .2s, transform .15s;
+    }
+    .btn-entrar:hover { box-shadow: 0 4px 20px rgba(0,212,255,0.35); transform: translateY(-1px); }
+    .btn-entrar.ghost {
+      background: transparent;
+      border: 1px solid rgba(0,212,255,0.15);
+      color: #00d4ff55;
+      box-shadow: none;
+    }
+    .btn-entrar.ghost:hover { border-color: rgba(0,212,255,0.3); color: #00d4ff99; transform: none; }
+
+    .add-card {
+      border: 1px dashed rgba(0,212,255,0.1);
+      border-radius: 16px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; margin-bottom: 8px;
+      transition: border-color .2s;
+    }
+    .add-card:hover { border-color: rgba(0,212,255,0.2); }
+    .add-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      border: 1px dashed rgba(0,212,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: rgba(0,212,255,0.3); flex-shrink: 0;
+    }
+    .add-info .nome { font-size: 13px; color: rgba(255,255,255,0.3); font-weight: 500; }
+    .add-info .sub  { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.15); margin-top:2px; }
+
+    /* MÓDULOS */
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; letter-spacing: 0.1em; color: #00d4ff33;
+      background: none; border: none; cursor: pointer;
+      margin-bottom: 1.5rem; padding: 0; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .back-btn:hover { color: #00d4ff88; }
+
+    .empresa-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 1.5rem; padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(0,212,255,0.08);
+    }
+    .empresa-header .nome { font-size: 15px; font-weight: 500; color: #e8eeff; }
+    .empresa-header .sub  {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: 0.2em;
+      color: #00d4ff44; text-transform: uppercase; margin-top: 3px;
+    }
+
+    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+
+    .module-card {
+      background: rgba(14,14,26,0.95);
+      border: 1px solid rgba(0,212,255,0.06);
+      border-radius: 14px; padding: 16px;
+      cursor: pointer; transition: border-color .2s, box-shadow .2s;
+      text-decoration: none; display: block;
+    }
+    .module-card.unlocked:hover {
+      border-color: rgba(0,212,255,0.25);
+      box-shadow: 0 0 20px rgba(0,212,255,0.06);
+    }
+    .module-card.locked { opacity: .45; cursor: not-allowed; }
+
+    .mod-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+    }
+    .ic-cyan   { background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.12); }
+    .ic-blue   { background: rgba(0,119,255,0.08); border: 1px solid rgba(0,119,255,0.12); }
+    .ic-purple { background: rgba(127,119,221,0.08); border: 1px solid rgba(127,119,221,0.12); }
+    .ic-yellow { background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.15); }
+    .ic-gray   { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
+
+    .mod-name { font-size: 13px; font-weight: 500; color: #e8eeff; }
+    .mod-desc { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 3px; line-height: 1.4; }
+
+    .mod-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; font-family: 'Space Mono', monospace;
+      font-size: 9px; padding: 2px 8px; border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+    .mb-active { background: rgba(0,212,255,0.08); color: #00d4ff88; border: 1px solid rgba(0,212,255,0.15); }
+    .mb-soon   { background: rgba(127,119,221,0.08); color: #9f99dd88; border: 1px solid rgba(127,119,221,0.15); }
+    .mb-locked { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.06); }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 2rem; text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.08); text-transform: uppercase;
+    }
+    .footer .ia-online { color: #00d4ff44; }
+    @keyframes pulse-ia { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .ia-dot-small {
+      display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: #00d4ff;
+      animation: pulse-ia 1.5s infinite;
+      vertical-align: middle; margin-right: 4px;
+      box-shadow: 0 0 4px #00d4ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="glow-bg"></div>
+
+  <div class="container">
+
+    <div class="brand">
+      <div class="spinner">
+        <div class="vls-ring"></div>
+        <div class="vls-ring"></div>
+        <div class="vls-ring"></div>
+        <div class="vls-dot"></div>
+      </div>
+      <div>
+        <div class="wordmark">VOR<span>TEX</span></div>
+        <div class="sub-label" id="brand-sub">Process · Automate · Deliver</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- TELA 1: EMPRESAS -->
+    <div class="screen active" id="screen-empresas">
+
+      <div class="sub-label cyan" style="margin-bottom:16px;">Selecione a empresa</div>
+
+      {% for empresa in empresas %}
+      <div class="empresa-card {% if loop.first %}selected{% endif %}"
+           onclick="abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
+        <div class="avatar {{ empresa.avatar_class }}">{{ empresa.sigla }}</div>
+        <div class="card-info">
+          <div class="card-nome">{{ empresa.nome }}</div>
+          <div class="card-meta">{{ empresa.meta }}</div>
+        </div>
+        <span class="tag {{ 'tag-ativo' if empresa.ativo else 'tag-trial' }}">
+          {{ 'ativo' if empresa.ativo else 'trial' }}
+        </span>
+        <div class="status-dot {{ 'dot-cyan' if empresa.ativo else 'dot-gray' }}"></div>
+        <button class="btn-entrar {{ '' if loop.first else 'ghost' }}"
+                onclick="event.stopPropagation(); abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
+          ENTRAR
+        </button>
+      </div>
+      {% endfor %}
+
+      <div class="add-card" onclick="alert('Em breve: nova licença Vortex.')">
+        <div class="add-icon">+</div>
+        <div class="add-info">
+          <div class="nome">Adicionar empresa</div>
+          <div class="sub">Nova licença Vortex</div>
+        </div>
+      </div>
+
+      <div class="footer">Vortex v{{ versao }}</div>
+    </div>
+
+    <!-- TELA 2: MÓDULOS -->
+    <div class="screen" id="screen-modulos">
+
+      <button class="back-btn" onclick="voltarEmpresas()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Trocar empresa
+      </button>
+
+      <div class="empresa-header">
+        <div class="avatar" id="mod-avatar" style="width:40px;height:40px;border-radius:10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;"></div>
+        <div>
+          <div class="nome" id="mod-nome"></div>
+          <div class="sub">Plataforma Vortex · Módulos</div>
+        </div>
+      </div>
+
+      <div class="module-grid" id="mod-grid"></div>
+
+      <div class="footer">
+        <span class="ia-online"><span class="ia-dot-small"></span>IA online</span>
+        &nbsp;·&nbsp; Vortex v{{ versao }}
+      </div>
+
+    </div>
+
+  </div>
+
+  <script id="modulos-data" type="application/json">{{ modulos_json | safe }}</script>
+  <script id="empresa-urls" type="application/json">{{ empresa_urls | safe }}</script>
+  <script>
+  const MODULOS_DATA = JSON.parse(document.getElementById('modulos-data').textContent || '{}');
+  const EMPRESA_URLS = JSON.parse(document.getElementById('empresa-urls').textContent || '{}');
+
+  const TODOS_MODULOS = [
+    { id:'oc',    nome:'Pedidos / OC',    desc:'Match automático Krona',       ic:'ic-cyan',   url_key:'dashboard',
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#00d4ff" stroke-width="1.5"/><path d="M5 6h8M5 9h6M5 12h4" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'email', nome:'Agente de email', desc:'Monitor e resposta automática', ic:'ic-blue',   url_key:'painel',
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#4499ff" stroke-width="1.5"/><path d="M2 6l7 5 7-5" stroke="#4499ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'crm',   nome:'CRM',            desc:'Clientes e histórico de OCs',   ic:'ic-purple', url_key:null,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="#9f99dd" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'inteligencia', nome:'Inteligência', desc:'Tendências e análises', ic:'ic-gray', url_key:null,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.8 5.4H16l-4.6 3.4 1.8 5.4L9 13l-4.2 3.2 1.8-5.4L2 7.4h5.2z" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+    { id:'financeiro', nome:'Financeiro', desc:'Comissões e receita', ic:'ic-gray', url_key:null,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="3" height="8" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/><rect x="7" y="5" width="3" height="11" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/><rect x="12" y="2" width="3" height="14" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/></svg>` },
+    { id:'steck', nome:'Catálogo Elétrico', desc:'Steck / Schneider', ic:'ic-yellow', url_key:'catalogo/steck',
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M10 2L4 10h5l-1 6 6-8h-5z" stroke="#f5c842" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+    { id:'futuro', nome:'Em breve', desc:'Novos módulos chegando', ic:'ic-gray', url_key:null,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/><path d="M9 6v3l2 2" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+  ];
+
+  function abrirEmpresa(id, nome, sigla, avClass) {
+    document.getElementById('brand-sub').textContent = nome;
+    const av = document.getElementById('mod-avatar');
+    av.textContent = sigla;
+    av.className = 'avatar ' + avClass;
+    document.getElementById('mod-nome').textContent = nome;
+
+    const m = MODULOS_DATA[id] || { ativos:[], trial:[] };
+    const base = EMPRESA_URLS[id] || '';
+    const grid = document.getElementById('mod-grid');
+    grid.innerHTML = '';
+
+    TODOS_MODULOS.forEach(mod => {
+      const ativo    = m.ativos && m.ativos.includes(mod.id);
+      const trial    = m.trial  && m.trial.includes(mod.id);
+      const liberado = ativo || trial;
+      const badge    = ativo  ? '<span class="mod-badge mb-active"><span style="width:4px;height:4px;border-radius:50%;background:#00d4ff;display:inline-block;box-shadow:0 0 4px #00d4ff"></span>ativo</span>'
+                     : trial  ? '<span class="mod-badge mb-soon">trial</span>'
+                     : mod.id === 'crm' ? '<span class="mod-badge mb-soon">em breve</span>'
+                     : '<span class="mod-badge mb-locked">bloqueado</span>';
+
+      const el = document.createElement(liberado ? 'a' : 'div');
+      el.className = 'module-card ' + (liberado ? 'unlocked' : 'locked');
+      if (liberado && mod.url_key) el.href = base + '/' + mod.url_key;
+      el.innerHTML = `<div class="mod-icon ${mod.ic}">${mod.svg}</div><div class="mod-name">${mod.nome}</div><div class="mod-desc">${mod.desc}</div>${badge}`;
+      grid.appendChild(el);
+    });
+
+    document.getElementById('screen-empresas').classList.remove('active');
+    document.getElementById('screen-modulos').classList.add('active');
+  }
+
+  function voltarEmpresas() {
+    document.getElementById('screen-modulos').classList.remove('active');
+    document.getElementById('screen-empresas').classList.add('active');
+    document.getElementById('brand-sub').textContent = 'Process · Automate · Deliver';
+  }
+
+  window.addEventListener('load', () => {
+    const cards = document.querySelectorAll('.empresa-card');
+    if (cards.length === 1) cards[0].click();
+  });
+  </script>
+</body>
+</html>

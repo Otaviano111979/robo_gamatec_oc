@@ -1,0 +1,73 @@
+# =========================
+# SEGURANÇA — nunca versionar
+# =========================
+.env
+dados/usuarios.json
+dados/clientes.json
+dados/ocs_removidas_dashboard.json
+
+# Tokens OAuth — NUNCA versionar (acesso real à conta Gmail)
+agente_email/token.pickle
+agente_email/credentials.json
+*/token.pickle
+*/credentials.json
+
+# Banco de dados local (gerado automaticamente)
+instance/
+*.db
+
+# =========================
+# DADOS DE CLIENTES — nunca versionar
+# =========================
+dados/oc/
+entrada_oc/
+processados_oc/
+erro_oc/
+saida/
+
+# =========================
+# ARQUIVOS GERADOS
+# =========================
+web/logs/
+
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# =========================
+# AMBIENTE VIRTUAL
+# =========================
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# =========================
+# IDEs E EDITORES
+# =========================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# =========================
+# LOGS E TEMPORÁRIOS
+# =========================
+*.log
+*.tmp
+*.bak
