@@ -127,6 +127,21 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
     if not os.path.exists(caminho_oc):
         raise FileNotFoundError(f"Arquivo da OC não encontrado: {caminho_oc}")
 
+    # detecta antecipadamente se e uma cotacao de precos (nao e OC)
+    try:
+        import pdfplumber
+        with pdfplumber.open(caminho_oc) as pdf:
+            texto = (pdf.pages[0].extract_text() or "").lower()
+            if "cotação de preços" in texto or "cotacao de precos" in texto:
+                raise ValueError(
+                    "DOCUMENTO REJEITADO: Este PDF é uma Cotação de Preços, "
+                    "não uma Ordem de Compra. Envie apenas OCs para processamento."
+                )
+    except ValueError:
+        raise
+    except Exception:
+        pass
+
     from extrator_oc import extrair_itens_oc
 
     itens = extrair_itens_oc(caminho_oc, caminho_debug=caminho_debug)
@@ -392,7 +407,7 @@ def main() -> None:
 
     garantir_pastas()
 
-    caminho_oc = args.arquivo.strip() if args.arquivo else escolher_proxima_oc()
+    caminho_oc = os.path.abspath(args.arquivo.strip()) if args.arquivo else escolher_proxima_oc()
 
     if not caminho_oc:
         print("\nNenhuma OC encontrada para processamento.")

@@ -18,11 +18,16 @@ import pdfplumber
 
 
 def detectar_formato_sienge(caminho_pdf: str) -> bool:
-    """Detecta se o PDF e no formato SIENGE/STARIAN."""
+    """Detecta se o PDF e no formato SIENGE/STARIAN (OC — nao cotacao)."""
     try:
         with pdfplumber.open(caminho_pdf) as pdf:
             texto = pdf.pages[0].extract_text() or ""
             texto_lower = texto.lower()
+
+            # rejeita cotacoes de preco — nao sao OC
+            if "cotação de preços" in texto_lower or "cotacao de precos" in texto_lower:
+                return False
+
             return "sienge" in texto_lower or "starian" in texto_lower
     except Exception:
         return False
