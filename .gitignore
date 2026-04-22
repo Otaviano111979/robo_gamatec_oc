@@ -61,3 +61,5 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+agente_email/token.pickle 
+agente_email/estado_emails.json 
