@@ -457,19 +457,24 @@ function iniciarMonitoramentoConclusao(nomeArquivo) {
 }
 
 async function iniciarProcessamentoViaAPI(nomeArquivo) {
-  vortexLoading("Extraindo itens da OC...", 20);
+  // detecta se é cotação pelo nome do arquivo
+  const isCotacao = nomeArquivo.toLowerCase().includes("cotac") ||
+                    nomeArquivo.toLowerCase().includes("cota\u00e7");
+
+  // abre modal Vortex de progresso
+  abrirModalProcessamento(nomeArquivo, isCotacao);
+
   try {
     const resp = await fetch("/api/processar-oc/" + encodeURIComponent(nomeArquivo), {
       method: "POST",
       cache: "no-store",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest"
-      }
+      headers: { "X-Requested-With": "XMLHttpRequest" }
     });
 
     const data = await resp.json();
 
     if (!resp.ok || !data.ok) {
+      fecharModalProcessamento();
       alert(data.mensagem || "Falha ao iniciar processamento.");
       return;
     }
@@ -483,12 +488,179 @@ async function iniciarProcessamentoViaAPI(nomeArquivo) {
     window.ativarAutoRefreshLogs(nomeArquivo);
     window.ativarAutoRefreshStatus(nomeArquivo);
     iniciarMonitoramentoConclusao(nomeArquivo);
-    vortexLoadingMsg("Processando — aguarde...", 50);
+
   } catch (e) {
     console.error(e);
+    fecharModalProcessamento();
     alert("Erro ao iniciar processamento da OC.");
   }
 }
+
+// ══════════════════════════════════════════════════
+// MODAL VORTEX — PROGRESSO DE PROCESSAMENTO
+// ══════════════════════════════════════════════════
+
+function abrirModalProcessamento(nomeArquivo, isCotacao) {
+  const modal = document.getElementById("modal-processamento");
+  if (!modal) return;
+
+  // eyebrow e título dinâmicos
+  const eyebrow = document.getElementById("vproc-eyebrow");
+  const titulo  = document.getElementById("vproc-titulo");
+  const fname   = document.getElementById("vproc-filename");
+
+  if (eyebrow) eyebrow.textContent = isCotacao
+    ? "Plataforma Vortex · Cotação em processamento"
+    : "Plataforma Vortex · OC em processamento";
+
+  if (titulo) titulo.textContent = isCotacao ? "Processando Cotação" : "Processando OC";
+  if (fname)  fname.textContent  = nomeArquivo;
+
+  // reseta estado visual
+  vprocSetEtapa("extracao", "waiting");
+  vprocSetEtapa("match",    "waiting");
+  vprocSetEtapa("planilha", "waiting");
+  vprocSetProgresso(5, "Iniciando processamento\u2026");
+  ["vproc-total","vproc-matches","vproc-pendentes"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = "—";
+  });
+
+  modal.classList.add("ativo");
+
+  // progresso simulado — atualizado pelo polling real
+  clearInterval(window._vprocSimInterval);
+  window._vprocSimInterval = setInterval(function() {
+    var bar = document.getElementById("vproc-bar");
+    if (!bar) return;
+    var atual = parseFloat(bar.style.width) || 5;
+    if (atual < 88) vprocSetProgresso(Math.min(88, atual + Math.random() * 2.5));
+  }, 1400);
+}
+
+function fecharModalProcessamento() {
+  var modal = document.getElementById("modal-processamento");
+  if (modal) modal.classList.remove("ativo");
+  clearInterval(window._vprocSimInterval);
+}
+
+function cancelarProcessamentoModal() {
+  if (!confirm("Cancelar o processamento?")) return;
+  fecharModalProcessamento();
+}
+
+function vprocSetEtapa(etapa, estado) {
+  var icon  = document.getElementById("vproc-icon-" + etapa);
+  var label = document.getElementById("vproc-label-" + etapa);
+  var linha1 = document.getElementById("vproc-linha-1");
+  var linha2 = document.getElementById("vproc-linha-2");
+  if (!icon || !label) return;
+
+  // remove todas as classes de estado
+  icon.classList.remove("waiting", "active", "done");
+  icon.classList.add(estado);
+
+  // atualiza cor do SVG interno
+  var svg = icon.querySelector("svg");
+  if (svg) {
+    svg.setAttribute("stroke", estado === "waiting" ? "rgba(255,255,255,.3)" : "#fff");
+  }
+
+  var textos = {
+    extracao: { waiting:"Aguardando", active:"Extraindo itens\u2026", done:"Conclu\u00eddo" },
+    match:    { waiting:"Aguardando", active:"Comparando itens\u2026", done:"Conclu\u00eddo" },
+    planilha: { waiting:"Criar Excel",  active:"Gerando planilha\u2026", done:"Conclu\u00eddo" }
+  };
+  label.textContent = textos[etapa][estado];
+  label.style.color = estado === "done"   ? "var(--success)"  :
+                      estado === "active" ? "var(--primary)"  : "var(--subtext)";
+
+  // atualiza conector
+  if (etapa === "extracao" && linha1) {
+    linha1.className = "vproc-linha " + estado;
+  }
+  if (etapa === "match" && linha2) {
+    linha2.className = "vproc-linha " + estado;
+  }
+}
+
+function vprocSetProgresso(pct, msg) {
+  var bar   = document.getElementById("vproc-bar");
+  var pctEl = document.getElementById("vproc-pct");
+  var msgEl = document.getElementById("vproc-status-msg");
+  if (bar)   bar.style.width = (pct || 0) + "%";
+  if (pctEl) pctEl.textContent = Math.round(pct || 0) + "%";
+  if (msg && msgEl) msgEl.textContent = msg;
+}
+
+async function vprocAtualizarPorStatus(nomeArquivo) {
+  try {
+    var resp = await fetch("/status-oc/" + encodeURIComponent(nomeArquivo), { cache:"no-store" });
+    if (!resp.ok) return;
+    var data = await resp.json();
+    var resumo = (data.resumo || "").toLowerCase();
+
+    if (resumo.includes("extraindo") || resumo.includes("extra\u00e7\u00e3o")) {
+      vprocSetEtapa("extracao", "active");
+      vprocSetProgresso(20, "Extraindo itens do PDF\u2026");
+
+    } else if (resumo.includes("match") || resumo.includes("comparando") || resumo.includes("descri")) {
+      vprocSetEtapa("extracao", "done");
+      vprocSetEtapa("match",    "active");
+      vprocSetProgresso(60, "Comparando descri\u00e7\u00f5es com a base de dados\u2026");
+      var mM = resumo.match(/(\d+)\s*(match|encontrado)/);
+      var tM = resumo.match(/(\d+)\s*iten/);
+      if (tM) { var el = document.getElementById("vproc-total");   if(el) el.textContent = tM[1]; }
+      if (mM) { var el = document.getElementById("vproc-matches"); if(el) el.textContent = mM[1]; }
+
+    } else if (resumo.includes("planilha") || resumo.includes("excel") || resumo.includes("gerando")) {
+      vprocSetEtapa("extracao", "done");
+      vprocSetEtapa("match",    "done");
+      vprocSetEtapa("planilha", "active");
+      vprocSetProgresso(85, "Gerando planilha Excel\u2026");
+
+    } else if (!data.processando) {
+      // concluído
+      clearInterval(window._vprocSimInterval);
+      vprocSetEtapa("extracao", "done");
+      vprocSetEtapa("match",    "done");
+      vprocSetEtapa("planilha", "done");
+      vprocSetProgresso(100, "Processamento conclu\u00eddo!");
+
+      var dot = document.getElementById("vproc-dot");
+      if (dot) {
+        dot.style.background  = "#10b981";
+        dot.style.boxShadow   = "0 0 6px #10b981";
+        dot.style.animation   = "none";
+      }
+
+      // extrai stats finais
+      var tF = resumo.match(/(\d+)\s*iten/);
+      var mF = resumo.match(/(\d+)\s*(match|encontrado)/);
+      var pF = resumo.match(/(\d+)\s*penden/);
+      if (tF) { var el = document.getElementById("vproc-total");     if(el) el.textContent = tF[1]; }
+      if (mF) { var el = document.getElementById("vproc-matches");   if(el) el.textContent = mF[1]; }
+      if (pF) { var el = document.getElementById("vproc-pendentes"); if(el) el.textContent = pF[1]; }
+
+      setTimeout(fecharModalProcessamento, 3000);
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+// hook no polling existente para alimentar o modal
+var _origConsultarStatus = consultarStatusProcessamento;
+consultarStatusProcessamento = async function(nomeArquivo) {
+  await _origConsultarStatus(nomeArquivo);
+  vprocAtualizarPorStatus(nomeArquivo);
+};
+
+// fecha modal clicando fora
+document.addEventListener("click", function(e) {
+  var modal = document.getElementById("modal-processamento");
+  if (modal && e.target === modal) fecharModalProcessamento();
+});
+
+// ── FIM MODAL VORTEX ──────────────────────────────
 
 async function removerDaLista(nomeArquivo) {
   try {

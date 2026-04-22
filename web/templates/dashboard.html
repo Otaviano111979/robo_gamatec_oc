@@ -6,230 +6,91 @@
   <title>Vortex | Painel Operacional</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
   <style>
-    /* ===== VORTEX BRAND ===== */
-    .vortex-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
+    .vortex-header { display:flex;align-items:center;gap:14px; }
+    .vortex-spinner { width:36px;height:36px;position:relative;flex-shrink:0; }
+    .vs-ring { position:absolute;border-radius:50%;border:1.5px solid transparent; }
+    .vs-ring:nth-child(1) { inset:0;border-top-color:var(--vortex-cyan);border-right-color:var(--vortex-cyan-dim);animation:vs-spin 2s linear infinite; }
+    .vs-ring:nth-child(2) { inset:6px;border-top-color:var(--vortex-blue);border-left-color:#0077ff33;animation:vs-spin 1.5s linear infinite reverse; }
+    .vs-ring:nth-child(3) { inset:12px;border-top-color:#00d4ff55;animation:vs-spin 1s linear infinite; }
+    .vs-dot { position:absolute;inset:15px;background:var(--vortex-cyan);border-radius:50%;box-shadow:0 0 8px var(--vortex-cyan); }
+    @keyframes vs-spin { to { transform:rotate(360deg); } }
+    .vortex-wordmark { font-family:'Syncopate',sans-serif;font-size:18px;font-weight:700;letter-spacing:0.08em;color:var(--text);line-height:1; }
+    .vortex-wordmark span { color:var(--vortex-cyan);text-shadow:0 0 16px var(--vortex-cyan-dim); }
+    .vortex-sub { font-family:'Space Mono',monospace;font-size:8px;letter-spacing:0.25em;color:var(--vortex-cyan-dim);text-transform:uppercase;margin-top:3px; }
+    .topbar-vortex { background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px); }
+    body.dark .topbar-vortex { box-shadow:0 1px 0 rgba(0,212,255,0.06); }
+    .vortex-loading-overlay { display:none;position:fixed;inset:0;background:rgba(8,8,16,0.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:24px;backdrop-filter:blur(8px); }
+    .vortex-loading-overlay.ativo { display:flex; }
+    .vlo-spinner { width:80px;height:80px;position:relative; }
+    .vlo-ring { position:absolute;border-radius:50%;border:2px solid transparent; }
+    .vlo-ring:nth-child(1) { inset:0;border-top-color:var(--vortex-cyan);border-right-color:var(--vortex-cyan-dim);animation:vs-spin 2s linear infinite; }
+    .vlo-ring:nth-child(2) { inset:11px;border-top-color:var(--vortex-blue);border-left-color:#0077ff33;animation:vs-spin 1.5s linear infinite reverse; }
+    .vlo-ring:nth-child(3) { inset:22px;border-top-color:#00d4ff55;animation:vs-spin 1s linear infinite; }
+    .vlo-dot { position:absolute;inset:32px;background:var(--vortex-cyan);border-radius:50%;box-shadow:0 0 20px var(--vortex-cyan);animation:vlo-pulse 1.5s ease-in-out infinite; }
+    @keyframes vlo-pulse { 0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(0.6);opacity:0.5;} }
+    .vlo-title { font-family:'Syncopate',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.15em;color:#fff; }
+    .vlo-msg { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--vortex-cyan-dim);animation:vlo-blink 1.5s ease-in-out infinite; }
+    @keyframes vlo-blink { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+    .vlo-progress { width:240px;height:2px;background:#ffffff11;border-radius:99px;overflow:hidden; }
+    .vlo-progress-fill { height:100%;background:linear-gradient(90deg,var(--vortex-blue),var(--vortex-cyan));border-radius:99px;width:0%;transition:width 0.3s ease;box-shadow:0 0 8px var(--vortex-cyan-dim); }
+    @keyframes pulse-orange { 0%,100%{box-shadow:0 0 0 0 rgba(251,146,60,0);border-color:transparent;}50%{box-shadow:0 0 0 3px rgba(251,146,60,0.25);border-color:rgba(251,146,60,0.5);} }
+    .email-row td:first-child { border-left:3px solid #f97316 !important; }
+    .email-row { animation:pulse-orange 2.5s ease-in-out infinite;border:1px solid transparent;border-radius:8px; }
+    .badge-dot-orange { width:6px;height:6px;background:#f97316;border-radius:50%;display:inline-block;animation:pulse-orange 1.2s ease-in-out infinite; }
+
+    /* ── MODAL PROCESSAMENTO VORTEX ── */
+    #modal-processamento {
+      position:fixed;inset:0;background:rgba(0,0,0,.70);z-index:9000;
+      display:none;align-items:center;justify-content:center;padding:20px;
+      backdrop-filter:blur(6px);
+    }
+    #modal-processamento.ativo { display:flex; }
+    .vproc-card {
+      width:100%;max-width:660px;
+      background:rgba(14,14,26,0.97);
+      border:1px solid rgba(0,212,255,0.10);
+      border-radius:18px;
+      padding:28px 30px;
+      box-shadow:0 24px 60px rgba(0,0,0,0.7),0 0 0 1px rgba(0,212,255,0.06);
+      display:flex;flex-direction:column;gap:0;
+      position:relative;overflow:hidden;
+    }
+    .vproc-card::before {
+      content:'';position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(circle at 60% 20%, rgba(0,119,255,0.06), transparent 55%);
     }
 
-    .vortex-spinner {
-      width: 36px;
-      height: 36px;
-      position: relative;
-      flex-shrink: 0;
+    /* pipeline icons */
+    .vproc-etapa-icon {
+      width:56px;height:56px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      transition:all .4s ease;
+      position:relative;
     }
+    .vproc-etapa-icon.waiting { background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08); }
+    .vproc-etapa-icon.active  { background:linear-gradient(135deg,#0055cc,#0077ff);border:none;animation:vproc-pulse 2s ease-in-out infinite;box-shadow:0 0 0 8px rgba(0,119,255,.15),0 4px 20px rgba(0,119,255,.35); }
+    .vproc-etapa-icon.active::after { content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(0,212,255,.35);animation:vproc-spin 3s linear infinite; }
+    .vproc-etapa-icon.done   { background:linear-gradient(135deg,#0d9e6e,#10b981);border:none;box-shadow:0 0 0 8px rgba(16,185,129,.12),0 4px 16px rgba(16,185,129,.30); }
 
-    .vs-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 1.5px solid transparent;
-    }
+    .vproc-linha { flex:1;height:2px;margin:0 4px;margin-bottom:38px;border-radius:2px;position:relative;overflow:hidden; }
+    .vproc-linha.waiting  { background:rgba(255,255,255,.05); }
+    .vproc-linha.active   { background:rgba(0,212,255,.10); }
+    .vproc-linha.active::after { content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--primary),transparent);animation:vproc-scan 1.6s linear infinite; }
+    .vproc-linha.done     { background:rgba(16,185,129,.35); }
 
-    .vs-ring:nth-child(1) {
-      inset: 0;
-      border-top-color: var(--vortex-cyan);
-      border-right-color: var(--vortex-cyan-dim);
-      animation: vs-spin 2s linear infinite;
-    }
-
-    .vs-ring:nth-child(2) {
-      inset: 6px;
-      border-top-color: var(--vortex-blue);
-      border-left-color: #0077ff33;
-      animation: vs-spin 1.5s linear infinite reverse;
-    }
-
-    .vs-ring:nth-child(3) {
-      inset: 12px;
-      border-top-color: #00d4ff55;
-      animation: vs-spin 1s linear infinite;
-    }
-
-    .vs-dot {
-      position: absolute;
-      inset: 15px;
-      background: var(--vortex-cyan);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--vortex-cyan);
-    }
-
-    @keyframes vs-spin { to { transform: rotate(360deg); } }
-
-    .vortex-wordmark {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--text);
-      line-height: 1;
-    }
-
-    .vortex-wordmark span {
-      color: var(--vortex-cyan);
-      text-shadow: 0 0 16px var(--vortex-cyan-dim);
-    }
-
-    .vortex-sub {
-      font-family: 'Space Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.25em;
-      color: var(--vortex-cyan-dim);
-      text-transform: uppercase;
-      margin-top: 3px;
-    }
-
-    /* Topbar refinada Vortex */
-    .topbar-vortex {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-
-    body.dark .topbar-vortex {
-      box-shadow: 0 1px 0 rgba(0, 212, 255, 0.06);
-    }
-
-    /* Loading overlay Vortex */
-    .vortex-loading-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(8, 8, 16, 0.85);
-      z-index: 9999;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      backdrop-filter: blur(8px);
-    }
-
-    .vortex-loading-overlay.ativo {
-      display: flex;
-    }
-
-    .vlo-spinner {
-      width: 80px;
-      height: 80px;
-      position: relative;
-    }
-
-    .vlo-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid transparent;
-    }
-
-    .vlo-ring:nth-child(1) {
-      inset: 0;
-      border-top-color: var(--vortex-cyan);
-      border-right-color: var(--vortex-cyan-dim);
-      animation: vs-spin 2s linear infinite;
-    }
-
-    .vlo-ring:nth-child(2) {
-      inset: 11px;
-      border-top-color: var(--vortex-blue);
-      border-left-color: #0077ff33;
-      animation: vs-spin 1.5s linear infinite reverse;
-    }
-
-    .vlo-ring:nth-child(3) {
-      inset: 22px;
-      border-top-color: #00d4ff55;
-      animation: vs-spin 1s linear infinite;
-    }
-
-    .vlo-dot {
-      position: absolute;
-      inset: 32px;
-      background: var(--vortex-cyan);
-      border-radius: 50%;
-      box-shadow: 0 0 20px var(--vortex-cyan);
-      animation: vlo-pulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes vlo-pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(0.6); opacity: 0.5; }
-    }
-
-    .vlo-title {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: #fff;
-    }
-
-    .vlo-msg {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      color: var(--vortex-cyan-dim);
-      animation: vlo-blink 1.5s ease-in-out infinite;
-    }
-
-    @keyframes vlo-blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    .vlo-progress {
-      width: 240px;
-      height: 2px;
-      background: #ffffff11;
-      border-radius: 99px;
-      overflow: hidden;
-    }
-
-    .vlo-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--vortex-blue), var(--vortex-cyan));
-      border-radius: 99px;
-      width: 0%;
-      transition: width 0.3s ease;
-      box-shadow: 0 0 8px var(--vortex-cyan-dim);
-    }
-  
-    @keyframes pulse-orange {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(251,146,60,0); border-color: transparent; }
-      50%       { box-shadow: 0 0 0 3px rgba(251,146,60,0.25); border-color: rgba(251,146,60,0.5); }
-    }
-    .email-row td:first-child {
-      border-left: 3px solid #f97316 !important;
-    }
-    .email-row {
-      animation: pulse-orange 2.5s ease-in-out infinite;
-      border: 1px solid transparent;
-      border-radius: 8px;
-    }
-    .badge-dot-orange {
-      width: 6px; height: 6px;
-      background: #f97316;
-      border-radius: 50%;
-      display: inline-block;
-      animation: pulse-orange 1.2s ease-in-out infinite;
-    }
-</style>
+    @keyframes vproc-pulse { 0%,100%{box-shadow:0 0 0 8px rgba(0,119,255,.15),0 4px 20px rgba(0,119,255,.35);}50%{box-shadow:0 0 0 14px rgba(0,119,255,.08),0 4px 28px rgba(0,119,255,.5);} }
+    @keyframes vproc-spin  { from{transform:rotate(0deg);}to{transform:rotate(360deg);} }
+    @keyframes vproc-scan  { from{left:-40%;}to{left:140%;} }
+    @keyframes vproc-shimmer { 0%,100%{left:-60%;opacity:0;}30%{opacity:1;}to{left:140%;} }
+    @keyframes vproc-blink { 0%,100%{opacity:1;}50%{opacity:.3;} }
+  </style>
 </head>
 <body class="ios-body dark">
 
   <!-- LOADING OVERLAY VORTEX -->
   <div class="vortex-loading-overlay" id="vortex-loading">
     <div class="vlo-spinner">
-      <div class="vlo-ring"></div>
-      <div class="vlo-ring"></div>
-      <div class="vlo-ring"></div>
+      <div class="vlo-ring"></div><div class="vlo-ring"></div><div class="vlo-ring"></div>
       <div class="vlo-dot"></div>
     </div>
     <div class="vlo-title">VORTEX</div>
@@ -240,9 +101,7 @@
   <header class="topbar-vortex">
     <div class="vortex-header">
       <div class="vortex-spinner">
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
+        <div class="vs-ring"></div><div class="vs-ring"></div><div class="vs-ring"></div>
         <div class="vs-dot"></div>
       </div>
       <div>
@@ -250,15 +109,12 @@
         <div class="vortex-sub">Process · Automate · Deliver</div>
       </div>
     </div>
-
     <div class="topbar-actions">
       <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-
       {% if session.get("tipo") == "admin" %}
       <a href="/admin/clientes" class="ios-button secondary">Admin Clientes</a>
       <a href="/admin/usuarios" class="ios-button secondary">Admin Usuários</a>
       {% endif %}
-
       {% if session.get('tipo') in ('admin', 'supervisor') %}
       <a href="/painel" class="ios-button secondary">⬡ Painel</a>
       {% endif %}
@@ -267,7 +123,6 @@
     </div>
   </header>
 
-  <!-- MENSAGENS FLASH -->
   {% with mensagens = get_flashed_messages() %}
     {% if mensagens %}
       <div class="flash-wrap">
@@ -282,7 +137,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- PAINEL AGENTE EMAIL — TOPBAR -->
   <div id="painel-agente-email-bar" class="aep-bar">
     <div class="aep-bar-inner">
       <div class="aep-bar-left">
@@ -300,7 +154,6 @@
     <div id="aep-bar-alerta" class="aep-bar-alerta" style="display:none;"></div>
   </div>
 
-  <!-- CARTOES DE RESUMO -->
   <section class="resumo-cards">
     <div class="resumo-card resumo-card-entrada">
       <span class="resumo-card-numero">{{ total_entrada }}</span>
@@ -316,8 +169,7 @@
     </div>
   </section>
 
-  <!-- PAINEL DE OCs COM ERRO -->
-  <section class="ios-card erros-card" id="erros-card" style="margin: 16px 24px 0 24px; display:none;">
+  <section class="ios-card erros-card" id="erros-card" style="margin:16px 24px 0 24px;display:none;">
     <div class="card-header">
       <div>
         <h2>⚠️ OCs com erro</h2>
@@ -327,15 +179,8 @@
     </div>
     <div class="table-wrap ios-table-wrap">
       <table class="ios-table">
-        <thead>
-          <tr>
-            <th>Arquivo</th>
-            <th>Data</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="erros-table-body">
-        </tbody>
+        <thead><tr><th>Arquivo</th><th>Data</th><th>Ações</th></tr></thead>
+        <tbody id="erros-table-body"></tbody>
       </table>
     </div>
   </section>
@@ -344,90 +189,48 @@
     <aside class="dashboard-left">
       <section class="ios-card compact-card">
         <div class="card-header">
-          <div>
-            <h2>Importar OC</h2>
-            <p>Envie o PDF para a pasta de entrada pelo navegador.</p>
-          </div>
+          <div><h2>Importar OC</h2><p>Envie o PDF para a pasta de entrada pelo navegador.</p></div>
           <span class="badge">Entrada</span>
         </div>
-
         <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
           <label class="upload-box" for="file" id="upload-label">
-            <input id="file" type="file" name="file" accept=".pdf" required
-              onchange="mostrarArquivoSelecionado(this)">
+            <input id="file" type="file" name="file" accept=".pdf" required onchange="mostrarArquivoSelecionado(this)">
             <span id="upload-texto">📎 Selecionar PDF da OC</span>
           </label>
           <div id="upload-preview" style="display:none;" class="upload-preview">
             <span id="upload-nome-arquivo"></span>
-            <button type="button" class="ios-button small danger ghost"
-              onclick="limparUpload()">✕</button>
+            <button type="button" class="ios-button small danger ghost" onclick="limparUpload()">✕</button>
           </div>
-          <button class="ios-button primary" type="submit" id="btn-enviar-pdf" disabled>
-            Enviar PDF
-          </button>
+          <button class="ios-button primary" type="submit" id="btn-enviar-pdf" disabled>Enviar PDF</button>
         </form>
       </section>
 
       <section class="ios-card list-card">
         <div class="card-header">
-          <div>
-            <h2>Fila de OCs</h2>
-            <p>Filtros rápidos e exibição das 10 mais recentes.</p>
-          </div>
+          <div><h2>Fila de OCs</h2><p>Filtros rápidos e exibição das 10 mais recentes.</p></div>
           <span class="badge" id="fila-count">{{ arquivos|length }} arquivo(s)</span>
         </div>
-
-        <div id="fila-info" class="page-subtitle" style="margin-bottom: 12px;">
-          Carregando informações da fila...
-        </div>
-
-        <div class="status-panel status-panel-compact" style="margin-bottom: 16px;">
+        <div id="fila-info" class="page-subtitle" style="margin-bottom:12px;">Carregando informações da fila...</div>
+        <div class="status-panel status-panel-compact" style="margin-bottom:16px;">
           <div class="status-card">
             <span class="status-title">Número da OC</span>
-            <input
-              id="filtro-oc"
-              type="text"
-              class="ios-field-input"
-              placeholder="Digite o número da OC">
+            <input id="filtro-oc" type="text" class="ios-field-input" placeholder="Digite o número da OC">
           </div>
-
           <div class="status-card">
             <span class="status-title">Data</span>
-            <input
-              id="filtro-data"
-              type="date"
-              class="ios-field-input">
+            <input id="filtro-data" type="date" class="ios-field-input">
           </div>
         </div>
-
-        <div class="actions-wrap" style="margin-bottom: 14px;">
-          <button class="ios-button small secondary" type="button" id="ordenar-recente">
-            Mais recentes
-          </button>
-          <button class="ios-button small secondary" type="button" id="ordenar-antigo">
-            Mais antigos
-          </button>
-          <button class="ios-button small secondary" type="button" id="btn-ver-todas">
-            Ver todas
-          </button>
-          <button class="ios-button small secondary" type="button" id="btn-voltar-10" style="display:none;">
-            Voltar para 10
-          </button>
-          <button class="ios-button small secondary" type="button" id="limpar-filtros">
-            Limpar filtros
-          </button>
+        <div class="actions-wrap" style="margin-bottom:14px;">
+          <button class="ios-button small secondary" type="button" id="ordenar-recente">Mais recentes</button>
+          <button class="ios-button small secondary" type="button" id="ordenar-antigo">Mais antigos</button>
+          <button class="ios-button small secondary" type="button" id="btn-ver-todas">Ver todas</button>
+          <button class="ios-button small secondary" type="button" id="btn-voltar-10" style="display:none;">Voltar para 10</button>
+          <button class="ios-button small secondary" type="button" id="limpar-filtros">Limpar filtros</button>
         </div>
-
         <div class="table-wrap oc-table-wrap">
           <table class="ios-table">
-            <thead>
-              <tr>
-                <th>Arquivo</th>
-                <th>Status</th>
-                <th>Local</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Arquivo</th><th>Status</th><th>Local</th><th>Ações</th></tr></thead>
             <tbody id="oc-table-body">
               {% if arquivos %}
                 {% for item in arquivos %}
@@ -467,112 +270,52 @@
                       </div>
                     </div>
                   </td>
-
+                  <td><span class="status-pill {{ item.status_classe }}">{{ item.status_label }}</span></td>
                   <td>
-                    <span class="status-pill {{ item.status_classe }}">
-                      {{ item.status_label }}
-                    </span>
+                    {% if item.processando %}Processando
+                    {% elif item.em_entrada %}Entrada
+                    {% elif item.em_processados %}Processados
+                    {% else %}Indefinido{% endif %}
                   </td>
-
-                  <td>
-                    {% if item.processando %}
-                      Processando
-                    {% elif item.em_entrada %}
-                      Entrada
-                    {% elif item.em_processados %}
-                      Processados
-                    {% else %}
-                      Indefinido
-                    {% endif %}
-                  </td>
-
                   <td class="actions-cell">
                     <div class="acoes-grupo">
-
-                      <!-- AÇÃO PRINCIPAL: Processar -->
                       {% if item.em_entrada and not item.processando %}
-                        <button
-                          class="ios-button small primary"
-                          type="button"
-                          data-processar-arquivo="{{ item.nome }}"
-                          data-bloqueado="false">
-                          Processar
-                        </button>
+                        <button class="ios-button small primary" type="button"
+                          data-processar-arquivo="{{ item.nome }}" data-bloqueado="false">Processar</button>
                       {% elif item.processando %}
-                        <button
-                          class="ios-button small disabled is-loading"
-                          type="button"
-                          disabled
-                          data-processar-arquivo="{{ item.nome }}"
-                          data-bloqueado="true">
-                          Processando...
-                        </button>
+                        <button class="ios-button small disabled is-loading" type="button" disabled
+                          data-processar-arquivo="{{ item.nome }}" data-bloqueado="true">Processando...</button>
                       {% endif %}
-
-                      <!-- AÇÃO PRINCIPAL: Planilha XLSX -->
                       {% if item.tem_planilha %}
-                        <a class="ios-button small success ready-button" href="/baixar-planilha/{{ item.nome }}">
-                          ⬇ Planilha
-                        </a>
+                        <a class="ios-button small success ready-button" href="/baixar-planilha/{{ item.nome }}">⬇ Planilha</a>
                       {% endif %}
-
-                      <!-- MENU SECUNDÁRIO -->
                       <div class="acoes-menu-wrap">
-                        <button class="ios-button small secondary acoes-menu-btn" type="button"
-                          onclick="toggleMenu(this)">
-                          •••
-                        </button>
+                        <button class="ios-button small secondary acoes-menu-btn" type="button" onclick="toggleMenu(this)">•••</button>
                         <div class="acoes-menu">
-
-                          <button class="acoes-menu-item" type="button"
-                            onclick="verStatus('{{ item.nome }}'); fecharMenus()">
-                            Ver status
-                          </button>
-
-                          <button class="acoes-menu-item" type="button"
-                            onclick="verLogTecnico('{{ item.nome }}'); fecharMenus()">
-                            Log técnico
-                          </button>
-
+                          <button class="acoes-menu-item" type="button" onclick="verStatus('{{ item.nome }}'); fecharMenus()">Ver status</button>
+                          <button class="acoes-menu-item" type="button" onclick="verLogTecnico('{{ item.nome }}'); fecharMenus()">Log técnico</button>
                           {% if item.em_entrada and item.tem_planilha and not item.processando %}
-                            <a class="acoes-menu-item move-button"
-                              href="/mover-processado/{{ item.nome }}"
-                              data-mover-arquivo="{{ item.nome }}"
-                              data-bloqueado="false">
-                              Mover p/ Processados
-                            </a>
+                            <a class="acoes-menu-item move-button" href="/mover-processado/{{ item.nome }}"
+                              data-mover-arquivo="{{ item.nome }}" data-bloqueado="false">Mover p/ Processados</a>
                           {% elif item.em_processados %}
                             <span class="acoes-menu-item acoes-menu-item-info">✔ Já em Processados</span>
                           {% endif %}
-
                           {% if item.tem_planilha %}
-                            <button class="acoes-menu-item acoes-menu-item-automacao"
-                              type="button"
-                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">
-                              🤖 Automação GAMATEC
-                            </button>
+                            <button class="acoes-menu-item acoes-menu-item-automacao" type="button"
+                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">🤖 Automação GAMATEC</button>
                           {% endif %}
-
                           {% if not item.processando %}
-                            <button class="acoes-menu-item acoes-menu-item-danger"
-                              type="button"
-                              data-remover-arquivo="{{ item.nome }}"
-                              data-bloqueado="false">
-                              Remover da lista
-                            </button>
+                            <button class="acoes-menu-item acoes-menu-item-danger" type="button"
+                              data-remover-arquivo="{{ item.nome }}" data-bloqueado="false">Remover da lista</button>
                           {% endif %}
-
                         </div>
                       </div>
-
                     </div>
                   </td>
                 </tr>
                 {% endfor %}
               {% else %}
-                <tr>
-                  <td colspan="4" class="empty-cell">Nenhuma OC localizada.</td>
-                </tr>
+                <tr><td colspan="4" class="empty-cell">Nenhuma OC localizada.</td></tr>
               {% endif %}
             </tbody>
           </table>
@@ -583,53 +326,37 @@
     <section class="dashboard-right">
       <section class="ios-card inspector-card">
         <div class="card-header">
-          <div>
-            <h2>Painel da OC</h2>
-            <p>Leitura operacional da OC selecionada.</p>
-          </div>
+          <div><h2>Painel da OC</h2><p>Leitura operacional da OC selecionada.</p></div>
           <span class="badge badge-soft" id="monitor-badge">Monitoramento</span>
         </div>
-
-        <div class="completion-banner hidden-banner" id="completion-banner">
-          Concluído agora
-        </div>
-
+        <div class="completion-banner hidden-banner" id="completion-banner">Concluído agora</div>
         <div class="status-panel status-panel-compact">
           <div class="status-card emphasis" id="panel-card-arquivo">
             <span class="status-title">Arquivo selecionado</span>
             <strong id="status-arquivo">Nenhum arquivo selecionado</strong>
           </div>
-
           <div class="status-card" id="panel-card-status">
             <span class="status-title">Status atual</span>
             <strong id="status-geral">Aguardando seleção</strong>
           </div>
-
           <div class="status-card" id="panel-card-planilha">
             <span class="status-title">Planilha XLSX</span>
             <strong id="status-planilha">Não verificado</strong>
           </div>
-
           <div class="status-card" id="panel-card-movimento">
             <span class="status-title">Movimentação do PDF</span>
             <strong id="status-movimento">Não verificado</strong>
           </div>
         </div>
-
         <div class="status-output-wrap status-output-layout">
           <section class="summary-card">
-            <div class="status-output-header">
-              <h3>Resumo da execução</h3>
-            </div>
+            <div class="status-output-header"><h3>Resumo da execução</h3></div>
             <pre id="status-output" class="status-output-box compact-output">Selecione "Ver status" em uma OC para visualizar o andamento.</pre>
           </section>
-
           <section class="log-card">
             <div class="status-output-header status-output-header-log">
               <h3>Log técnico</h3>
-              <button class="ios-button small secondary" type="button" onclick="alternarLogTecnico()">
-                Mostrar/Ocultar
-              </button>
+              <button class="ios-button small secondary" type="button" onclick="alternarLogTecnico()">Mostrar/Ocultar</button>
             </div>
             <pre id="terminal" class="terminal-box terminal-compact hidden-log">Selecione "Log técnico" para visualizar a saída detalhada.</pre>
           </section>
@@ -676,11 +403,8 @@
         <h2>🎯 Calibração do GAMATEC</h2>
         <button class="modal-fechar" onclick="fecharModalCalibracao()">✕</button>
       </div>
-
       <div class="modal-body">
-
-        <!-- INTRO -->
-        <div id="calib-intro" class="">
+        <div id="calib-intro">
           <p class="automacao-instrucao" style="margin-bottom:14px;">
             A calibração captura as coordenadas dos campos na tela do GAMATEC.<br>
             Você posiciona o mouse em cada ponto indicado e clica em <strong>Capturar</strong>.<br>
@@ -692,16 +416,11 @@
           <button class="ios-button primary" onclick="iniciarCalibracao()">▶ Iniciar Calibração</button>
           <button class="ios-button secondary" onclick="fecharModalCalibracao()" style="margin-left:8px;">Cancelar</button>
         </div>
-
-        <!-- PASSO A PASSO -->
         <div id="calib-passo" style="display:none;">
           <div class="calib-progresso">
             <span id="calib-progresso-label">Ponto 1 de 7</span>
-            <div class="calib-barra-wrap">
-              <div class="calib-barra" id="calib-barra"></div>
-            </div>
+            <div class="calib-barra-wrap"><div class="calib-barra" id="calib-barra"></div></div>
           </div>
-
           <div class="calib-instrucao-box" id="calib-instrucao-box">
             <p class="calib-numero" id="calib-numero">Ponto 1</p>
             <p class="calib-descricao" id="calib-descricao">—</p>
@@ -711,32 +430,23 @@
               Você terá <strong>3 segundos</strong> após clicar para posicionar o mouse.
             </p>
           </div>
-
           <div id="calib-feedback" class="calib-feedback" style="display:none;"></div>
-
           <div class="calib-acoes">
-            <button class="ios-button primary" id="btn-capturar" onclick="capturarPonto()">
-              🎯 Capturar
-            </button>
+            <button class="ios-button primary" id="btn-capturar" onclick="capturarPonto()">🎯 Capturar</button>
             <button class="ios-button secondary" onclick="fecharModalCalibracao()">Cancelar</button>
           </div>
         </div>
-
-        <!-- CONCLUÍDO -->
         <div id="calib-concluido" style="display:none;">
           <div class="flash-msg flash-ok" style="margin-bottom:16px;">
             ✅ Calibração concluída com sucesso! O sistema está pronto para automação.
           </div>
           <div id="calib-resumo-pontos" class="calib-resumo"></div>
-          <div style="margin-top:16px; display:flex; gap:10px;">
-            <button class="ios-button primary" onclick="fecharCalibracaoEAbrirAutomacao()">
-              ▶ Iniciar Automação agora
-            </button>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="ios-button primary" onclick="fecharCalibracaoEAbrirAutomacao()">▶ Iniciar Automação agora</button>
             <button class="ios-button secondary" onclick="fecharModalCalibracao()">Fechar</button>
             <button class="ios-button danger ghost" onclick="resetarCalibracao()">Recalibrar</button>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -748,7 +458,6 @@
         <h2>🤖 Automação GAMATEC</h2>
         <button class="modal-fechar" onclick="fecharModalAutomacao()">✕</button>
       </div>
-
       <div class="modal-body">
         <div class="automacao-info-box" id="automacao-info-box">
           <p>OC selecionada: <strong id="automacao-nome-oc">—</strong></p>
@@ -759,14 +468,12 @@
             3. Os itens estão visíveis na tela
           </p>
         </div>
-
         <div class="automacao-status-wrap" id="automacao-status-wrap" style="display:none;">
           <div class="automacao-progresso">
             <span id="automacao-status-label" class="automacao-status-label">Aguardando...</span>
           </div>
           <pre id="automacao-log" class="automacao-log-box">Aguardando início...</pre>
         </div>
-
         <div class="automacao-resultado-wrap" id="automacao-resultado-wrap" style="display:none;">
           <div id="automacao-resumo-itens" class="automacao-resumo-itens"></div>
           <p class="automacao-instrucao">Revise os itens acima e confirme se os descontos foram aplicados corretamente.</p>
@@ -776,16 +483,117 @@
           </div>
         </div>
       </div>
-
       <div class="modal-footer" id="automacao-footer">
-        <button class="ios-button primary" id="btn-iniciar-automacao" onclick="iniciarAutomacao()">
-          ▶ Iniciar Automação
-        </button>
+        <button class="ios-button primary" id="btn-iniciar-automacao" onclick="iniciarAutomacao()">▶ Iniciar Automação</button>
         <button class="ios-button secondary" onclick="fecharModalAutomacao()">Cancelar</button>
       </div>
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════
+       MODAL VORTEX — PROGRESSO DE PROCESSAMENTO
+       ═══════════════════════════════════════ -->
+  <div id="modal-processamento">
+    <div class="vproc-card">
+
+      <!-- header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div>
+          <div style="font-family:'Syncopate',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);margin-bottom:6px;opacity:.8;" id="vproc-eyebrow">Plataforma Vortex · OC em processamento</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;" id="vproc-titulo">Processando...</div>
+          <div style="font-size:12px;color:var(--subtext);margin-top:3px;font-family:'Space Mono',monospace;" id="vproc-filename">—</div>
+        </div>
+        <button onclick="cancelarProcessamentoModal()" style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid rgba(255,69,58,.30);background:rgba(255,69,58,.08);color:#ff6961;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ff6961" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          Cancelar
+        </button>
+      </div>
+
+      <!-- pipeline -->
+      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+          <div id="vproc-icon-extracao" class="vproc-etapa-icon waiting">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><polyline points="9,15 11,17 15,13"/></svg>
+          </div>
+          <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;">Extração</div>
+          <div style="font-size:11px;text-align:center;color:var(--subtext);line-height:1.4;" id="vproc-label-extracao">Aguardando</div>
+        </div>
+        <div id="vproc-linha-1" class="vproc-linha waiting"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+          <div id="vproc-icon-match" class="vproc-etapa-icon waiting">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+          <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;">Match</div>
+          <div style="font-size:11px;text-align:center;color:var(--subtext);line-height:1.4;" id="vproc-label-match">Aguardando</div>
+        </div>
+        <div id="vproc-linha-2" class="vproc-linha waiting"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+          <div id="vproc-icon-planilha" class="vproc-etapa-icon waiting">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;">Planilha</div>
+          <div style="font-size:11px;text-align:center;color:var(--subtext);line-height:1.4;" id="vproc-label-planilha">Aguardando</div>
+        </div>
+      </div>
+
+      <!-- barra de progresso -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:11px;font-weight:600;color:var(--subtext);text-transform:uppercase;letter-spacing:.06em;">Progresso geral</span>
+          <span style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--primary);text-shadow:0 0 16px rgba(0,212,255,.4);" id="vproc-pct">0%</span>
+        </div>
+        <div style="height:6px;border-radius:99px;background:rgba(255,255,255,.05);overflow:hidden;position:relative;">
+          <div id="vproc-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#0077ff,#00d4ff);box-shadow:0 0 12px rgba(0,212,255,.5);width:0%;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:-60%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);animation:vproc-shimmer 2s ease-in-out infinite;"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--primary);font-weight:500;">
+          <span id="vproc-dot" style="width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 6px var(--primary);display:inline-block;animation:vproc-blink 1.2s ease-in-out infinite;"></span>
+          <span id="vproc-status-msg">Iniciando processamento…</span>
+        </div>
+      </div>
+
+      <!-- stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,119,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5ff" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Itens lidos</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#60a5ff;line-height:1;" id="vproc-total">—</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Matches</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#34d399;line-height:1;" id="vproc-matches">—</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Pendentes</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#fbbf24;line-height:1;" id="vproc-pendentes">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- rodapé -->
+      <div style="background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.08);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--subtext);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.5;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        Você pode fechar este painel. O processamento continua em background.
+        <button onclick="fecharModalProcessamento()" style="margin-left:auto;background:none;border:none;color:var(--subtext);font-size:11px;cursor:pointer;text-decoration:underline;">Minimizar</button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
-</html> 
+</html>
