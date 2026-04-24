@@ -23,10 +23,11 @@ CAMINHO_BASE_MRV = os.path.join(BASE_DIR, "dados", "base_mrv.csv")
 CODIGOS_EXCLUIDOS_MATCH = {
     "784",   # TORNEIRA PARA JARDIM PRETA/PRETA — nao existe no XLSX de produtos
              # o correto e 786 (SLIM) ou 781 (ESF)
-    "1750",  # TUBO PVC SOLD 25MM PY — linha PY especial, nao usar no match
     "1758",  # TUBO PVC ESG DN40 PY — linha PY especial
     "1759",  # TUBO PVC ESG DN50 PY — linha PY especial
     "1761",  # TUBO PVC ESG DN100 PY — linha PY especial
+    # 1750 removido — era TUBO PVC SOLD 25MM PY, mas sem alternativa na base
+    # o sistema agora pode encontrar o código correto para linha normal
 }
 
 
@@ -91,10 +92,12 @@ def buscar_cadastro_krona_por_codigo(codigo_krona, base_krona):
     if codigo_krona is None:
         return None
 
-    codigo = str(codigo_krona).strip()
+    # normaliza: remove zeros à esquerda para bater com base que armazena como int
+    # ex: "0024" → "24", "024" → "24", "24" → "24"
+    codigo = str(codigo_krona).strip().lstrip("0") or "0"
 
     encontrados = base_krona[
-        base_krona["codigo_krona"].astype(str).str.strip() == codigo
+        base_krona["codigo_krona"].astype(str).str.strip().str.lstrip("0").replace("", "0") == codigo
     ]
 
     if encontrados.empty:
@@ -155,15 +158,57 @@ _NORMAS = re.compile(
 )
 
 
-def limpar_descricao_para_match(descricao):
+# Mapa de expansão de abreviações comuns nos PDFs de clientes
+_ABREV_EXPANSAO = [
+    # categoria
+    (r"\bTUB\b",      "TUBO"),
+    (r"\bJOE\b",      "JOELHO"),
+    (r"\bJOEL\b",     "JOELHO"),
+    (r"\bLUV\b",      "LUVA"),
+    (r"\bADAP\b",     "ADAPTADOR"),
+    (r"\bREG\b",      "REGISTRO"),
+    (r"\bRED\b",      "REDUCAO"),
+    (r"\bCAP\b",      "CAP"),
+    (r"\bJUNC\b",     "JUNCAO"),
+    (r"\bJUN\b",      "JUNCAO"),
+    # material/linha
+    (r"\bSOLD\b",     "SOLDAVEL"),
+    (r"\bSOLDAV\b",   "SOLDAVEL"),
+    (r"\bESG\b",      "ESGOTO"),
+    (r"\bESGT\b",     "ESGOTO"),
+    (r"\bPRIM\b",     "ESGOTO"),
+    # serie normal Krona
+    # diametro colado ex: "25MM" → "25 MM", "DN100" → "DN 100"
+    (r"(\d)(MM)\b",   r"\1 MM"),
+    (r"\bDN(\d)",     r"DN \1"),
+    # angulo colado ex: "45X25" → "45 X 25"
+    (r"(\d)X(\d)",    r"\1 X \2"),
+    # separadores extras
+    (r"[-–/|;]+",     " "),
+]
+
+def limpar_descricao_para_match(descricao, formato=None):
+    """
+    Limpa e expande a descricao para melhorar o match.
+    formato: 'SIENGE' | 'UAU' | 'MRV' | 'BRASAL' | None
+    """
     texto = str(descricao or "").upper().strip()
     texto = _PREFIXOS_RUIDO.sub("", texto)
     texto = _NORMAS.sub("", texto)
-    # trata o grau ° como separador para nao juntar angulo com dimensao
-    # ex: "90°X25MM" → "90 X25MM" → tokens "90" e "25" separados
+
+    # expansao de abreviacoes — maior impacto em PDFs UAU e SIENGE
+    for padrao, substituto in _ABREV_EXPANSAO:
+        texto = re.sub(padrao, substituto, texto)
+
+    # grau como separador
     texto = texto.replace("°", " ")
-    texto = re.sub(r"[;/|]+", " ", texto)
+
+    # remove parenteses e colchetes mas mantem o conteudo
+    texto = re.sub(r"[()\[\]]", " ", texto)
+
+    # normaliza espacos
     texto = re.sub(r"\s+", " ", texto).strip()
+
     return texto
 
 
@@ -247,7 +292,7 @@ def extrair_subcategoria_da_descricao(descricao):
     return None
 
 
-def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None):
+def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None, item_descricao=None):
     MIN_CANDIDATOS = 3
 
     # filtro mais preciso: categoria + diametro + subcategoria
@@ -314,25 +359,60 @@ def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, 
         if len(candidatos) >= MIN_CANDIDATOS:
             return candidatos
 
+    # segurança: nunca retorna linha PY como candidato
+    # a menos que a descricao da OC mencione explicitamente PY
+    _desc_upper = str(item_descricao or "").upper() if item_descricao else ""
+    if "PY" not in _desc_upper:
+        mask_nao_py = ~base_krona["descricao_krona"].fillna("").str.upper().str.contains(r"\bPY\b", na=False, regex=True)
+        if mask_nao_py.sum() > 0:
+            base_krona = base_krona[mask_nao_py]
+
     return base_krona
 
 
 def match_por_descricao(item, base_krona):
-    SCORE_MINIMO_DESCRICAO = 0.45
-
     descricao_raw = (
         item.get("descricao_oc")
         or item.get("descricao_reconstruida")
         or ""
     )
 
-    descricao_limpa = limpar_descricao_para_match(descricao_raw)
+    # detecta o formato de origem do item para passar ao limpador
+    obs = item.get("observacoes") or []
+    if isinstance(obs, str):
+        obs = [obs]
+    formato_origem = None
+    for o in obs:
+        o_up = str(o).upper()
+        if "SIENGE"  in o_up: formato_origem = "SIENGE";  break
+        if "UAU"     in o_up: formato_origem = "UAU";     break
+        if "BRASAL"  in o_up: formato_origem = "BRASAL";  break
+        if "MRV"     in o_up: formato_origem = "MRV";     break
+
+    descricao_limpa = limpar_descricao_para_match(descricao_raw, formato=formato_origem)
     categoria    = extrair_categoria_da_descricao(descricao_limpa)
     diametro     = extrair_diametro_da_descricao(descricao_limpa)
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
 
-    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria)
+    # score mínimo adaptativo:
+    # descrições curtas/quebradas (< 4 tokens) recebem threshold menor
+    # pois PDFs UAU/SIENGE frequentemente chegam com texto truncado
+    tokens_desc = [t for t in descricao_limpa.split() if len(t) > 1]
+    if len(tokens_desc) < 4:
+        SCORE_MINIMO_DESCRICAO = 0.32   # texto curto/quebrado — mais tolerante
+    elif categoria and diametro is not None:
+        SCORE_MINIMO_DESCRICAO = 0.40   # categoria + diâmetro detectados — confiança média
+    else:
+        SCORE_MINIMO_DESCRICAO = 0.45   # descrição completa — threshold original
+
+    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria, descricao_limpa)
+
+    # exclui linha PY a menos que a OC peça explicitamente
+    if "PY" not in descricao_limpa:
+        mask_sem_py = ~candidatos["descricao_krona"].fillna("").str.upper().str.contains(r"\bPY\b", na=False, regex=True)
+        if mask_sem_py.sum() > 0:
+            candidatos = candidatos[mask_sem_py]
 
     # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
     # refinar candidatos por texto dos dois numeros da descricao OC
@@ -385,9 +465,27 @@ def match_por_descricao(item, base_krona):
     for _, row in candidatos.iterrows():
         cand = row.to_dict()
         desc_krona = str(cand.get("descricao_normalizada") or cand.get("descricao_krona") or "").upper()
+
         score_txt = rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, desc_krona) / 100.0
         score_str = rapidfuzz_fuzz.ratio(descricao_limpa, desc_krona) / 100.0
-        score_final = round((score_txt * 0.70) + (score_str * 0.30), 4)
+        score_base = round((score_txt * 0.70) + (score_str * 0.30), 4)
+
+        # bônus estrutural: categoria e diâmetro já confirmados pelo filtro
+        # recompensam candidatos que chegaram pela rota mais precisa
+        bonus = 0.0
+        if categoria and str(cand.get("categoria_detectada", "")).upper() == categoria.upper():
+            bonus += 0.06
+        if diametro is not None:
+            diam_cand = cand.get("diametro_final_mm") or cand.get("diametro_mm")
+            try:
+                if abs(float(diam_cand) - diametro) < 0.01:
+                    bonus += 0.08
+            except (TypeError, ValueError):
+                pass
+        if subcategoria and subcategoria in str(desc_krona):
+            bonus += 0.04
+
+        score_final = round(min(1.0, score_base + bonus), 4)
         registros.append({**cand, "score_total": score_final, "score_textual": score_txt})
 
     df_scores = pd.DataFrame(registros).sort_values("score_total", ascending=False)

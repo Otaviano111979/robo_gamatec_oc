@@ -173,6 +173,30 @@
       "usar_reply_to": false,
       "ativo": true,
       "_obs": "empresa do operador — assinatura dos emails de resposta usa UNE Representações"
+    },
+    {
+      "id": "bp_ga_015",
+      "nome": "BP GA Construtora e Incorporadora",
+      "formato_oc": "SIENGE",
+      "dominios_email": [
+        "bpincorporadora.com"
+      ],
+      "cnpjs": [
+        "55461477"
+      ],
+      "palavras_cabecalho": [
+        "BP GA",
+        "BP INCORPORADORA",
+        "GRAN TOQUIO",
+        "BP GA 015"
+      ],
+      "marcadores_pdf": [
+        "sienge",
+        "starian",
+        "pedido de compra"
+      ],
+      "usar_reply_to": true,
+      "ativo": true
     }
   ],
   "cnpj_krona": [

@@ -537,122 +537,6 @@ def obter_timestamp_referencia(nome_arquivo):
     return int(max(timestamps))
 
 
-def extrair_metricas_resumo(texto):
-    """
-    Tenta extrair contadores operacionais a partir de resumo/log/debug sem
-    exigir alteração no core do processamento.
-    """
-    if not texto:
-        return {
-            "itens_lidos": None,
-            "matches_encontrados": None,
-            "pendentes": None
-        }
-
-    base = str(texto)
-    base_lower = base.lower()
-
-    def _capturar(padroes):
-        for padrao in padroes:
-            m = re.search(padrao, base_lower, re.IGNORECASE)
-            if m:
-                try:
-                    return int(m.group(1))
-                except Exception:
-                    continue
-        return None
-
-    itens_lidos = _capturar([
-        r"(\d+)\s*itens?\s*(?:lidos|extra[ií]dos|extraidos|identificados)",
-        r"(\d+)\s*iten[s]?\b"
-    ])
-
-    matches_encontrados = _capturar([
-        r"(\d+)\s*matches?\s*(?:encontrados|confirmados)?",
-        r"(\d+)\s*match\b",
-        r"(\d+)\s*correspond[eê]ncias?\s*(?:encontradas|confirmadas)?"
-    ])
-
-    pendentes = _capturar([
-        r"(\d+)\s*pendentes?\b",
-        r"(\d+)\s*itens?\s*pendentes?\b"
-    ])
-
-    if itens_lidos is not None and matches_encontrados is not None and pendentes is None:
-        pendentes = max(itens_lidos - matches_encontrados, 0)
-
-    return {
-        "itens_lidos": itens_lidos,
-        "matches_encontrados": matches_encontrados,
-        "pendentes": pendentes
-    }
-
-
-def inferir_progresso_oc(nome_arquivo, processando, tem_planilha, em_processados, resumo, log_file):
-    """
-    Infere etapa e progresso sem mexer no pipeline principal.
-    Mantém compatibilidade com o front atual e adiciona metadados novos.
-    """
-    texto = (resumo or "").strip()
-
-    if not texto and log_file and os.path.exists(log_file):
-        try:
-            with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
-                texto = "".join(f.readlines()[-80:]).strip()
-        except Exception:
-            texto = ""
-
-    texto_lower = texto.lower()
-
-    etapa = "aguardando"
-    progresso = 0
-    mensagem_progresso = "Aguardando processamento."
-    erro_processamento = False
-
-    marcadores_erro = [
-        "traceback", "[web] processo finalizado com erro", "erro ao",
-        "exception", "falha ao", "encerrado por timeout", "timeout"
-    ]
-
-    if any(m in texto_lower for m in marcadores_erro):
-        etapa = "erro"
-        progresso = 100
-        mensagem_progresso = "Processamento finalizado com erro."
-        erro_processamento = True
-    elif processando:
-        if any(m in texto_lower for m in ["planilha", "excel", "gerando planilha", "montando planilha", "xlsx"]):
-            etapa = "planilha"
-            progresso = 85
-            mensagem_progresso = "Gerando planilha Excel."
-        elif any(m in texto_lower for m in ["match", "comparando", "descri", "correspond", "similaridade", "código", "codigo"]):
-            etapa = "match"
-            progresso = 60
-            mensagem_progresso = "Comparando itens com a base de dados."
-        else:
-            etapa = "extracao"
-            progresso = 20
-            mensagem_progresso = "Extraindo itens do documento."
-    elif tem_planilha:
-        etapa = "concluido"
-        progresso = 100
-        mensagem_progresso = "Planilha gerada com sucesso."
-    elif em_processados and not tem_planilha:
-        etapa = "movido_sem_planilha"
-        progresso = 100
-        mensagem_progresso = "Documento movido, mas sem planilha detectada."
-    else:
-        etapa = "aguardando"
-        progresso = 0
-        mensagem_progresso = "Aguardando processamento."
-
-    return {
-        "etapa": etapa,
-        "progresso": progresso,
-        "mensagem_progresso": mensagem_progresso,
-        "erro_processamento": erro_processamento
-    }
-
-
 def montar_status_oc(nome_arquivo):
     tem_planilha = oc_tem_saida(nome_arquivo)
     em_entrada = arquivo_em_entrada(nome_arquivo)
@@ -685,17 +569,6 @@ def montar_status_oc(nome_arquivo):
         except Exception:
             resumo = ""
 
-    progresso_info = inferir_progresso_oc(
-        nome_arquivo=nome_arquivo,
-        processando=processando,
-        tem_planilha=tem_planilha,
-        em_processados=em_processados,
-        resumo=resumo,
-        log_file=log_file
-    )
-
-    metricas = extrair_metricas_resumo(resumo)
-
     if processando:
         status_label = "Processando"
         status_classe = "status-running"
@@ -713,10 +586,6 @@ def montar_status_oc(nome_arquivo):
         status_classe = "status-warning"
     else:
         status_label = "Sem localização definida"
-        status_classe = "status-warning"
-
-    if progresso_info["etapa"] == "erro":
-        status_label = "Erro no processamento"
         status_classe = "status-warning"
 
     if tem_planilha:
@@ -758,14 +627,7 @@ def montar_status_oc(nome_arquivo):
         "resumo": resumo,
         "em_entrada": em_entrada,
         "em_processados": em_processados,
-        "processando": processando,
-        "etapa": progresso_info["etapa"],
-        "progresso": progresso_info["progresso"],
-        "mensagem_progresso": progresso_info["mensagem_progresso"],
-        "erro_processamento": progresso_info["erro_processamento"],
-        "itens_lidos": metricas["itens_lidos"],
-        "matches_encontrados": metricas["matches_encontrados"],
-        "pendentes": metricas["pendentes"]
+        "processando": processando
     }
 
 

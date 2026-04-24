@@ -504,10 +504,10 @@ function abrirModalProcessamento(nomeArquivo, isCotacao) {
   const modal = document.getElementById("modal-processamento");
   if (!modal) return;
 
-  // eyebrow e título dinâmicos
   const eyebrow = document.getElementById("vproc-eyebrow");
   const titulo  = document.getElementById("vproc-titulo");
   const fname   = document.getElementById("vproc-filename");
+  const dot     = document.getElementById("vproc-dot");
 
   if (eyebrow) eyebrow.textContent = isCotacao
     ? "Plataforma Vortex · Cotação em processamento"
@@ -516,37 +516,154 @@ function abrirModalProcessamento(nomeArquivo, isCotacao) {
   if (titulo) titulo.textContent = isCotacao ? "Processando Cotação" : "Processando OC";
   if (fname)  fname.textContent  = nomeArquivo;
 
-  // reseta estado visual
-  vprocSetEtapa("extracao", "waiting");
+  vprocSetEtapa("extracao", "active");
   vprocSetEtapa("match",    "waiting");
   vprocSetEtapa("planilha", "waiting");
-  vprocSetProgresso(5, "Iniciando processamento\u2026");
-  ["vproc-total","vproc-matches","vproc-pendentes"].forEach(function(id) {
+  vprocSetProgresso(2, "Preparando leitura do documento…");
+
+  ["vproc-total", "vproc-matches", "vproc-pendentes"].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.textContent = "—";
+    if (el) el.textContent = "0";
   });
 
-  modal.classList.add("ativo");
+  if (dot) {
+    dot.style.background = "var(--primary)";
+    dot.style.boxShadow = "0 0 6px var(--primary)";
+    dot.style.animation = "vproc-blink 1.2s ease-in-out infinite";
+  }
 
-  // progresso simulado — atualizado pelo polling real
-  clearInterval(window._vprocSimInterval);
-  window._vprocSimInterval = setInterval(function() {
-    var bar = document.getElementById("vproc-bar");
-    if (!bar) return;
-    var atual = parseFloat(bar.style.width) || 5;
-    if (atual < 88) vprocSetProgresso(Math.min(88, atual + Math.random() * 2.5));
-  }, 1400);
+  modal.classList.add("ativo");
 }
 
 function fecharModalProcessamento() {
   var modal = document.getElementById("modal-processamento");
   if (modal) modal.classList.remove("ativo");
-  clearInterval(window._vprocSimInterval);
 }
 
 function cancelarProcessamentoModal() {
-  if (!confirm("Cancelar o processamento?")) return;
   fecharModalProcessamento();
+}
+
+function normalizarTextoStatus() {
+  return Array.from(arguments)
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+function extrairMetricasResumo(texto) {
+  var bruto = texto || "";
+  var normalizado = normalizarTextoStatus(bruto);
+  var metricas = { itens: null, matches: null, pendentes: null };
+
+  var itens = normalizado.match(/(\d+)\s*iten/);
+  var matches = normalizado.match(/(\d+)\s*(matches|match|encontrad)/);
+  var pendentes = normalizado.match(/(\d+)\s*penden/);
+
+  if (itens) metricas.itens = Number(itens[1]);
+  if (matches) metricas.matches = Number(matches[1]);
+  if (pendentes) metricas.pendentes = Number(pendentes[1]);
+
+  return metricas;
+}
+
+function mapearEtapaProcessamento(data) {
+  var texto = normalizarTextoStatus(
+    data && data.status_label,
+    data && data.planilha_label,
+    data && data.movimento_label,
+    data && data.resumo
+  );
+
+  if (!data) {
+    return { etapa: "extracao", progresso: 5, mensagem: "Iniciando monitoramento…" };
+  }
+
+  if (texto.includes("erro") || texto.includes("falha")) {
+    return { etapa: "erro", progresso: 100, mensagem: data.resumo || "Processamento finalizado com alerta." };
+  }
+
+  if (data.processando !== true) {
+    return { etapa: "concluido", progresso: 100, mensagem: data.resumo || "Processamento concluído!" };
+  }
+
+  if (texto.includes("planilha") || texto.includes("excel") || texto.includes("xlsx") || texto.includes("gerando")) {
+    return { etapa: "planilha", progresso: 88, mensagem: data.resumo || "Gerando planilha Excel…" };
+  }
+
+  if (texto.includes("match") || texto.includes("comparando") || texto.includes("compat") || texto.includes("descri") || texto.includes("base de dados")) {
+    return { etapa: "match", progresso: 62, mensagem: data.resumo || "Comparando itens com a base de dados…" };
+  }
+
+  return { etapa: "extracao", progresso: 24, mensagem: data.resumo || "Extraindo itens do documento…" };
+}
+
+function atualizarContadoresModal(metricas) {
+  var totalEl = document.getElementById("vproc-total");
+  var matchEl = document.getElementById("vproc-matches");
+  var pendEl = document.getElementById("vproc-pendentes");
+
+  if (totalEl && metricas.itens != null) totalEl.textContent = String(metricas.itens);
+  if (matchEl && metricas.matches != null) matchEl.textContent = String(metricas.matches);
+  if (pendEl && metricas.pendentes != null) pendEl.textContent = String(metricas.pendentes);
+}
+
+function atualizarModalProcessamentoComData(data) {
+  var estado = mapearEtapaProcessamento(data);
+  var metricas = extrairMetricasResumo(data && data.resumo);
+  var dot = document.getElementById("vproc-dot");
+
+  atualizarContadoresModal(metricas);
+
+  if (estado.etapa === "erro") {
+    vprocSetEtapa("extracao", "done");
+    vprocSetEtapa("match", "done");
+    vprocSetEtapa("planilha", "done");
+    vprocSetProgresso(100, estado.mensagem);
+    if (dot) {
+      dot.style.background = "#f59e0b";
+      dot.style.boxShadow = "0 0 6px #f59e0b";
+      dot.style.animation = "none";
+    }
+    return;
+  }
+
+  if (estado.etapa === "extracao") {
+    vprocSetEtapa("extracao", "active");
+    vprocSetEtapa("match", "waiting");
+    vprocSetEtapa("planilha", "waiting");
+    vprocSetProgresso(estado.progresso, estado.mensagem);
+    return;
+  }
+
+  if (estado.etapa === "match") {
+    vprocSetEtapa("extracao", "done");
+    vprocSetEtapa("match", "active");
+    vprocSetEtapa("planilha", "waiting");
+    vprocSetProgresso(estado.progresso, estado.mensagem);
+    return;
+  }
+
+  if (estado.etapa === "planilha") {
+    vprocSetEtapa("extracao", "done");
+    vprocSetEtapa("match", "done");
+    vprocSetEtapa("planilha", "active");
+    vprocSetProgresso(estado.progresso, estado.mensagem);
+    return;
+  }
+
+  vprocSetEtapa("extracao", "done");
+  vprocSetEtapa("match", "done");
+  vprocSetEtapa("planilha", "done");
+  vprocSetProgresso(100, estado.mensagem);
+
+  if (dot) {
+    dot.style.background = "#10b981";
+    dot.style.boxShadow = "0 0 6px #10b981";
+    dot.style.animation = "none";
+  }
 }
 
 function vprocSetEtapa(etapa, estado) {
@@ -598,50 +715,10 @@ async function vprocAtualizarPorStatus(nomeArquivo) {
     var resp = await fetch("/status-oc/" + encodeURIComponent(nomeArquivo), { cache:"no-store" });
     if (!resp.ok) return;
     var data = await resp.json();
-    var resumo = (data.resumo || "").toLowerCase();
 
-    if (resumo.includes("extraindo") || resumo.includes("extra\u00e7\u00e3o")) {
-      vprocSetEtapa("extracao", "active");
-      vprocSetProgresso(20, "Extraindo itens do PDF\u2026");
+    atualizarModalProcessamentoComData(data);
 
-    } else if (resumo.includes("match") || resumo.includes("comparando") || resumo.includes("descri")) {
-      vprocSetEtapa("extracao", "done");
-      vprocSetEtapa("match",    "active");
-      vprocSetProgresso(60, "Comparando descri\u00e7\u00f5es com a base de dados\u2026");
-      var mM = resumo.match(/(\d+)\s*(match|encontrado)/);
-      var tM = resumo.match(/(\d+)\s*iten/);
-      if (tM) { var el = document.getElementById("vproc-total");   if(el) el.textContent = tM[1]; }
-      if (mM) { var el = document.getElementById("vproc-matches"); if(el) el.textContent = mM[1]; }
-
-    } else if (resumo.includes("planilha") || resumo.includes("excel") || resumo.includes("gerando")) {
-      vprocSetEtapa("extracao", "done");
-      vprocSetEtapa("match",    "done");
-      vprocSetEtapa("planilha", "active");
-      vprocSetProgresso(85, "Gerando planilha Excel\u2026");
-
-    } else if (!data.processando) {
-      // concluído
-      clearInterval(window._vprocSimInterval);
-      vprocSetEtapa("extracao", "done");
-      vprocSetEtapa("match",    "done");
-      vprocSetEtapa("planilha", "done");
-      vprocSetProgresso(100, "Processamento conclu\u00eddo!");
-
-      var dot = document.getElementById("vproc-dot");
-      if (dot) {
-        dot.style.background  = "#10b981";
-        dot.style.boxShadow   = "0 0 6px #10b981";
-        dot.style.animation   = "none";
-      }
-
-      // extrai stats finais
-      var tF = resumo.match(/(\d+)\s*iten/);
-      var mF = resumo.match(/(\d+)\s*(match|encontrado)/);
-      var pF = resumo.match(/(\d+)\s*penden/);
-      if (tF) { var el = document.getElementById("vproc-total");     if(el) el.textContent = tF[1]; }
-      if (mF) { var el = document.getElementById("vproc-matches");   if(el) el.textContent = mF[1]; }
-      if (pF) { var el = document.getElementById("vproc-pendentes"); if(el) el.textContent = pF[1]; }
-
+    if (data.processando !== true) {
       setTimeout(fecharModalProcessamento, 3000);
     }
   } catch(e) { /* silencioso */ }

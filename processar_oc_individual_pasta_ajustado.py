@@ -32,6 +32,8 @@ import pandas as pd
 
 from app import etapa_matching, etapa_unidade
 from config import BASE_DIR
+from extracao_oc.extrator_cabecalho import extrair_cabecalho
+from dados.crm_loader import registrar_documento_completo
 
 
 PASTA_OC_ENTRADA = os.path.join(BASE_DIR, "entrada_oc")
@@ -334,6 +336,28 @@ def processar_oc(caminho_oc: str) -> dict:
     print(f"Itens extraídos: {len(df_extraido)}")
     print(f"Debug extração: {caminhos['debug_extracao']}")
 
+    # ── CRM: captura dados do cabeçalho e salva no banco ─────
+    try:
+        cabecalho = extrair_cabecalho(caminho_oc)
+        crm_result = registrar_documento_completo(
+            resultado_cabecalho = cabecalho,
+            arquivo_pdf         = caminho_oc,
+            total_itens         = len(df_extraido),
+            itens_com_match     = 0,  # atualizado após o match abaixo
+            email_origem        = "",
+        )
+        # guarda para atualizar match depois
+        _crm_doc_id    = crm_result.get("documento_id", -1)
+        _crm_empresa_id = crm_result.get("empresa_id", -1)
+        if cabecalho.get("revisao"):
+            print(f"[CRM] ⚠️  Dados marcados para revisão (confiança={cabecalho.get('confianca',0):.0%})")
+        else:
+            print(f"[CRM] ✅ Dados salvos (confiança={cabecalho.get('confianca',0):.0%})")
+    except Exception as _crm_e:
+        print(f"[CRM] Aviso: falha ao salvar no banco — {_crm_e}")
+        _crm_doc_id = -1
+    # ── fim CRM ──────────────────────────────────────────────
+
     # filtra itens que falharam na extracao — eles nao tem descricao nem quantidade
     # e causariam matches incorretos se entrassem no pipeline
     if "status_extracao" in df_extraido.columns:
@@ -357,6 +381,29 @@ def processar_oc(caminho_oc: str) -> dict:
     print("\n[3/4] CONSOLIDANDO QUANTIDADE...")
     df_final = etapa_unidade(df_match)
     print(f"Itens finais: {len(df_final)}")
+
+    # ── CRM: atualiza contagem de matches no documento ─────
+    try:
+        if _crm_doc_id > 0 and not df_final.empty:
+            itens_com_match = int(
+                df_final["match_encontrado"].sum()
+                if "match_encontrado" in df_final.columns
+                else 0
+            )
+            from sqlalchemy import update as _sa_update
+            from dados.crm_loader import get_engine, t_documentos
+            with get_engine().begin() as _conn:
+                _conn.execute(
+                    _sa_update(t_documentos)
+                    .where(t_documentos.c.id == _crm_doc_id)
+                    .values(
+                        itens_com_match = itens_com_match,
+                        total_itens     = len(df_final),
+                    )
+                )
+    except Exception as _crm_e2:
+        print(f"[CRM] Aviso: falha ao atualizar match no banco — {_crm_e2}")
+    # ── fim CRM ──────────────────────────────────────────────
 
     print("\n[4/4] GERANDO SAÍDAS INDIVIDUAIS...")
     salvar_resultado_processado_individual(df_final, caminhos["resultado_processado"])
