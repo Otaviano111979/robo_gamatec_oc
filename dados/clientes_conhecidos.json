@@ -175,7 +175,7 @@
       "_obs": "empresa do operador — assinatura dos emails de resposta usa UNE Representações"
     },
     {
-      "id": "bp_ga_015",
+      "id": "bp_ga",
       "nome": "BP GA Construtora e Incorporadora",
       "formato_oc": "SIENGE",
       "dominios_email": [
@@ -186,9 +186,10 @@
       ],
       "palavras_cabecalho": [
         "BP GA",
+        "BP GA 015",
         "BP INCORPORADORA",
         "GRAN TOQUIO",
-        "BP GA 015"
+        "VALPARAISO DE GOIAS"
       ],
       "marcadores_pdf": [
         "sienge",
@@ -196,6 +197,33 @@
         "pedido de compra"
       ],
       "usar_reply_to": true,
+      "ativo": true
+    },
+    {
+      "id": "pavini",
+      "nome": "Pavini Seroa Engenharia",
+      "formato_oc": "PAVINI",
+      "dominios_email": [
+        "paviniconstrucao.com.br"
+      ],
+      "cnpjs": [
+        "28097986"
+      ],
+      "palavras_cabecalho": [
+        "PAVINI SEROA",
+        "PAVINI SEROA - ENGENHARIA",
+        "COMPRAS PAVINI",
+        "SPE INCORPORACAO T-3",
+        "GAUDI"
+      ],
+      "marcadores_pdf": [
+        "dados da ordem de compra",
+        "responsavel pela compra",
+        "obra/centro de custo"
+      ],
+      "email_compras": "compras@paviniconstrucao.com.br",
+      "email_contato": "contato@paviniconstrucao.com.br",
+      "usar_reply_to": false,
       "ativo": true
     }
   ],

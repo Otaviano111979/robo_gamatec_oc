@@ -47,7 +47,7 @@ def _normalizar_telefone(texto: str) -> str:
 def _extrair_cidade_estado_cep(endereco: str):
     """
     Tenta extrair cidade, estado e CEP de uma string de endereço.
-    Ex: 'VALPARAÍSO DE GOIÁS - GO\n72870-136'
+    Ex: 'VALPARAÍSO DE GOIÁS - GO\\n72870-136'
     """
     cidade = estado = cep = ""
 
@@ -358,71 +358,174 @@ def _extrair_uau(caminho_pdf: str) -> dict:
 # ============================================================
 
 def _extrair_mrv(caminho_pdf: str) -> dict:
+    """
+    Extrator para OCs MRV.
+
+    Estrutura do PDF MRV:
+    - Cabeçalho: DADOS DA CONTRATANTE → nome empresa (MRV XCV INCORPORACOES)
+    - DADOS PARA FATURAMENTO → endereço, CNPJ, IE
+    - Número: "Nº Pedido de Compra: XXXXXXXXXX"
+    - Obra: linha após o número do pedido (ex: "BERMUDA EMP 01")
+    - Local entrega: GALPAO - RESIDENCIAL XXXX
+    - Condição: "75 dias ,com Pgto..."
+    - CNPJ sem formatação: "CNPJ: 40183025000273"
+    """
     empresa   = {}
     obra      = {}
     documento = {}
     contatos  = []
     campos_ok = 0
-    campos_total = 6
+    campos_total = 8  # num, data, nome, cnpj, end, obra, cond, total
 
     try:
         with pdfplumber.open(caminho_pdf) as pdf:
-            texto = ""
-            for page in pdf.pages:
-                texto += (page.extract_text() or "") + "\n"
+            # pega apenas as primeiras 2 páginas — cabeçalho se repete
+            texto = "\n".join((p.extract_text() or "") for p in pdf.pages[:2])
 
-        def buscar(padroes):
-            for p in padroes:
-                m = re.search(p, texto, re.IGNORECASE)
-                if m:
-                    return _limpar(m.group(1))
-            return ""
+        # ── DOCUMENTO ────────────────────────────────────────────
+        m_num  = re.search(r"N[oº°]\s*Pedido\s*de\s*Compra[:\s]*(\d+)", texto, re.IGNORECASE)
+        m_data = re.search(r"(\d{2}\.\d{2}\.\d{4})\s*/00:00:00", texto)
+        m_cond = re.search(r"(\d+)\s*dias\s*,com", texto, re.IGNORECASE)
+        m_total= re.search(r"TOTAL GERAL[:\s]*([\d.,]+)", texto, re.IGNORECASE)
 
-        num  = buscar([r"PEDIDO[:\s#]+(\d+)", r"N[ºo°]\s*(\d+)"])
-        data = buscar([r"DATA[:\s]+(\d{2}/\d{2}/\d{4})"])
-        nome = buscar([r"(?:OBRA|EMPREENDIMENTO)[:\s]+([A-Z][^\n]{4,80})"])
-        cnpj = buscar([r"CNPJ[:\s]*([\d]{2}\.[\d]{3}\.[\d]{3}/[\d]{4}-[\d]{2})"])
-        end  = buscar([r"(?:ENDEREÇO|ENDERECO)[:\s]+([^\n]{10,120})"])
+        num_doc  = m_num.group(1)  if m_num  else ""
+        # converte data de DD.MM.YYYY para DD/MM/YYYY
+        data_doc = m_data.group(1).replace(".", "/") if m_data else ""
+        cond_pgt = f"{m_cond.group(1)} dias" if m_cond else "30 dias"
+        total_val = None
+        if m_total:
+            try:
+                total_val = float(
+                    m_total.group(1).replace(".", "").replace(",", ".")
+                )
+            except Exception:
+                pass
 
         documento = {
-            "numero": num, "data": data, "tipo": "OC",
-            "total_valor": None, "cond_pagamento": "30 dias",
+            "numero":         num_doc,
+            "data":           data_doc,
+            "tipo":           "OC",
+            "total_valor":    total_val,
+            "cond_pagamento": cond_pgt,
             "sistema_origem": "MRV",
         }
-        if num:  campos_ok += 1
-        if data: campos_ok += 1
+        if num_doc:  campos_ok += 1
+        if data_doc: campos_ok += 1
 
-        cidade, estado, cep = _extrair_cidade_estado_cep(end)
+        # ── EMPRESA — DADOS PARA FATURAMENTO ─────────────────────
+        # nome: linha após "DADOS DA CONTRATANTE ... LOCAL DATA FOLHA\nCidade DD.MM.YYYY"
+        m_nome = re.search(r"MRV\s+([A-Z]{2,15}\s+[A-Z]{2,20})", texto)
+        nome_emp = m_nome.group(0).strip() if m_nome else ""
+
+        # CNPJ sem formatação: "CNPJ: 40183025000273"
+        m_cnpj = re.search(r"CNPJ[:\s]*(\d{11,14})", texto)
+        cnpj_raw = m_cnpj.group(1) if m_cnpj else ""
+
+        # IE
+        m_ie = re.search(r"I\.E[:\s]*(\d{8,12})", texto)
+        ie_raw = m_ie.group(1) if m_ie else ""
+
+        # endereço da empresa (faturamento)
+        m_end = re.search(r"(RUA|AVENIDA|AV)\.?[^\n]{5,80}BATEL", texto, re.IGNORECASE)
+        end_emp = _limpar(m_end.group(0)) if m_end else ""
+
+        # cidade/estado/CEP
+        m_cid = re.search(r"(CURITIBA|[A-Z][A-Z\s]{3,30})\s*-\s*(PR|SP|GO|RJ|MG|BA|RS|SC|DF|MT|MS)\s*-?\s*CEP[:\s]*([\d\.\-]{8,10})", texto, re.IGNORECASE)
+        # remove bairro que pode colar antes do nome da cidade
+        cidade_emp = _limpar(m_cid.group(1).split()[-1]) if m_cid else ""
+        estado_emp = _limpar(m_cid.group(2)).upper() if m_cid else ""
+        cep_emp    = re.sub(r"\D", "", m_cid.group(3)) if m_cid else ""
+
         empresa = {
-            "nome": nome, "cnpj": _normalizar_cnpj(cnpj),
-            "ie": "", "endereco": end, "cidade": cidade,
-            "estado": estado, "cep": cep,
-            "telefone": "", "email": "",
+            "nome":     nome_emp,
+            "cnpj":     cnpj_raw,
+            "ie":       ie_raw,
+            "endereco": end_emp,
+            "cidade":   cidade_emp,
+            "estado":   estado_emp,
+            "cep":      cep_emp,
+            "telefone": "",
+            "email":    "nfeletronicas@mrv.com.br",
         }
-        if nome: campos_ok += 1
-        if cnpj: campos_ok += 1
-        if end:  campos_ok += 1
+        if nome_emp: campos_ok += 1
+        if cnpj_raw: campos_ok += 1
+        if end_emp:  campos_ok += 1
 
-        obra_raw = buscar([r"OBRA[:\s]+([^\n]{5,100})"])
-        if obra_raw:
-            campos_ok += 1
-        cidade_obra, estado_obra, cep_obra = _extrair_cidade_estado_cep(end)
+        # ── OBRA ─────────────────────────────────────────────────
+        # "BERMUDA EMP 01" — linha isolada com padrão "[NOME] EMP [NUM]"
+        m_emp = re.search(r"\n([A-Z]+\s+EMP\s+\d+)\n", texto)
+        nome_obra = _limpar(m_emp.group(1)) if m_emp else ""
+
+        # local entrega: GALPAO - RESIDENCIAL XXXX
+        m_galpao = re.search(r"GALPAO\s*-\s*([^\n]{5,60})", texto, re.IGNORECASE)
+        nome_residencial = _limpar(m_galpao.group(1)) if m_galpao else ""
+
+        # endereço de entrega
+        m_entrega = re.search(r"LOCAL DE ENTREGA[:\s]*\n([^\n]{5,100})", texto, re.IGNORECASE)
+        _ent_raw    = _limpar(m_entrega.group(1)) if m_entrega else ""
+        # remove lixo que pode colar no final (ex: "USUÁRIO CRIAÇÃO: DATA CRIAÇÃO:")
+        end_entrega = re.sub(r"\s*USUÁRIO.*$", "", _ent_raw, flags=re.IGNORECASE).strip()
+        end_entrega = re.sub(r"\s*USUARIO.*$", "", end_entrega, flags=re.IGNORECASE).strip()
+
+        # cidade/estado de entrega
+        m_cid_ent = re.search(
+            r"([A-Z][a-zA-Z\s]+)\s*-\s*(PR|SP|GO|RJ|MG|BA|RS|SC|DF|MT|MS)\s*-\s*BR",
+            texto, re.IGNORECASE
+        )
+        cidade_ent = _limpar(m_cid_ent.group(1)) if m_cid_ent else cidade_emp
+        estado_ent = _limpar(m_cid_ent.group(2)).upper() if m_cid_ent else estado_emp
+
+        # CEP de entrega
+        m_cep_ent = re.search(r"(\d{8})\s*-\s*\d{11,12}\s*-\s*Recebedor", texto)
+        cep_ent = m_cep_ent.group(1) if m_cep_ent else ""
+
         obra = {
-            "codigo": "", "nome": obra_raw,
-            "endereco_entrega": end,
-            "cidade": cidade_obra, "estado": estado_obra, "cep": cep_obra,
+            "codigo":           "",
+            "nome":             nome_obra or nome_residencial,
+            "nome_residencial": nome_residencial,
+            "endereco_entrega": end_entrega,
+            "cidade":           cidade_ent,
+            "estado":           estado_ent,
+            "cep":              cep_ent,
         }
+        if nome_obra or nome_residencial: campos_ok += 1
+
+        # ── CONTATOS ─────────────────────────────────────────────
+        # contato NF eletrônicas
+        contatos.append({
+            "nome":     "",
+            "cargo":    "nf_eletronica",
+            "email":    "nfeletronicas@mrv.com.br",
+            "telefone": "",
+            "origem":   "cabecalho_pdf_mrv",
+        })
+
+        # contato interno Krona (LUCAS / tel)
+        m_contato = re.search(r"Contato:\s*([A-Z][A-Za-z]+)\s*/\s*([\d\s]+)", texto)
+        if m_contato:
+            contatos.append({
+                "nome":     _limpar(m_contato.group(1)),
+                "cargo":    "contato_krona",
+                "email":    "",
+                "telefone": _normalizar_telefone(m_contato.group(2)),
+                "origem":   "cabecalho_pdf_mrv",
+            })
+
+        if cond_pgt: campos_ok += 1
+        if total_val: campos_ok += 1
 
     except Exception as e:
         return _resultado_vazio("MRV", f"erro_extracao: {e}")
 
     confianca = round(campos_ok / campos_total, 2)
     return {
-        "empresa": empresa, "obra": obra, "documento": documento,
-        "contatos": contatos,
+        "empresa":   empresa,
+        "obra":      obra,
+        "documento": documento,
+        "contatos":  contatos,
         "confianca": confianca,
-        "revisao": confianca < CONFIANCA_MINIMA,
-        "formato": "MRV",
+        "revisao":   confianca < CONFIANCA_MINIMA,
+        "formato":   "MRV",
     }
 
 
@@ -497,11 +600,14 @@ def _extrair_brasal(caminho_pdf: str) -> dict:
                 pass
 
         # obra: combina centro de custo + linha INC
-        cod_obra  = m_inc.group(1).strip()  if m_inc  else ""
-        nome_obra = m_inc.group(2).strip()  if m_inc  else (
-            m_obra.group(1).strip() if m_obra else ""
+        cod_obra  = m_inc.group(1).strip() if m_inc else ""
+
+        # Centro de Custo é o identificador real da obra no BRASAL
+        # ex: "418 - Obra" — mais preciso que o nome da incorporadora
+        cc_raw    = m_obra.group(1).strip() if m_obra else ""
+        nome_obra = cc_raw if cc_raw else (
+            m_inc.group(2).strip() if m_inc else ""
         )
-        # limpa lixo do final do nome da obra
         nome_obra = re.sub(r"\s+OC\s*N.*$", "", nome_obra, flags=re.IGNORECASE).strip()
 
         documento = {
@@ -638,6 +744,195 @@ def _extrair_brasal(caminho_pdf: str) -> dict:
 # DISPATCHER — detecta formato e chama o extrator certo
 # ============================================================
 
+# ============================================================
+# EXTRATOR PAVINI SEROA ENGENHARIA
+# Formato próprio — não usa sistema de mercado
+# Estrutura: DADOS DA ORDEM DE COMPRA / DADOS DO FATURAMENTO /
+#            DADOS DO FORNECEDOR / OBRA/CENTRO DE CUSTO
+# ============================================================
+
+def _extrair_pavini(caminho_pdf: str) -> dict:
+    """
+    Extrator para OCs da Pavini Seroa Engenharia.
+    O responsável pela compra é a Pavini (construtora/engenharia).
+    O cliente faturamento é a SPE (incorporadora).
+    """
+    empresa   = {}
+    obra      = {}
+    documento = {}
+    contatos  = []
+    campos_ok = 0
+    campos_total = 8
+
+    try:
+        with pdfplumber.open(caminho_pdf) as pdf:
+            texto = "\n".join(p.extract_text() or "" for p in pdf.pages)
+
+        # ── DOCUMENTO ────────────────────────────────────────────
+        m_num   = re.search(r"ORDEM DE COMPRA\s*(\d+)", texto, re.IGNORECASE)
+        m_data  = re.search(r"Data:\s*(\d{2}/\d{2}/\d{4})", texto)
+        m_cond  = re.search(r"Cond\.\s*pgto\.:\s*([^\n]{3,30})", texto)
+        m_total = re.search(r"Total\s+([\d\.]+,[\d]+)", texto)
+        m_prev  = re.search(r"Previs[aã]o\s*da\s*entrega:\s*(\d{2}/\d{2}/\d{4})", texto)
+
+        num_doc  = m_num.group(1).strip()  if m_num  else ""
+        data_doc = m_data.group(1).strip() if m_data else ""
+        cond_pgt = m_cond.group(1).strip() if m_cond else ""
+        # remove lixo após cond ("28 / 56 Forma pgto.: Boleto" → "28/56")
+        cond_pgt = re.sub(r"\s*Forma.*$", "", cond_pgt, flags=re.IGNORECASE).strip()
+        total_val = None
+        if m_total:
+            try:
+                total_val = float(
+                    m_total.group(1).replace(".", "").replace(",", ".")
+                )
+            except Exception:
+                pass
+
+        documento = {
+            "numero":           num_doc,
+            "data":             data_doc,
+            "tipo":             "OC",
+            "total_valor":      total_val,
+            "cond_pagamento":   cond_pgt,
+            "previsao_entrega": m_prev.group(1) if m_prev else "",
+            "sistema_origem":   "PAVINI",
+        }
+        if num_doc:  campos_ok += 1
+        if data_doc: campos_ok += 1
+
+        # ── EMPRESA — DADOS DO FATURAMENTO (SPE incorporadora) ───
+        m_nome_fat = re.search(r"(?:^|\n)Nome:\s*(SPE[^\n]{3,80})", texto, re.IGNORECASE | re.MULTILINE)
+        if not m_nome_fat:
+            m_nome_fat = re.search(r"DADOS DO FATURAMENTO.*?\nNome:\s*([^\n]{5,80})", texto, re.DOTALL | re.IGNORECASE)
+
+        m_cnpj_fat = re.search(r"CNPJ:\s*(\d{8,14})", texto)
+        # endereço Pavini tem quebra de linha no meio
+        m_end_fat  = re.search(r"Endere[cç]o:\s*([^\n]{5,100})", texto)
+
+        nome_fat = _limpar(m_nome_fat.group(1).split("Endereço")[0]) if m_nome_fat else ""
+        cnpj_fat = m_cnpj_fat.group(1) if m_cnpj_fat else ""
+        end_fat_raw = m_end_fat.group(1).strip() if m_end_fat else ""
+        # tenta pegar linha completa do endereço de entrega (mais completo)
+        m_end_ent = re.search(r"ENDERE[CÇ]O ENTREGA[:\s]*\nEndere[cç]o:\s*([^\n]{10,200})", texto, re.IGNORECASE)
+        if m_end_ent:
+            # une possíveis quebras de linha no endereço de entrega
+            idx = texto.find(m_end_ent.group(1))
+            trecho = texto[idx:idx+300]
+            # pega até encontrar "Recebedor" ou linha em branco ou "ENDEREÇO COBRANÇA"
+            end_fat = re.sub(r"\s+", " ", trecho.split("Recebedor")[0].split("ENDEREÇO COBRANÇA")[0]).strip()
+            end_fat = re.sub(r"\s*,\s*$", "", end_fat).strip()
+        else:
+            end_fat = end_fat_raw
+        # normaliza
+        end_fat = re.sub(r"\s+", " ", end_fat).strip()
+
+        # extrai cidade/estado/CEP do endereço
+        # extrai cidade/estado/cep diretamente do texto completo (mais confiável)
+        m_cep = re.search(r"([A-ZÀ-Úa-zà-ú]+(?:\s+[A-ZÀ-Úa-zà-ú]+){0,2}),\s*([A-Z]{2})\s*[-–,]?\s*(\d{5}-?\d{3})", texto)
+        cidade = _limpar(m_cep.group(1)) if m_cep else ""
+        estado = m_cep.group(2).upper() if m_cep else ""
+        cep    = re.sub(r"\D", "", m_cep.group(3)) if m_cep else ""
+
+        empresa = {
+            "nome":     nome_fat,
+            "cnpj":     cnpj_fat,
+            "ie":       "",
+            "endereco": end_fat,
+            "cidade":   cidade,
+            "estado":   estado,
+            "cep":      cep,
+            "telefone": "",
+            "email":    "",
+        }
+        if nome_fat: campos_ok += 1
+        if cnpj_fat: campos_ok += 1
+        if end_fat:  campos_ok += 1
+
+        # ── OBRA ─────────────────────────────────────────────────
+        m_obra = re.search(r"OBRA/CENTRO DE CUSTO:\s*([^\n]+?)(?:\s+CNO|$)", texto, re.IGNORECASE)
+        obra_raw = _limpar(m_obra.group(1)) if m_obra else ""
+        cod_obra = nome_obra = ""
+        if obra_raw:
+            m_split = re.match(r"^(\d+)\s*[-–]\s*(.+)$", obra_raw)
+            if m_split:
+                cod_obra  = m_split.group(1).strip()
+                nome_obra = m_split.group(2).strip()
+            else:
+                nome_obra = obra_raw
+
+        obra = {
+            "codigo":           cod_obra,
+            "nome":             nome_obra,
+            "endereco_entrega": end_fat,
+            "cidade":           cidade,
+            "estado":           estado,
+            "cep":              cep,
+        }
+        if nome_obra: campos_ok += 1
+
+        # ── CONTATOS ─────────────────────────────────────────────
+        # 1. email de compras (destinatário das respostas)
+        m_email_comp = re.search(r"Email:\s*([^\s\n]+@[^\s\n]+)", texto, re.IGNORECASE)
+        email_comp = m_email_comp.group(1).lower().strip() if m_email_comp else ""
+
+        # 2. email no cabeçalho do documento (contato geral)
+        m_email_cab = re.search(r"([a-z]+@paviniconstrucao\.com\.br)", texto, re.IGNORECASE)
+        email_cab = m_email_cab.group(1).lower().strip() if m_email_cab else ""
+
+        # 3. vendedor Krona
+        m_vendedor = re.search(r"Vendedor:\s*([^\n]{3,60})", texto, re.IGNORECASE)
+        vendedor = _limpar(m_vendedor.group(1)) if m_vendedor else ""
+
+        # 4. telefone
+        m_tel = re.search(r"(\d{2}\s*\d{4}\s*[-–]\s*\d{4})", texto)
+        tel = _normalizar_telefone(m_tel.group(1)) if m_tel else ""
+
+        if email_comp:
+            contatos.append({
+                "nome":     "Compras Pavini",
+                "cargo":    "comprador",
+                "email":    email_comp,
+                "telefone": tel,
+                "origem":   "cabecalho_pdf_pavini",
+            })
+            campos_ok += 1
+
+        if email_cab and email_cab != email_comp:
+            contatos.append({
+                "nome":     "PAVINI SEROA - ENGENHARIA",
+                "cargo":    "contato_geral",
+                "email":    email_cab,
+                "telefone": tel,
+                "origem":   "cabecalho_pdf_pavini",
+            })
+
+        if vendedor:
+            contatos.append({
+                "nome":     vendedor,
+                "cargo":    "vendedor_krona",
+                "email":    "",
+                "telefone": "",
+                "origem":   "cabecalho_pdf_pavini",
+            })
+
+        if cond_pgt: campos_ok += 1
+
+    except Exception as e:
+        return _resultado_vazio("PAVINI", f"erro_extracao: {e}")
+
+    confianca = round(campos_ok / campos_total, 2)
+    return {
+        "empresa":   empresa,
+        "obra":      obra,
+        "documento": documento,
+        "contatos":  contatos,
+        "confianca": confianca,
+        "revisao":   confianca < CONFIANCA_MINIMA,
+        "formato":   "PAVINI",
+    }
+
+
 def detectar_formato_pdf(caminho_pdf: str) -> str:
     """Detecta o formato do PDF para escolher o extrator correto."""
     try:
@@ -652,6 +947,10 @@ def detectar_formato_pdf(caminho_pdf: str) -> str:
             return "BRASAL"
         if "ncm" in texto and ("item nº" in texto or "item no" in texto):
             return "MRV"
+        if "dados da ordem de compra" in texto and "responsavel pela compra" in texto:
+            return "PAVINI"
+        if "pavini" in texto and "obra/centro de custo" in texto:
+            return "PAVINI"
         return "DESCONHECIDO"
     except Exception:
         return "DESCONHECIDO"
@@ -673,6 +972,7 @@ def extrair_cabecalho(caminho_pdf: str, formato: Optional[str] = None) -> dict:
         "UAU":    _extrair_uau,
         "MRV":    _extrair_mrv,
         "BRASAL": _extrair_brasal,
+        "PAVINI": _extrair_pavini,
     }
 
     extrator = extratores.get(fmt, _extrair_uau)  # UAU como fallback genérico

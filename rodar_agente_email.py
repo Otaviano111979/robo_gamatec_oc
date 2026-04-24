@@ -65,6 +65,7 @@ def verificar_emails(servico, modo_teste: bool = False):
         aplicar_label,
         marcar_como_lido,
         enviar_resposta,
+        deve_enviar_resposta,
         obter_cache_labels,
         ja_tem_label_vortex,
         identificar_cliente,
@@ -83,9 +84,9 @@ def verificar_emails(servico, modo_teste: bool = False):
         log("Nenhum email novo.")
         return
 
-    log(f"{len(mensagens)} email(s) não lido(s) encontrado(s).")
+    log(f"{len(mensagens)} email(s) nao lido(s) encontrado(s).")
     if modo_teste:
-        log("*** MODO TESTE — nenhuma ação será executada ***")
+        log("*** MODO TESTE — nenhuma acao sera executada ***")
 
     # cache de labels para verificação rápida
     labels_cache = obter_cache_labels(servico)
@@ -102,7 +103,7 @@ def verificar_emails(servico, modo_teste: bool = False):
 
         # ignora emails que já têm label Vortex — já foram processados
         if ja_tem_label_vortex(email_info["labels"], labels_cache):
-            log(f"Ignorado (já tem label Vortex): {email_info['assunto']}")
+            log(f"Ignorado (ja tem label Vortex): {email_info['assunto']}")
             continue
 
         remetente = email_info["remetente"]
@@ -110,7 +111,7 @@ def verificar_emails(servico, modo_teste: bool = False):
         corpo     = email_info["corpo"]
         anexos    = email_info["anexos"]
 
-        log(f"─────────────────────────────────────────")
+        log(f"-----------------------------------------")
         log(f"De     : {remetente}")
         log(f"Assunto: {assunto}")
         log(f"Anexos : {[a['nome'] for a in anexos] or 'nenhum'}")
@@ -136,43 +137,45 @@ def verificar_emails(servico, modo_teste: bool = False):
         ):
             classificacao = "oc"
             motivo = f"cliente_conhecido_promovido ({cliente_id})"
-            log(f"  → Cliente conhecido com score {cliente_info['score']} — promovido para OC")
+            log(f"  -> Cliente conhecido com score {cliente_info['score']} — promovido para OC")
 
         # cliente desconhecido com OC/cotação → revisão com badge especial
         if not cliente_info["identificado"] and classificacao in ("oc", "cotacao"):
             classificacao = "revisar"
             motivo = "cliente_nao_identificado"
-            log(f"  → Cliente não identificado — redirecionando para revisão")
+            log(f"  -> Cliente nao identificado — redirecionando para revisao")
 
         if modo_teste:
             if classificacao == "ignorar":
-                log(f"  → [TESTE] Seria ignorado")
+                log(f"  -> [TESTE] Seria ignorado")
             elif classificacao == "revisar":
-                log(f"  → [TESTE] Iria para fila de revisão")
-                log(f"  → [TESTE] Label: {LABEL_REVISAO}")
+                log(f"  -> [TESTE] Iria para fila de revisao")
+                log(f"  -> [TESTE] Label: {LABEL_REVISAO}")
             else:
-                log(f"  → [TESTE] Seria processado como {classificacao.upper()}")
-                log(f"  → [TESTE] Label: {LABEL_OC if classificacao == 'oc' else LABEL_COTACAO}")
+                log(f"  -> [TESTE] Seria processado como {classificacao.upper()}")
+                log(f"  -> [TESTE] Label: {LABEL_OC if classificacao == 'oc' else LABEL_COTACAO}")
                 for a in anexos:
                     if a["extensao"] == ".pdf":
-                        log(f"  → [TESTE] Baixaria: {a['nome']}")
-                log(f"  → [TESTE] Enviaria resposta automática para: {remetente}")
+                        log(f"  -> [TESTE] Baixaria: {a['nome']}")
+                # informa se responderia ou nao
+                if deve_enviar_resposta(cliente_id):
+                    log(f"  -> [TESTE] Enviaria resposta automatica ({classificacao}) para: {remetente}")
+                else:
+                    log(f"  -> [TESTE] SEM resposta automatica — cliente '{cliente_id}' suprimido")
             continue
 
         # ── EXECUÇÃO REAL ──────────────────────────────────────
         if classificacao == "ignorar":
-            # NAO marca como lido — mantém não lido para o operador ver
             aplicar_label(servico, msg_id, LABEL_IGNORADO)
             registrar_processado(msg_id, {
                 "remetente": remetente,
                 "assunto": assunto,
                 "classificacao": "ignorado",
             })
-            log(f"  → Ignorado (mantido como nao lido).")
+            log(f"  -> Ignorado (mantido como nao lido).")
             continue
 
         if classificacao == "revisar":
-            # revisao tambem mantem como nao lido
             aplicar_label(servico, msg_id, LABEL_REVISAO)
             registrar_revisao(msg_id, {
                 "remetente": remetente,
@@ -180,7 +183,7 @@ def verificar_emails(servico, modo_teste: bool = False):
                 "motivo":    motivo,
                 "anexos":    [a["nome"] for a in anexos],
             })
-            log(f"  → Enviado para revisão manual no dashboard.")
+            log(f"  -> Enviado para revisao manual no dashboard.")
             continue
 
         # OC ou cotacao confirmada — aplica label do tipo + Krona
@@ -192,7 +195,7 @@ def verificar_emails(servico, modo_teste: bool = False):
         for anexo in anexos:
             if anexo["extensao"] != ".pdf":
                 continue
-            log(f"  → Baixando: {anexo['nome']}")
+            log(f"  -> Baixando: {anexo['nome']}")
             resultado = processar_anexo_email(
                 servico=servico,
                 email_info=email_info,
@@ -207,25 +210,30 @@ def verificar_emails(servico, modo_teste: bool = False):
             else:
                 log(f"     [ERRO] Erro: {resultado['erro']}")
 
-        # resposta automatica
-        # usa reply-to quando cliente usa sistema como SIENGE (naoresponder@)
-        usar_reply_to = cliente_info.get("usar_reply_to", False)
-        destinatario  = (
-            email_info.get("reply_to")
-            if usar_reply_to and email_info.get("reply_to")
-            else email_info["remetente"]
-        )
-        log(f"  Resposta para: {destinatario}")
-        try:
-            enviar_resposta(
-                servico=servico,
-                thread_id=email_info["thread_id"],
-                para=destinatario,
-                assunto=assunto,
-                tipo=classificacao,
+        # ── RESPOSTA AUTOMÁTICA ────────────────────────────────
+        # MRV e clientes em CLIENTES_SEM_RESPOSTA nao recebem resposta
+        if not deve_enviar_resposta(cliente_id):
+            log(f"  Resposta suprimida — '{cliente_id}' nao recebe resposta automatica.")
+        else:
+            # usa reply-to quando cliente usa sistema como SIENGE (naoresponder@)
+            usar_reply_to = cliente_info.get("usar_reply_to", False)
+            destinatario  = (
+                email_info.get("reply_to")
+                if usar_reply_to and email_info.get("reply_to")
+                else email_info["remetente"]
             )
-        except Exception as e:
-            log(f"  [AVISO] Falha ao enviar resposta: {e}")
+            log(f"  Resposta para: {destinatario} (tipo: {classificacao})")
+            try:
+                enviar_resposta(
+                    servico=servico,
+                    thread_id=email_info["thread_id"],
+                    para=destinatario,
+                    assunto=assunto,
+                    tipo=classificacao,
+                    cliente_id=cliente_id,
+                )
+            except Exception as e:
+                log(f"  [AVISO] Falha ao enviar resposta: {e}")
 
         aplicar_label(servico, msg_id, LABEL_PROCESSADO)
         marcar_como_lido(servico, msg_id)
@@ -249,7 +257,7 @@ def main():
     parser.add_argument(
         "--teste",
         action="store_true",
-        help="Modo teste: lê emails mas não executa nenhuma ação"
+        help="Modo teste: le emails mas nao executa nenhuma acao"
     )
     args = parser.parse_args()
 
@@ -259,7 +267,7 @@ def main():
     log("VORTEX — Agente de Email")
     if modo_teste:
         log("*** MODO TESTE ATIVADO ***")
-        log("Nenhuma ação será executada.")
+        log("Nenhuma acao sera executada.")
     else:
         log(f"Intervalo: {INTERVALO_MIN} minuto(s)")
         log(f"Entrada  : {PASTA_ENTRADA}")
@@ -272,20 +280,19 @@ def main():
         servico = autenticar_gmail()
         log("[OK] Autenticado!")
     except Exception as e:
-        log(f"[ERRO] Falha na autenticação: {e}")
+        log(f"[ERRO] Falha na autenticacao: {e}")
         sys.exit(1)
 
     os.makedirs(PASTA_ENTRADA, exist_ok=True)
 
     if modo_teste:
-        # no modo teste roda uma vez e encerra
         try:
             verificar_emails(servico, modo_teste=True)
         except Exception as e:
             log(f"[ERRO] Erro: {e}")
             traceback.print_exc()
         log("=" * 50)
-        log("Modo teste concluído. Nenhuma ação foi executada.")
+        log("Modo teste concluido. Nenhuma acao foi executada.")
         return
 
     # loop normal
@@ -297,7 +304,7 @@ def main():
             log(f"[ERRO] Erro: {e}")
             traceback.print_exc()
 
-        log(f"Próxima verificação em {INTERVALO_MIN} minuto(s).")
+        log(f"Proxima verificacao em {INTERVALO_MIN} minuto(s).")
         time.sleep(INTERVALO_MIN * 60)
 
 

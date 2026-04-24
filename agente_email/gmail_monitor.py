@@ -32,6 +32,12 @@ CAMINHO_CREDENTIALS = os.path.join(DIR_AGENTE, "credentials.json")
 CAMINHO_TOKEN       = os.path.join(DIR_AGENTE, "token.pickle")
 
 # ================================================================
+# CLIENTES QUE NÃO RECEBEM RESPOSTA AUTOMÁTICA
+# MRV usa sistema automatizado — resposta não é necessária nem útil
+# ================================================================
+CLIENTES_SEM_RESPOSTA = {"mrv"}
+
+# ================================================================
 # IDENTIFICADORES KRONA
 # Busca em assunto, corpo e nome do anexo
 # ================================================================
@@ -338,19 +344,13 @@ def _e_email_krona(assunto: str, corpo: str, anexos: list) -> bool:
     Verifica se o email é relacionado à Krona.
     Busca em 3 lugares: assunto, corpo e nome dos anexos.
     """
-    # verifica no assunto
     if _contem_termos(assunto, TERMOS_KRONA):
         return True
-
-    # verifica no corpo
     if _contem_termos(corpo, TERMOS_KRONA):
         return True
-
-    # verifica no nome dos anexos
     for anexo in anexos:
         if _contem_termos(anexo["nome"], TERMOS_KRONA):
             return True
-
     return False
 
 
@@ -385,7 +385,7 @@ def classificar_email(assunto: str, corpo: str, anexos: list) -> tuple:
     """
     tem_pdf = any(a["extensao"] == ".pdf" for a in anexos)
 
-    # regra 1: sem PDF → ignora (casos raros sem PDF vão para revisão)
+    # regra 1: sem PDF → ignora
     if not anexos:
         return "ignorar", "sem_anexo"
 
@@ -415,7 +415,6 @@ def classificar_email(assunto: str, corpo: str, anexos: list) -> tuple:
     if tem_oc and tem_cotacao:
         return "revisar", "ambiguo_oc_e_cotacao"
 
-    # tem PDF Krona mas sem palavras-chave claras → revisão
     return "revisar", "krona_sem_tipo_definido"
 
 
@@ -426,7 +425,6 @@ def obter_ou_criar_label(servico, nome_label: str) -> Optional[str]:
     try:
         resultado = servico.users().labels().list(userId="me").execute()
         for label in resultado.get("labels", []):
-            # comparacao case-insensitive e sem acentos para maior compatibilidade
             nome_existente = label["name"].lower().strip()
             nome_buscado   = nome_label.lower().strip()
             if nome_existente == nome_buscado:
@@ -475,37 +473,74 @@ def marcar_como_lido(servico, msg_id: str):
 # ================================================================
 # RESPOSTA AUTOMÁTICA
 # ================================================================
-def enviar_resposta(servico, thread_id: str, para: str, assunto: str, tipo: str):
+
+def deve_enviar_resposta(cliente_id: str) -> bool:
+    """
+    Define se o cliente recebe resposta automatica.
+    MRV usa sistema automatizado — nao precisa de confirmacao por email.
+    Adicione outros clientes em CLIENTES_SEM_RESPOSTA se necessario.
+    """
+    return cliente_id.lower() not in CLIENTES_SEM_RESPOSTA
+
+
+def enviar_resposta(
+    servico,
+    thread_id: str,
+    para: str,
+    assunto: str,
+    tipo: str,
+    cliente_id: str = "",
+):
+    """
+    Envia resposta automatica ao cliente.
+
+    Regras:
+    - MRV (e clientes em CLIENTES_SEM_RESPOSTA): nao envia resposta
+    - OC geral: confirma recebimento, prazo 15 dias uteis
+    - Cotacao: confirma recebimento, retorno em 2 dias uteis
+    """
     import email.mime.text
 
+    # seguranca: nunca envia para MRV ou clientes sem resposta
+    if cliente_id and not deve_enviar_resposta(cliente_id):
+        print(f"[GMAIL] Resposta suprimida — cliente '{cliente_id}' nao recebe resposta automatica.")
+        return
+
+    # extrai nome do campo "De: Nome <email@>"
     nome = para.split("<")[0].strip().strip('"')
     if not nome or "@" in nome:
         nome = "Prezado(a)"
 
     if tipo == "oc":
-        corpo = f"""Olá, {nome}!
-
-Confirmamos o recebimento da sua Ordem de Compra e já iniciamos o processamento.
-
-Prazo de entrega: 15 dias úteis após a confirmação do pedido.
-
-Em breve nossa equipe entrará em contato com as informações necessárias.
-
-Atenciosamente,
-UNE Representações
-Representante Oficial KRONA Tubos e Conexões"""
+        corpo = (
+            f"Ola, {nome}!\n\n"
+            "Confirmamos o recebimento da sua Ordem de Compra e ja iniciamos o processamento.\n\n"
+            "Prazo de entrega: 15 dias uteis apos a confirmacao do pedido.\n\n"
+            "Em breve nossa equipe entrara em contato com as informacoes necessarias.\n\n"
+            "Atenciosamente,\n"
+            "UNE Representacoes\n"
+            "Representante Oficial KRONA Tubos e Conexoes"
+        )
+    elif tipo == "cotacao":
+        corpo = (
+            f"Ola, {nome}!\n\n"
+            "Recebemos sua solicitacao de Cotacao de Precos e ja estamos trabalhando nos valores.\n\n"
+            "Prazo de retorno: em ate 2 dias uteis com os precos preenchidos.\n\n"
+            "Em breve retornaremos com as informacoes completas.\n\n"
+            "Atenciosamente,\n"
+            "UNE Representacoes\n"
+            "Representante Oficial KRONA Tubos e Conexoes"
+        )
     else:
-        corpo = f"""Olá, {nome}!
-
-Recebemos sua solicitação de cotação e já estamos trabalhando nos preços.
-
-Prazo de resposta: em até 2 dias úteis.
-
-Em breve retornaremos com as informações completas.
-
-Atenciosamente,
-UNE Representações
-Representante Oficial KRONA Tubos e Conexões"""
+        # fallback para tipos inesperados
+        corpo = (
+            f"Ola, {nome}!\n\n"
+            "Confirmamos o recebimento do seu documento e ja estamos analisando.\n\n"
+            "Em breve nossa equipe entrara em contato.\n\n"
+            "Atenciosamente,\n"
+            "UNE Representacoes\n"
+            "Representante Oficial KRONA Tubos e Conexoes"
+        )
 
     msg = email.mime.text.MIMEText(corpo, "plain", "utf-8")
     msg["To"]      = para
@@ -518,7 +553,7 @@ Representante Oficial KRONA Tubos e Conexões"""
             userId="me",
             body={"raw": raw, "threadId": thread_id}
         ).execute()
-        print(f"[GMAIL] Resposta enviada para: {para}")
+        print(f"[GMAIL] Resposta enviada para: {para} (tipo: {tipo})")
     except HttpError as e:
         print(f"[GMAIL] Erro ao enviar resposta: {e}")
 

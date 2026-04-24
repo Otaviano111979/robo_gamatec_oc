@@ -163,12 +163,6 @@ def _mesclar(existente: dict, novo: dict) -> dict:
     return resultado
 
 
-def _limpar(texto) -> str:
-    if not texto:
-        return ""
-    return re.sub(r"\s+", " ", str(texto)).strip()
-
-
 # ============================================================
 # EMPRESAS
 # ============================================================
@@ -466,7 +460,7 @@ def registrar_documento_completo(
     empresa_id = -1
     if empresa_dados.get("nome") or empresa_dados.get("cnpj"):
         empresa_id = salvar_empresa(empresa_dados, confianca=confianca, revisao=revisao)
-        print(f"[CRM] Empresa salva/atualizada — id={empresa_id} "
+        print(f"[CRM] Empresa salva/atualizada ? id={empresa_id} "
               f"nome='{empresa_dados.get('nome', '')}' "
               f"confianca={confianca:.2f} revisao={revisao}")
 
@@ -474,14 +468,14 @@ def registrar_documento_completo(
     obra_id = -1
     if empresa_id > 0 and (obra_dados.get("nome") or obra_dados.get("codigo")):
         obra_id = salvar_obra(empresa_id, obra_dados)
-        print(f"[CRM] Obra salva/atualizada — id={obra_id} "
+        print(f"[CRM] Obra salva/atualizada ? id={obra_id} "
               f"nome='{obra_dados.get('nome', '')}'")
 
     # salva contatos
     for contato in contatos_lista:
         if empresa_id > 0 and (contato.get("email") or contato.get("nome")):
             cid = salvar_contato(empresa_id, contato)
-            print(f"[CRM] Contato salvo — id={cid} email='{contato.get('email', '')}'")
+            print(f"[CRM] Contato salvo ? id={cid} email='{contato.get('email', '')}'")
 
     # define status do documento
     status = "revisao" if revisao else "processado"
@@ -498,7 +492,7 @@ def registrar_documento_completo(
         status          = status,
         dados_raw       = resultado_cabecalho,
     )
-    print(f"[CRM] Documento registrado — id={doc_id} "
+    print(f"[CRM] Documento registrado ? id={doc_id} "
           f"numero='{doc_dados.get('numero', '')}' status={status}")
 
     return {
@@ -561,3 +555,10 @@ def stats_crm() -> dict:
                 text("SELECT COUNT(*) FROM documentos WHERE status='revisao'")
             ).scalar(),
         }
+
+
+# compat: alias para imports legados
+def _limpar(texto) -> str:
+    if not texto:
+        return ""
+    return re.sub(r"\s+", " ", str(texto)).strip()
