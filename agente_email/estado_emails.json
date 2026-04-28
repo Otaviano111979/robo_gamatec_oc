@@ -396,6 +396,367 @@
       "assunto": "Saiba como ativar o seu eSIM.",
       "classificacao": "ignorado",
       "timestamp": "2026-04-24 09:29:13"
+    },
+    "19dbfe9ca67cbb05": {
+      "remetente": "Lorrane Rabelo Da Silva <lorrane.rabelo@mrv.com.br>",
+      "assunto": "RE: [Número do Chamado :##RE-7074981##] : ATRASO - KRONA 4509343351",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-24 13:13:20"
+    },
+    "19dbfbcd4f52a453": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA 001963 - KRONA -SPE INCORPORAÇÃO T-3 LTDA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_OC 001963 - KRONA - Pavini.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-24 13:13:24"
+    },
+    "19dc068ecf8662c9": {
+      "remetente": "Kallyne Palhano Carvalho <kallyne.carvalho@gplincorporadora.com.br>",
+      "assunto": "RE: O.C. 582 - COT. 0 - OBRA - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-24 13:53:58"
+    },
+    "19dc09a83dc3f9b5": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA 176475 - STECK - AGAEFE MATERIAIS ELETRICOS",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (une)",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_OC 176475 - STECK - AGAEFE MATERIAIS ELETRICOS LTDA .pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-24 14:50:11"
+    },
+    "19dc07b18d0a643e": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA 174810 - STECK - MUNDIAL MATERIAIS ELETRICOS",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (une)",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_OC 174810 - STECK - MUNDIAL MATERIAIS ELETRICOS LTDA.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-24 14:50:15"
+    },
+    "19dc038a3e8214da": {
+      "remetente": "Gilielson Nonato Pereira <gilielson.pereira@doge.eng.br>",
+      "assunto": "PEDIDO DE COMPRA 90472 - SPE HABITAT RIO VERDE IV",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "GPL Incorporadora",
+      "cliente_id": "gpl",
+      "anexos": [
+        "EMAIL_PEDIDO 90472 KRONA.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-24 14:50:18"
+    },
+    "19dcfa5c5b8e79cd": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509415307",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509415307.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:28:38"
+    },
+    "19dcf87f098dd439": {
+      "remetente": "\"sistemasuprimentos@brasal.com.br\" <sistemasuprimentos@brasal.com.br>",
+      "assunto": "Solicitação de Cotação da Brasal 126702",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (brasal)",
+      "cliente": "Brasal Incorporações",
+      "cliente_id": "brasal",
+      "anexos": [
+        "EMAIL_Cotacao_126702_31060.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:28:41"
+    },
+    "19dcf600873c6712": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA 1400 - KRONA - VEGA CONSTRUTORA XXVII LTDA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_Ordem de Compra 1400 - Krona Vega XXVII.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:28:45"
+    },
+    "19dcf33aeaf0165b": {
+      "remetente": "CLARO EMPRESAS <claroempresas@minhaclaro.com.br>",
+      "assunto": "Estamos sentindo a sua falta, acesse o Minha Claro empresas",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:46"
+    },
+    "19dcf0e0389acbf1": {
+      "remetente": "Wellen Vitoria Alves da Silva <Wellen.silva@gplincorporadora.com.br>",
+      "assunto": "RE: O.C. 3050 - COT. 0 - OBRA - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:47"
+    },
+    "19dcef02c487adfa": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7076604##] : RESIDENCIAL BERGER- Antecipação 4509383186",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:48"
+    },
+    "19dcee540d10934e": {
+      "remetente": "Gabriel Moura De Souza <gabriel.souza.moura@mrv.com.br>",
+      "assunto": "RE: Pedidos atrasados - 4509359821 - ##RE-7088891##",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:48"
+    },
+    "19dcedf12b81a8e4": {
+      "remetente": "maria lopes <maria.rocha@conectengenharia.com.br>",
+      "assunto": "Ref. Pedido 1310",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "City Inc",
+      "cliente_id": "city",
+      "anexos": [
+        "EMAIL_oc krona 27042026.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:28:51"
+    },
+    "19dcea0447562736": {
+      "remetente": "Vitoria Tonelli De Souza <souza.vitoria@mrv.com.br>",
+      "assunto": "RE: [Número do Chamado :##RE-7076604##] : RESIDENCIAL BERGER- Antecipação 4509383186",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:53"
+    },
+    "19dcdcbd393635a3": {
+      "remetente": "CLARO EMPRESAS <claroempresas@minhaclaro.com.br>",
+      "assunto": "Claro empresas: Ofereca mais saude e bem-estar para sua equipe a partir de R$9,90",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:54"
+    },
+    "19dcad40ba3672e8": {
+      "remetente": "Vivo Empresas <comunicacao@mail.vivo.com.br>",
+      "assunto": "Internet Fibra de 700 MEGA + WIFI 6 por apenas R$ 99,99/mês",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:55"
+    },
+    "19dc6d8a47493078": {
+      "remetente": "Vivo B2B <vivo_b2b@telefonica.com>",
+      "assunto": "Não foi possivel seguir com o seu pedido",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:55"
+    },
+    "19dc6d36fd70bc60": {
+      "remetente": "Vivo B2B <vivo_b2b@telefonica.com>",
+      "assunto": "Não foi possivel seguir com o seu pedido",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:56"
+    },
+    "19dc56f640ea9c42": {
+      "remetente": "\"OrçaAqui\" <contato@orcaaqui.com.br>",
+      "assunto": "Nova cotação disponível - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:57"
+    },
+    "19dc4e8a72fb8383": {
+      "remetente": "Michael Morais de Oliveira <michael.oliveira@dinamicainc.com.br>",
+      "assunto": "AJUSTE DE DATA - BOLETO - NF:1403493",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:58"
+    },
+    "19dc16284be54aaf": {
+      "remetente": "Logistica Suprimentos <logisticasuprimentos@mrv.com.br>",
+      "assunto": "Pedidos atrasados - 4509359821 - ##RE-7088891##",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:59"
+    },
+    "19dc12cb2238f7f6": {
+      "remetente": "Obra Play <noreply@ses.obraplay.com>",
+      "assunto": "Queremos cotar com você!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 13:28:59"
+    },
+    "19dcf9cf75431b6f": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509414425",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509414425.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:13"
+    },
+    "19dcf95d6d2791cf": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509413985",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509413985.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:15"
+    },
+    "19dcf95cd97bd0a8": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509414054",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509414054.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:18"
+    },
+    "19dcf95906c51bb2": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509413902",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509413902.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:20"
+    },
+    "19dcf958aec6292b": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509414032",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509414032.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:23"
+    },
+    "19dcf89d8df51ed5": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509412963",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509412963.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:25"
+    },
+    "19dcf899d5acc960": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509413307",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509413307.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 13:30:28"
+    },
+    "19dd04dbee85b20e": {
+      "remetente": "Departamento de Suprimentos <marisa.ferreira@gplincorporadora.com.br>",
+      "assunto": "O.C. 1054 - COT. 0 - OBRA - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "GPL Incorporadora",
+      "cliente_id": "gpl",
+      "anexos": [
+        "EMAIL_Ordem de compra 1054 - Obra OBRA.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 15:58:38"
+    },
+    "19dd04ca223fcc56": {
+      "remetente": "Departamento de Suprimentos <marisa.ferreira@gplincorporadora.com.br>",
+      "assunto": "O.C. 1053 - COT. 0 - OBRA - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "GPL Incorporadora",
+      "cliente_id": "gpl",
+      "anexos": [
+        "EMAIL_Ordem de compra 1053 - Obra OBRA.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 15:58:41"
+    },
+    "19dd0508bd999c7b": {
+      "remetente": "Obra Play <noreply@ses.obraplay.com>",
+      "assunto": "Última chance de vender!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 16:03:43"
+    },
+    "19dd07c13efc22aa": {
+      "remetente": "Stk Atendimento <stk.atendimento@steck.com.br>",
+      "assunto": "Re: ACESSO PROTHEUS",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 16:48:59"
+    },
+    "19dd07c0e963cfb7": {
+      "remetente": "Stk Atendimento <stk.atendimento@steck.com.br>",
+      "assunto": "Re: ACESSO PROTHEUS",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-27 16:49:00"
+    },
+    "19dd08e2432e7e0f": {
+      "remetente": "Cristiano comprador <naoresponder@sistemas.sienge.com.br>",
+      "assunto": "Pedido de Compra",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "Cliente via Sistema SIENGE/STARIAN",
+      "cliente_id": "sienge",
+      "anexos": [
+        "EMAIL_PedidoCompra16741_38054417708098676.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-27 17:09:08"
+    },
+    "19dd3a604e68bb39": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509412961",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509412961.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 08:13:02"
+    },
+    "19dd388aee2db161": {
+      "remetente": "Obra Play <noreply@ses.obraplay.com>",
+      "assunto": "A cotação VNKNPKA expirou!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 08:13:03"
     }
   },
   "revisao": [
@@ -790,6 +1151,76 @@
         "RELATORIO.pdf"
       ],
       "timestamp": "2026-04-24 08:13:24"
+    },
+    {
+      "id": "19dbfaa645a3aae5",
+      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1998 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-24 13:13:25"
+    },
+    {
+      "id": "19dc07dee43e28eb",
+      "remetente": "Ezequiel Alves <compras@engecomconstrutora.com.br>",
+      "assunto": "Ordem de Compra",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "CamScanner 24-04-2026 14.14.pdf"
+      ],
+      "timestamp": "2026-04-24 14:50:11"
+    },
+    {
+      "id": "19dcede50f1b697b",
+      "remetente": "Henrique Batista <henrique.batista@7lm.com.br>",
+      "assunto": "Carta de correção",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "ZENITE 49675.pdf"
+      ],
+      "timestamp": "2026-04-27 13:28:52"
+    },
+    {
+      "id": "19dc0eaa8054f862",
+      "remetente": "Suprimentos OM <suprimentos@ominc.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para Cotação nº 1477 - SPE COMERCIAL CITY 24 EMPREENDIMENTOS LTDA",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-27 13:29:01"
+    },
+    {
+      "id": "19dd0889b58906e3",
+      "remetente": "Silvestre Alvares De Rezende <silvestre.alvares@topconstrutora.com>",
+      "assunto": "ENC: COTAÇÃO 177",
+      "motivo": "anexo_sem_pdf",
+      "anexos": [
+        "COT 177.xlsx"
+      ],
+      "timestamp": "2026-04-27 17:04:04"
+    },
+    {
+      "id": "19dd08fd91253ddc",
+      "remetente": "\"Elizangela B. da Silva\" <elizangela@portobeloweb.com.br>",
+      "assunto": " COTAÇÃO  - SESI - TRINDADE GO - ELETRODUTO AÇO CARBONO",
+      "motivo": "anexo_sem_pdf",
+      "anexos": [
+        "ELETRODUTO AÇO CARBONO.xlsx"
+      ],
+      "timestamp": "2026-04-27 17:14:11"
+    },
+    {
+      "id": "19dd0a52bab9495e",
+      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
+      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1998 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
+      "motivo": "nao_identificado_como_krona",
+      "anexos": [
+        "RELATORIO.pdf"
+      ],
+      "timestamp": "2026-04-28 08:13:04"
     }
   ],
   "erros": []

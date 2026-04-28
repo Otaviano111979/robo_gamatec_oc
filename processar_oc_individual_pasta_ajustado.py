@@ -350,9 +350,9 @@ def processar_oc(caminho_oc: str) -> dict:
         _crm_doc_id    = crm_result.get("documento_id", -1)
         _crm_empresa_id = crm_result.get("empresa_id", -1)
         if cabecalho.get("revisao"):
-            print(f"[CRM] ⚠️  Dados marcados para revisão (confiança={cabecalho.get('confianca',0):.0%})")
+            print(f"[CRM] ATENCAO Dados marcados para revisao (confianca={cabecalho.get('confianca',0):.0%})")
         else:
-            print(f"[CRM] ✅ Dados salvos (confiança={cabecalho.get('confianca',0):.0%})")
+            print(f"[CRM] OK Dados salvos (confianca={cabecalho.get('confianca',0):.0%})")
     except Exception as _crm_e:
         print(f"[CRM] Aviso: falha ao salvar no banco — {_crm_e}")
         _crm_doc_id = -1

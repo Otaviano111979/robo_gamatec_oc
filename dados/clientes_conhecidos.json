@@ -225,6 +225,32 @@
       "email_contato": "contato@paviniconstrucao.com.br",
       "usar_reply_to": false,
       "ativo": true
+    },
+    {
+      "id": "the_one_rio_verde",
+      "nome": "The One Rio Verde / Top Construtora",
+      "formato_oc": "SIENGE",
+      "dominios_email": [
+        "topconstrutora.com"
+      ],
+      "cnpjs": [
+        "48706611"
+      ],
+      "palavras_cabecalho": [
+        "THE ONE RIO VERDE",
+        "TOP CONSTRUCAO",
+        "TOP CONSTRUTORA",
+        "IMPULSI",
+        "SPE THE ONE"
+      ],
+      "marcadores_pdf": [
+        "sienge",
+        "starian",
+        "pedido de compra"
+      ],
+      "email_nf": "nfs@topconstrutora.com",
+      "usar_reply_to": true,
+      "ativo": true
     }
   ],
   "cnpj_krona": [
