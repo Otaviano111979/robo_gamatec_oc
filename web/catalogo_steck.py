@@ -10,7 +10,7 @@ Acesso: http://localhost:5000/catalogo/steck/
 """
 
 from flask import (
-    Blueprint, render_template, render_template_string, request, redirect,
+    Blueprint, render_template, request, redirect,
     url_for, session, send_file, flash, jsonify, g
 )
 from pathlib import Path
@@ -21,7 +21,6 @@ import io
 import math
 import pandas as pd
 from rapidfuzz import fuzz
-from jinja2 import TemplateNotFound
 
 # ── Blueprint ────────────────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -81,47 +80,6 @@ def _empresa_id() -> str:
     """Pega empresa_id da sessão do Vortex (ou 'steck' como fallback)."""
     return session.get("empresa_id", "steck")
 
-
-def _render_steck(template_name: str, **context):
-    """
-    Renderiza template do catálogo.
-    Se os arquivos HTML do módulo estiverem ausentes, evita erro 500
-    e exibe uma página de aviso para o operador.
-    """
-    try:
-        return render_template(template_name, **context)
-    except TemplateNotFound:
-        return render_template_string(
-            """
-            <!doctype html>
-            <html lang="pt-BR">
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Catálogo Steck indisponível</title>
-              <style>
-                body { font-family: Arial, sans-serif; background: #0b1020; color: #eaf0ff; margin: 0; padding: 24px; }
-                .card { max-width: 760px; margin: 0 auto; background: #111a2e; border: 1px solid #28406f; border-radius: 12px; padding: 18px; }
-                h1 { margin-top: 0; font-size: 22px; }
-                p { line-height: 1.45; }
-                code { background: #0d1630; padding: 2px 6px; border-radius: 6px; }
-                a { color: #6ecbff; text-decoration: none; }
-              </style>
-            </head>
-            <body>
-              <div class="card">
-                <h1>Modulo Catalogo Eletrico temporariamente indisponivel</h1>
-                <p>Os templates HTML do modulo nao foram encontrados no servidor.</p>
-                <p>Template solicitado: <code>{{ template_name }}</code></p>
-                <p>Restaure os arquivos do catalogo em <code>web/templates/steck/</code> (e, se houver, em <code>web/static/steck/</code>).</p>
-                <p><a href="/launcher">Voltar ao launcher</a></p>
-              </div>
-            </body>
-            </html>
-            """,
-            template_name=template_name,
-        )
-
 # ── Utilitários ───────────────────────────────────────────────────────────────
 def norm_query(q: str) -> str:
     return (q or "").strip().upper()
@@ -132,9 +90,13 @@ def digits_only(q: str) -> str:
 def parse_number_ptbr(x):
     if x is None:
         return None
-    s = str(x).strip().replace(" ", "").replace(".", "").replace(",", ".")
+    s = str(x).strip().replace(" ", "")
+    if s.lower() in ("", "nan", "none", "sim", "nao", "não", "-"):
+        return None
+    # Tenta float direto (ex: "6.0", "4", "12")
     try:
-        return float(s)
+        v = float(s.replace(",", "."))
+        return v if v > 0 else None
     except Exception:
         return None
 
@@ -363,7 +325,7 @@ def import_list_to_review(df):
 # ── Rotas ─────────────────────────────────────────────────────────────────────
 @catalogo_bp.get("/")
 def index():
-    return _render_steck("steck/index.html")
+    return render_template("index.html")
 
 @catalogo_bp.get("/search")
 def search():
@@ -377,8 +339,8 @@ def search():
         results = ranked_search(conn, q)
         conn.close()
 
-    return _render_steck("steck/results.html", q=q, results=results,
-                         cart=cart, summary=summary)
+    return render_template("results.html", q=q, results=results,
+                           cart=cart, summary=summary)
 
 @catalogo_bp.post("/add")
 def add():
@@ -412,7 +374,7 @@ def cart_clear():
 
 @catalogo_bp.get("/cart")
 def cart():
-    return _render_steck("steck/cart.html", cart=get_cart())
+    return render_template("cart.html", cart=get_cart())
 
 @catalogo_bp.get("/export/xlsx")
 def export_xlsx():
@@ -434,7 +396,7 @@ def export_xlsx():
 
 @catalogo_bp.get("/import")
 def import_page():
-    return _render_steck("steck/import.html")
+    return render_template("import.html")
 
 @catalogo_bp.post("/import")
 def import_upload():
@@ -455,7 +417,7 @@ def import_upload():
 def review_page():
     found     = session.get("steck_review_found", [])
     not_found = session.get("steck_review_not_found", [])
-    return _render_steck("steck/review.html", found=found, not_found=not_found)
+    return render_template("review.html", found=found, not_found=not_found)
 
 @catalogo_bp.post("/review/add_all")
 def review_add_all():

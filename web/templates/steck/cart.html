@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Selecionados — Catálogo Steck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
+</head>
+<body>
+  <div class="vx-bg"></div>
+  <main class="vx-wrap fade-in">
+    <header class="vx-topbar">
+      <div class="vx-topbar-left">
+        <a href="/launcher" class="vx-back">← Vortex</a>
+        <span class="vx-module-name">Catálogo Elétrico</span>
+      </div>
+      <div class="vx-actions">
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.index') }}">Nova busca</a>
+        {% if cart|length > 0 %}
+          <a class="vx-chip vx-chip-cyan" href="{{ url_for('catalogo_steck.export_xlsx') }}">↓ Exportar Excel</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="vx-card">
+      <div class="vx-card-title">Itens Selecionados</div>
+
+      {% if cart|length == 0 %}
+        <div class="vx-empty">
+          <div class="vx-empty-title">Nenhum item</div>
+          <div class="vx-empty-sub">Pesquise um produto e clique em "Adicionar".</div>
+        </div>
+      {% else %}
+        <div class="vx-table">
+          <div class="vx-thead">
+            <div>Descrição</div><div>Código</div><div>Lote mín.</div><div>Qtde</div>
+          </div>
+          {% for i in cart %}
+            <div class="vx-trow">
+              <div class="vx-td">{{ i["descricao"] }}</div>
+              <div class="vx-td vx-mono">{{ i["codigo"] }}</div>
+              <div class="vx-td vx-mono">{{ i["lote_minimo"] or "—" }}</div>
+              <div class="vx-td vx-mono vx-cyan">{{ i["quantidade"] }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <form action="{{ url_for('catalogo_steck.cart_clear') }}" method="post" style="margin-top:16px;">
+          <button class="vx-btn vx-btn-danger">Limpar tudo</button>
+        </form>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

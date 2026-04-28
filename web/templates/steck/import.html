@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Importar Lista — Catálogo Steck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
+</head>
+<body>
+  <div class="vx-bg"></div>
+  <main class="vx-wrap fade-in">
+    <header class="vx-topbar">
+      <div class="vx-topbar-left">
+        <a href="/launcher" class="vx-back">← Vortex</a>
+        <span class="vx-module-name">Catálogo Elétrico</span>
+      </div>
+      <div class="vx-actions">
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.index') }}">← Busca</a>
+      </div>
+    </header>
+
+    <section class="vx-card">
+      <div class="vx-card-title">Importar Lista de Produtos</div>
+      <div class="vx-card-sub" style="margin-bottom:20px;">
+        Envie um Excel (.xlsx) com colunas CODIGO e/ou DESCRICAO. O sistema encontra os produtos automaticamente.
+      </div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for m in messages %}
+            <div class="vx-alert">{{ m }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('catalogo_steck.import_upload') }}" method="post" enctype="multipart/form-data" class="vx-col">
+        <input type="file" name="file" accept=".xlsx,.xls" class="vx-file-input">
+        <button class="vx-btn vx-btn-cyan" type="submit" style="margin-top:12px;">Processar arquivo</button>
+      </form>
+
+      <div class="vx-hint" style="margin-top:20px;">
+        Colunas reconhecidas: <code>CODIGO</code>, <code>DESCRICAO</code>, <code>QTDE</code> (opcional)<br>
+        O fuzzy match encontra o produto mesmo com descrição aproximada.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

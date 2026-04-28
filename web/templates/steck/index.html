@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo Steck/Schneider — Vortex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
+</head>
+<body>
+  <div class="vx-bg"></div>
+
+  <main class="vx-wrap fade-in">
+
+    <!-- Topbar Vortex -->
+    <header class="vx-topbar">
+      <div class="vx-topbar-left">
+        <a href="/launcher" class="vx-back">← Vortex</a>
+        <span class="vx-module-name">Catálogo Elétrico</span>
+        <span class="vx-module-tag">Steck / Schneider</span>
+      </div>
+      <div class="vx-actions">
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.import_page') }}">↓ Importar lista</a>
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.cart') }}">☰ Selecionados</a>
+      </div>
+    </header>
+
+    <!-- Card busca -->
+    <section class="vx-card">
+      <div class="vx-card-title">Pesquisa de Produtos</div>
+      <div class="vx-card-sub">Busque por código, números do código ou descrição</div>
+
+      <form action="{{ url_for('catalogo_steck.search') }}" method="get" class="vx-row" style="margin-top:20px;">
+        <input
+          class="vx-input"
+          name="q"
+          placeholder="Ex: S3054, 3054, TOMADA 2P+T, DISJUNTOR 1P..."
+          autofocus
+        >
+        <button class="vx-btn" type="submit">Buscar</button>
+      </form>
+
+      <div class="vx-hint" style="margin-top:16px;">
+        Dicas de busca:<br>
+        • Código completo: <code>S3054</code> &nbsp;•&nbsp; Só números: <code>3054</code><br>
+        • Parte da descrição: <code>DISJUNTOR 1P CURVA C</code>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

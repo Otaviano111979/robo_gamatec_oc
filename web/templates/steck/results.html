@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resultados — Catálogo Steck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
+</head>
+<body>
+  <div class="vx-bg"></div>
+
+  <main class="vx-wrap fade-in">
+
+    <header class="vx-topbar">
+      <div class="vx-topbar-left">
+        <a href="/launcher" class="vx-back">← Vortex</a>
+        <span class="vx-module-name">Catálogo Elétrico</span>
+        <span class="vx-module-tag">Steck / Schneider</span>
+      </div>
+      <div class="vx-actions">
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.index') }}">Nova busca</a>
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.import_page') }}">↓ Importar</a>
+      </div>
+    </header>
+
+    <div class="vx-two-col">
+
+      <!-- Coluna esquerda: resultados -->
+      <section class="vx-card">
+        <form action="{{ url_for('catalogo_steck.search') }}" method="get" class="vx-row" style="margin-bottom:16px;">
+          <input class="vx-input" name="q" value="{{ q }}" placeholder="Código ou descrição...">
+          <button class="vx-btn" type="submit">Buscar</button>
+        </form>
+
+        {% if results|length == 0 %}
+          <div class="vx-empty">
+            <div class="vx-empty-title">Nenhum resultado</div>
+            <div class="vx-empty-sub">Tente outro código, só os números, ou parte da descrição.</div>
+          </div>
+        {% else %}
+          <div class="vx-list">
+            {% for r in results %}
+              <div class="vx-item">
+                <div class="vx-item-main">
+                  <div class="vx-item-top">
+                    <span class="vx-code">{{ r["produto_raw"] }}</span>
+                    {% if r["lote_minimo"] %}
+                      <span class="vx-badge">Lote: {{ r["lote_minimo"] }}</span>
+                    {% endif %}
+                    {% if r["ean13"] %}
+                      <span class="vx-badge">EAN: {{ r["ean13"] }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="vx-item-desc">{{ r["descricao"] }}</div>
+                </div>
+
+                <form class="vx-item-form ajax-add" action="{{ url_for('catalogo_steck.add') }}" method="post">
+                  <input type="hidden" name="produto_raw"  value="{{ r['produto_raw'] }}">
+                  <input type="hidden" name="descricao"    value="{{ r['descricao'] }}">
+                  <input type="hidden" name="lote_minimo"  value="{{ r['lote_minimo'] or '' }}">
+
+                  <div class="vx-qty">
+                    <label class="vx-lbl">Qtde</label>
+                    {% if r["lote_minimo"] %}
+                      <input class="vx-input vx-qty-input" name="quantidade"
+                             value="{{ r['lote_minimo'] }}" inputmode="decimal"
+                             step="{{ r['lote_minimo'] }}" min="{{ r['lote_minimo'] }}"
+                             title="Ajustado para múltiplo do lote mínimo">
+                    {% else %}
+                      <input class="vx-input vx-qty-input" name="quantidade"
+                             value="1" inputmode="decimal" step="1" min="1">
+                    {% endif %}
+                  </div>
+
+                  <button class="vx-btn vx-btn-cyan" type="submit">+ Adicionar</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Coluna direita: carrinho -->
+      <aside class="vx-card vx-sticky" id="cartPanel">
+        <div class="vx-cart-head">
+          <div>
+            <div class="vx-card-title" style="font-size:16px;">Selecionados</div>
+            <div class="vx-card-sub">
+              Itens: <span class="vx-mono" id="cartTotalItens">{{ summary.total_itens }}</span>
+              &nbsp;·&nbsp; Qtd: <span class="vx-mono" id="cartTotalQtd">{{ summary.total_quantidade }}</span>
+            </div>
+          </div>
+          <div class="vx-actions">
+            {% if summary.total_itens|int > 0 %}
+              <a class="vx-chip vx-chip-cyan" href="{{ url_for('catalogo_steck.export_xlsx') }}">↓ Excel</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="vx-cart-list" id="cartList">
+          {% if cart|length == 0 %}
+            <div class="vx-empty-sub">Nenhum item adicionado.</div>
+          {% else %}
+            {% for i in cart %}
+              <div class="vx-cart-item">
+                <div class="vx-mono vx-cart-code">{{ i["codigo"] }}</div>
+                <div class="vx-cart-desc">{{ i["descricao"] }}</div>
+                <div class="vx-cart-meta">
+                  <span class="vx-badge">Lote: {{ i["lote_minimo"] or "—" }}</span>
+                  <span class="vx-badge vx-badge-cyan">{{ i["quantidade"] }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+
+        <form action="{{ url_for('catalogo_steck.cart_clear') }}" method="post" style="margin-top:12px;">
+          <button class="vx-btn vx-btn-danger" type="submit">Limpar</button>
+        </form>
+
+        <div class="vx-hint">Adicionar o mesmo código soma e ajusta para múltiplo do lote mínimo.</div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+  document.querySelectorAll(".ajax-add").forEach(form => {
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const btn = form.querySelector("button[type=submit]");
+      btn.disabled = true;
+      btn.textContent = "✓";
+
+      const res = await fetch(form.action, {
+        method: "POST", body: data,
+        headers: {"Accept": "application/json", "X-Requested-With": "fetch"}
+      });
+      const json = await res.json();
+      if (json.ok) {
+        document.getElementById("cartTotalItens").textContent = json.summary.total_itens;
+        document.getElementById("cartTotalQtd").textContent   = json.summary.total_quantidade;
+
+        const list = document.getElementById("cartList");
+        if (list) {
+          list.innerHTML = json.cart.map(i => `
+            <div class="vx-cart-item">
+              <div class="vx-mono vx-cart-code">${i.codigo}</div>
+              <div class="vx-cart-desc">${i.descricao}</div>
+              <div class="vx-cart-meta">
+                <span class="vx-badge">Lote: ${i.lote_minimo || "—"}</span>
+                <span class="vx-badge vx-badge-cyan">${i.quantidade}</span>
+              </div>
+            </div>`).join("");
+        }
+      }
+      setTimeout(() => { btn.disabled = false; btn.textContent = "+ Adicionar"; }, 1200);
+    });
+  });
+  </script>
+</body>
+</html>

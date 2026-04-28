@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisão — Catálogo Steck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
+</head>
+<body>
+  <div class="vx-bg"></div>
+  <main class="vx-wrap fade-in">
+    <header class="vx-topbar">
+      <div class="vx-topbar-left">
+        <a href="/launcher" class="vx-back">← Vortex</a>
+        <span class="vx-module-name">Catálogo Elétrico</span>
+        <span class="vx-module-tag">Revisão da importação</span>
+      </div>
+      <div class="vx-actions">
+        <a class="vx-chip" href="{{ url_for('catalogo_steck.import_page') }}">Nova importação</a>
+      </div>
+    </header>
+
+    <!-- Encontrados -->
+    <section class="vx-card">
+      <div class="vx-card-title" style="color:var(--cyan);">
+        ✓ Encontrados: {{ found|length }} iten{{ 's' if found|length != 1 else '' }}
+      </div>
+
+      {% if found %}
+        <div class="vx-table" style="margin-top:12px;">
+          <div class="vx-thead">
+            <div>Entrada</div><div>Produto no catálogo</div><div>Descrição</div><div>Qtde</div>
+          </div>
+          {% for it in found %}
+            <div class="vx-trow">
+              <div class="vx-td vx-mono" style="font-size:12px;">{{ it.entrada_codigo or it.entrada_descricao }}</div>
+              <div class="vx-td vx-mono vx-cyan">{{ it.codigo }}</div>
+              <div class="vx-td">{{ it.descricao }}</div>
+              <div class="vx-td vx-mono">{{ it.quantidade }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <form action="{{ url_for('catalogo_steck.review_add_all') }}" method="post" style="margin-top:16px;">
+          <button class="vx-btn vx-btn-cyan">Adicionar todos ao carrinho</button>
+        </form>
+      {% else %}
+        <div class="vx-empty-sub">Nenhum produto identificado automaticamente.</div>
+      {% endif %}
+    </section>
+
+    <!-- Não encontrados -->
+    {% if not_found %}
+      <section class="vx-card" style="margin-top:16px;">
+        <div class="vx-card-title" style="color:#ff6b6b;">
+          ✗ Não encontrados: {{ not_found|length }} iten{{ 's' if not_found|length != 1 else '' }}
+        </div>
+        <div class="vx-card-sub">Estes itens precisam de busca manual.</div>
+
+        <div class="vx-table" style="margin-top:12px;">
+          <div class="vx-thead">
+            <div>Código enviado</div><div>Descrição enviada</div><div>Qtde</div>
+          </div>
+          {% for it in not_found %}
+            <div class="vx-trow">
+              <div class="vx-td vx-mono">{{ it.entrada_codigo or "—" }}</div>
+              <div class="vx-td">{{ it.entrada_descricao or "—" }}</div>
+              <div class="vx-td vx-mono">{{ it.quantidade }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+  </main>
+</body>
+</html>
