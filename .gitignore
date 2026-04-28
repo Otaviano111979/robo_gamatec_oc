@@ -66,3 +66,5 @@ agente_email/estado_emails.json
 *.pickle 
 agente_email/token.pickle
 agente_email/estado_emails.json
+instance/*.xlsx 
+instance/*.db 
