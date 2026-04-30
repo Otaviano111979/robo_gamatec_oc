@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparar Orçamento — Vortex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    .cmp-card {
+      background: #111118; border: 1px solid #2a2a3a;
+      border-radius: 12px; padding: 28px; max-width: 560px; margin: 32px auto;
+    }
+    .cmp-title {
+      font-family: 'Syncopate', monospace; font-size: 14px; font-weight: 700;
+      letter-spacing: .06em; color: #00d4ff; margin-bottom: 6px;
+    }
+    .cmp-sub { font-size: 13px; color: #7070a0; margin-bottom: 24px; }
+    .cmp-oc  { font-size: 12px; color: #7070a0; background: #16161f;
+               border: 1px solid #2a2a3a; border-radius: 6px; padding: 8px 12px;
+               margin-bottom: 20px; font-family: monospace; }
+    .cmp-drop {
+      border: 1px dashed rgba(0,212,255,.3); border-radius: 8px;
+      padding: 32px; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s; margin-bottom: 16px;
+    }
+    .cmp-drop:hover { border-color: #00d4ff; background: rgba(0,212,255,.04); }
+    .cmp-drop input { display: none; }
+    .cmp-drop-icon  { font-size: 28px; margin-bottom: 8px; }
+    .cmp-drop-label { font-size: 13px; color: #7070a0; }
+    .cmp-drop-file  { font-size: 12px; color: #00d4ff; margin-top: 8px; display: none; }
+    .cmp-btn {
+      width: 100%; padding: 11px; background: rgba(0,212,255,.1);
+      border: 1px solid rgba(0,212,255,.4); border-radius: 8px;
+      color: #00d4ff; font-size: 14px; cursor: pointer;
+      font-family: 'Syncopate', monospace; letter-spacing: .04em;
+      transition: background .2s;
+    }
+    .cmp-btn:hover { background: rgba(0,212,255,.2); }
+    .cmp-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .cmp-flash { background: rgba(255,77,77,.1); border: 1px solid rgba(255,77,77,.3);
+                 border-radius: 6px; padding: 10px 14px; color: #ff4d4d;
+                 font-size: 13px; margin-bottom: 16px; }
+    .cmp-back { font-size: 13px; color: #7070a0; text-decoration: none; display: inline-block; margin-bottom: 16px; }
+    .cmp-back:hover { color: #00d4ff; }
+    .cmp-steps { display: flex; gap: 8px; margin-bottom: 24px; }
+    .cmp-step  { flex: 1; background: #16161f; border: 1px solid #2a2a3a;
+                 border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #7070a0; }
+    .cmp-step.active { border-color: rgba(0,212,255,.4); color: #00d4ff; }
+    .cmp-step .num  { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+  </style>
+</head>
+<body style="background:#080810; min-height:100vh; padding:20px;">
+
+  <a href="/dashboard" class="cmp-back">← Dashboard</a>
+
+  <div class="cmp-card">
+    <div class="cmp-title">Comparar com Orçamento</div>
+    <div class="cmp-sub">Calcule os descontos necessários para chegar ao preço da OC</div>
+
+    <!-- Steps -->
+    <div class="cmp-steps">
+      <div class="cmp-step active">
+        <div class="num">1</div>OC processada
+      </div>
+      <div class="cmp-step active">
+        <div class="num">2</div>Upload orçamento
+      </div>
+      <div class="cmp-step">
+        <div class="num">3</div>Ver descontos
+      </div>
+      <div class="cmp-step">
+        <div class="num">4</div>Baixar planilha
+      </div>
+    </div>
+
+    <!-- OC info -->
+    <div class="cmp-oc">OC: {{ oc_id }}</div>
+
+    <!-- Flash -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for m in messages %}
+          <div class="cmp-flash">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Upload form -->
+    <form action="{{ url_for('comparador.processar', oc_id=oc_id) }}"
+          method="post" enctype="multipart/form-data" id="uploadForm">
+
+      <div class="cmp-drop" onclick="document.getElementById('pdfInput').click()">
+        <input type="file" name="orcamento" id="pdfInput" accept=".pdf">
+        <div class="cmp-drop-icon">📄</div>
+        <div class="cmp-drop-label">Clique para selecionar o PDF do orçamento Gamatec</div>
+        <div class="cmp-drop-file" id="fileName"></div>
+      </div>
+
+      <button class="cmp-btn" type="submit" id="submitBtn" disabled>
+        Processar e calcular descontos →
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const input  = document.getElementById('pdfInput');
+    const label  = document.getElementById('fileName');
+    const btn    = document.getElementById('submitBtn');
+
+    input.addEventListener('change', () => {
+      if (input.files.length > 0) {
+        label.textContent = '✓ ' + input.files[0].name;
+        label.style.display = 'block';
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+      btn.disabled = true;
+      btn.textContent = 'Processando...';
+    });
+  </script>
+</body>
+</html>

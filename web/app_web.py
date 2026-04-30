@@ -36,6 +36,13 @@ try:
 except ImportError:
     _STECK_OK = False
 
+# ── Comparador de Orçamento ──────────────────────────────────────────────────
+try:
+    from comparador_bp import comparador_bp
+    _COMPARADOR_OK = True
+except ImportError:
+    _COMPARADOR_OK = False
+
 # diretorio raiz do projeto — lido do .env, com fallback para a pasta pai deste arquivo
 BASE_DIR = os.environ.get(
     "GAMATEC_BASE_DIR",
@@ -55,6 +62,12 @@ if _STECK_OK:
     print("[STECK] Catálogo Steck/Schneider registrado em /catalogo/steck/")
 else:
     print("[STECK] Módulo catalogo_steck não encontrado — catálogo desativado")
+
+if _COMPARADOR_OK:
+    app.register_blueprint(comparador_bp)
+    print("[COMPARADOR] Módulo comparador registrado em /comparador/")
+else:
+    print("[COMPARADOR] Módulo comparador_bp não encontrado — comparador desativado")
 
 PASTA_ENTRADA = os.path.join(BASE_DIR, "entrada_oc")
 PASTA_LOGS = os.path.join(BASE_DIR, "web", "logs")
@@ -746,6 +759,7 @@ def montar_status_oc(nome_arquivo):
 
     return {
         "nome": nome_arquivo,
+        "nome_base": nome_base_arquivo(nome_arquivo),
         "numero_oc": extrair_numero_oc(nome_arquivo),
         "timestamp_ref": ts,
         "data_ref": data_ref,
