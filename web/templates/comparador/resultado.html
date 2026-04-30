@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resultado Comparação — Vortex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    body { background: #080810; min-height:100vh; padding: 20px; font-family: 'Inter', sans-serif; color: #e8e8f0; }
+
+    .cmp-header { max-width: 1200px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .cmp-title  { font-family: 'Syncopate', monospace; font-size: 14px; font-weight: 700; letter-spacing: .06em; color: #00d4ff; }
+    .cmp-sub    { font-size: 12px; color: #7070a0; margin-top: 2px; }
+
+    .cmp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-dl   { background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.4); border-radius: 8px; color: #00d4ff; padding: 9px 16px; font-size: 13px; text-decoration: none; transition: background .2s; white-space: nowrap; }
+    .btn-dl:hover { background: rgba(0,212,255,.2); }
+    .btn-back { background: #16161f; border: 1px solid #2a2a3a; border-radius: 8px; color: #7070a0; padding: 9px 16px; font-size: 13px; text-decoration: none; }
+    .btn-back:hover { color: #e8e8f0; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; max-width: 1200px; margin: 0 auto 20px; }
+    .stat  { background: #111118; border: 1px solid #2a2a3a; border-radius: 10px; padding: 14px 16px; }
+    .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; font-family: monospace; }
+    .stat-lbl { font-size: 11px; color: #7070a0; text-transform: uppercase; letter-spacing: .06em; }
+    .stat.ok  .stat-val { color: #00d4ff; }
+    .stat.abx .stat-val { color: #4ade80; }
+    .stat.warn .stat-val { color: #facc15; }
+    .stat.err  .stat-val { color: #f87171; }
+
+    /* Tabela */
+    .tbl-wrap { max-width: 1200px; margin: 0 auto; background: #111118; border: 1px solid #2a2a3a; border-radius: 12px; overflow: hidden; }
+    .tbl-filters { display: flex; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #2a2a3a; flex-wrap: wrap; align-items: center; }
+    .tbl-filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #2a2a3a; background: #16161f; color: #7070a0; transition: all .15s; }
+    .tbl-filter-btn.active { border-color: #00d4ff; color: #00d4ff; background: rgba(0,212,255,.08); }
+    .tbl-search { flex: 1; min-width: 180px; background: #16161f; border: 1px solid #2a2a3a; border-radius: 6px; color: #e8e8f0; padding: 5px 10px; font-size: 13px; outline: none; }
+    .tbl-search:focus { border-color: #00d4ff; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { padding: 10px 12px; text-align: left; font-size: 11px; color: #7070a0; text-transform: uppercase; letter-spacing: .06em; background: #16161f; border-bottom: 1px solid #2a2a3a; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #2a2a3a; transition: background .15s; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 9px 12px; vertical-align: middle; }
+
+    /* Colunas coloridas */
+    .td-cod   { font-family: monospace; color: #00d4ff; font-weight: 600; white-space: nowrap; }
+    .td-desc  { color: #e8e8f0; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-num   { font-family: monospace; text-align: right; white-space: nowrap; }
+
+    /* Coluna Preço OC — fundo azul escuro */
+    .td-preco-oc { font-family: monospace; text-align: right; white-space: nowrap;
+                   background: rgba(0,212,255,.06); color: #a0d8ff; }
+
+    /* Coluna Valor Total OC — fundo azul um pouco mais forte */
+    .td-total-oc { font-family: monospace; text-align: right; white-space: nowrap;
+                   background: rgba(0,212,255,.10); color: #00d4ff; font-weight: 600; }
+
+    /* Coluna Preço Orçamento */
+    .td-preco-orc { font-family: monospace; text-align: right; white-space: nowrap;
+                    background: rgba(250,204,21,.05); color: #fde68a; }
+
+    /* Coluna Desconto — verde */
+    .td-desconto { font-family: monospace; text-align: right; white-space: nowrap;
+                   background: rgba(74,222,128,.08); color: #4ade80; font-weight: 700; }
+
+    /* Coluna Preço Final */
+    .td-preco-final { font-family: monospace; text-align: right; white-space: nowrap; }
+    .preco-final-ok  { color: #4ade80; font-weight: 600; }
+    .preco-final-bad { color: #f87171; }
+
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .badge-ok   { background: rgba(74,222,128,.12); color: #4ade80; border: 1px solid rgba(74,222,128,.3); }
+    .badge-abx  { background: rgba(0,212,255,.12);  color: #00d4ff; border: 1px solid rgba(0,212,255,.3); }
+    .badge-warn { background: rgba(250,204,21,.12); color: #facc15; border: 1px solid rgba(250,204,21,.3); }
+    .badge-err  { background: rgba(248,113,113,.12);color: #f87171; border: 1px solid rgba(248,113,113,.3); }
+
+    .empty { text-align: center; padding: 40px; color: #7070a0; font-size: 13px; }
+
+    /* Header das colunas coloridas */
+    thead th.th-preco-oc   { background: rgba(0,212,255,.10); color: #a0d8ff; }
+    thead th.th-total-oc   { background: rgba(0,212,255,.15); color: #00d4ff; }
+    thead th.th-preco-orc  { background: rgba(250,204,21,.08); color: #fde68a; }
+    thead th.th-desconto   { background: rgba(74,222,128,.12); color: #4ade80; }
+  </style>
+</head>
+<body>
+
+  <div class="cmp-header">
+    <div>
+      <div class="cmp-title">Comparação de Descontos</div>
+      <div class="cmp-sub">
+        OC: {{ oc_id }} &nbsp;·&nbsp;
+        Orçamento: {{ dados.numero_orcamento }} &nbsp;·&nbsp;
+        Emissão: {{ dados.emissao }}
+      </div>
+    </div>
+    <div class="cmp-actions">
+      <a href="{{ url_for('comparador.upload_page', oc_id=oc_id) }}" class="btn-back">← Novo orçamento</a>
+      <a href="{{ url_for('comparador.download', oc_id=oc_id) }}" class="btn-dl">↓ Baixar planilha GAMATEC</a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat ok">
+      <div class="stat-val">{{ stats.ok }}</div>
+      <div class="stat-lbl">✓ Com desconto</div>
+    </div>
+    <div class="stat abx">
+      <div class="stat-val">{{ stats.abaixo }}</div>
+      <div class="stat-lbl">↓ Já abaixo da OC</div>
+    </div>
+    <div class="stat warn">
+      <div class="stat-val">{{ stats.sem_orc }}</div>
+      <div class="stat-lbl">⚠ Sem orçamento</div>
+    </div>
+    <div class="stat err">
+      <div class="stat-val">{{ stats.sem_oc }}</div>
+      <div class="stat-lbl">✗ Fora da OC</div>
+    </div>
+    <div class="stat ok">
+      <div class="stat-val">{{ stats.para_gamatec }}</div>
+      <div class="stat-lbl">→ Para o GAMATEC</div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="tbl-wrap">
+    <div class="tbl-filters">
+      <button class="tbl-filter-btn active" onclick="filtrar('TODOS', this)">Todos</button>
+      <button class="tbl-filter-btn" onclick="filtrar('OK', this)">✓ Com desconto</button>
+      <button class="tbl-filter-btn" onclick="filtrar('ABAIXO', this)">↓ Já abaixo</button>
+      <button class="tbl-filter-btn" onclick="filtrar('SEM_ORC', this)">⚠ Sem orçamento</button>
+      <button class="tbl-filter-btn" onclick="filtrar('SEM_OC', this)">✗ Fora da OC</button>
+      <input class="tbl-search" placeholder="Buscar código ou descrição..." oninput="buscar(this.value)">
+    </div>
+
+    <table id="tabelaComparacao">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Qtde</th>
+          <th class="th-preco-oc">Preço OC</th>
+          <th class="th-total-oc">Total OC</th>
+          <th class="th-preco-orc">Preço Orç.</th>
+          <th class="th-desconto">Desconto %</th>
+          <th>Preço Final</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        {% set qtde = r.QUANTIDADE if r.QUANTIDADE else 0 %}
+        {% set total_oc = (qtde * r.PRECO_OC) if (r.PRECO_OC and qtde) else None %}
+        <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO }} {{ r.DESCRICAO }}">
+          <td class="td-cod">{{ r.CODIGO }}</td>
+          <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
+          <td class="td-num">{{ qtde if qtde else '—' }}</td>
+          <td class="td-preco-oc">
+            {% if r.PRECO_OC %}R$ {{ "%.3f"|format(r.PRECO_OC) }}{% else %}—{% endif %}
+          </td>
+          <td class="td-total-oc">
+            {% if total_oc %}R$ {{ "%.2f"|format(total_oc) }}{% else %}—{% endif %}
+          </td>
+          <td class="td-preco-orc">
+            {% if r.PRECO_ORCAMENTO %}R$ {{ "%.3f"|format(r.PRECO_ORCAMENTO) }}{% else %}—{% endif %}
+          </td>
+          <td class="td-desconto">
+            {% if r.DESCONTO is not none %}
+              {{ "%.5f"|format(r.DESCONTO)|replace(",",".") }}%
+            {% else %}—{% endif %}
+          </td>
+          <td class="td-preco-final">
+            {% if r.PRECO_FINAL is not none %}
+              {% if r.PRECO_OC and r.PRECO_FINAL <= r.PRECO_OC %}
+                <span class="preco-final-ok">R$ {{ "%.3f"|format(r.PRECO_FINAL) }}</span>
+              {% else %}
+                <span class="preco-final-bad">R$ {{ "%.3f"|format(r.PRECO_FINAL) }}</span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if r.STATUS == 'OK' %}
+              <span class="badge badge-ok">✓ OK</span>
+            {% elif r.STATUS == 'ABAIXO' %}
+              <span class="badge badge-abx">↓ Abaixo</span>
+            {% elif r.STATUS == 'SEM_ORC' %}
+              <span class="badge badge-warn">⚠ Sem orç.</span>
+            {% elif r.STATUS == 'SEM_OC' %}
+              <span class="badge badge-err">✗ Fora OC</span>
+            {% else %}
+              <span class="badge badge-warn">{{ r.STATUS }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">Nenhum item encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let filtroAtivo = 'TODOS';
+
+    function filtrar(status, btn) {
+      filtroAtivo = status;
+      document.querySelectorAll('.tbl-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      aplicarFiltros();
+    }
+
+    function buscar(q) { aplicarFiltros(q); }
+
+    function aplicarFiltros(q) {
+      const busca = (q !== undefined ? q : document.querySelector('.tbl-search').value).toLowerCase();
+      document.querySelectorAll('#tabelaComparacao tbody tr[data-status]').forEach(tr => {
+        const statusOk = filtroAtivo === 'TODOS' || tr.dataset.status === filtroAtivo;
+        const buscaOk  = !busca || tr.dataset.busca.toLowerCase().includes(busca);
+        tr.style.display = (statusOk && buscaOk) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
