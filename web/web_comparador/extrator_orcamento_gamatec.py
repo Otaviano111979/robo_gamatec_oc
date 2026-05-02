@@ -13,9 +13,16 @@ import re
 import pdfplumber
 
 
-# Padrão: 4 dígitos + descrição + emb(int) + qtde(num) + unitário(num,num) + ...
+# Regex com descrição greedy — captura o máximo possível antes dos campos numéricos
+# Isso evita shift de colunas quando a descrição termina com número (ex: JOELHO 45)
 _LINHA_ITEM = re.compile(
-    r'^(\d{4})\s+(.+?)\s+(\d+)\s+([\d.]+)\s+([\d.,]+)\s+([\d.,]+)'
+    r'^(\d{4})\s+'
+    r'(.+)\s+'
+    r'(\d+)\s+'
+    r'(\d+(?:[.,]\d+)?)\s+'
+    r'([\d.,]+)\s+'
+    r'([\d.,]+)'
+    r'(?:\s|$)'
 )
 
 # Linhas a ignorar
@@ -28,11 +35,11 @@ _IGNORAR = re.compile(
 
 
 def _parse_num(s: str) -> float:
-    """Converte '1.234,56' ou '1234.56' para float."""
     s = str(s).strip()
-    # formato brasileiro: ponto = milhar, vírgula = decimal
     if ',' in s:
         s = s.replace('.', '').replace(',', '.')
+    elif '.' in s and s.index('.') < len(s) - 4:
+        s = s.replace('.', '')
     try:
         return float(s)
     except Exception:
@@ -51,7 +58,7 @@ def extrair_orcamento_gamatec(pdf_bytes: bytes) -> dict:
                 'codigo': '0029',
                 'descricao': 'TUBO PVC SOLDAVEL - 6M - 75MM',
                 'qtde': 4.0,
-                'preco_orcamento': 201.698,
+                'preco_orcamento': 201.698,  # sempre unitário
             },
             ...
         ],
@@ -96,20 +103,27 @@ def extrair_orcamento_gamatec(pdf_bytes: bytes) -> dict:
                 if not m:
                     continue
 
-                codigo    = m.group(1).strip()
+                codigo   = m.group(1).strip()
                 descricao = m.group(2).strip()
-                qtde      = _parse_num(m.group(4))
-                unitario  = _parse_num(m.group(5))
+                qtde     = _parse_num(m.group(4))
+                unitario = _parse_num(m.group(5))
+                total    = _parse_num(m.group(6))
 
-                # Sanity check — unitário deve ser > 0
+                # Sanity check 1 — unitário deve ser > 0
                 if unitario <= 0:
                     continue
+
+                if total > 0 and qtde > 0:
+                    esperado = unitario * qtde
+                    margem = abs(esperado - total) / total
+                    if margem > 0.05:
+                        continue
 
                 itens.append({
                     'codigo':          codigo,
                     'descricao':       descricao,
                     'qtde':            qtde,
-                    'preco_orcamento': unitario,
+                    'preco_orcamento': unitario,  # sempre unitário
                 })
 
     return {
