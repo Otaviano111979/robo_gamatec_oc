@@ -10,9 +10,8 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    .launcher-page {
       min-height: 100vh;
-      background: #080810;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -24,8 +23,8 @@
     .grid-bg {
       position: fixed; inset: 0;
       background-image:
-        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+        linear-gradient(rgba(0, 119, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 119, 255, 0.06) 1px, transparent 1px);
       background-size: 48px 48px;
       pointer-events: none; z-index: 0;
     }
@@ -33,7 +32,7 @@
     .glow-bg {
       position: fixed;
       width: 600px; height: 600px; border-radius: 50%;
-      background: radial-gradient(circle, #00d4ff06 0%, transparent 65%);
+      background: radial-gradient(circle, rgba(0, 119, 255, 0.10) 0%, transparent 65%);
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none; z-index: 0;
@@ -89,22 +88,22 @@
     .wordmark {
       font-family: 'Syncopate', sans-serif;
       font-size: 24px; font-weight: 700;
-      letter-spacing: 0.1em; color: #fff;
+      letter-spacing: 0.08em; color: var(--text);
       text-align: center; line-height: 1;
     }
-    .wordmark span { color: #00d4ff; text-shadow: 0 0 20px #00d4ff66; }
+    .wordmark span { color: var(--primary); }
 
     .sub-label {
       font-family: 'Space Mono', monospace;
       font-size: 9px; letter-spacing: 0.3em;
-      color: #00d4ff33; text-transform: uppercase;
+      color: rgba(90, 100, 120, 0.85); text-transform: uppercase;
       margin-top: 4px; text-align: center;
     }
-    .sub-label.cyan { color: #00d4ff88; }
+    .sub-label.cyan { color: rgba(0, 119, 255, 0.70); }
 
     .divider {
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+      background: linear-gradient(90deg, transparent, rgba(0, 119, 255, 0.20), transparent);
       margin-bottom: 28px;
     }
 
@@ -118,21 +117,23 @@
 
     /* EMPRESA CARDS */
     .empresa-card {
-      background: rgba(14,14,26,0.95);
-      border: 1px solid rgba(0,212,255,0.08);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 16px;
       padding: 14px 16px;
       display: flex; align-items: center; gap: 12px;
       cursor: pointer; margin-bottom: 8px;
-      transition: border-color .2s, box-shadow .2s;
+      box-shadow: var(--shadow);
+      transition: border-color .2s, box-shadow .2s, transform .15s;
     }
     .empresa-card:hover {
-      border-color: rgba(0,212,255,0.2);
-      box-shadow: 0 0 20px rgba(0,212,255,0.06);
+      border-color: rgba(0, 119, 255, 0.22);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-1px);
     }
     .empresa-card.selected {
-      border-color: rgba(0,212,255,0.35);
-      box-shadow: 0 0 24px rgba(0,212,255,0.08);
+      border-color: rgba(0, 119, 255, 0.35);
+      box-shadow: var(--shadow-hover);
     }
 
     .avatar {
@@ -146,93 +147,94 @@
     .av-purple { background: rgba(127,119,221,0.1);color: #9f99dd;  border: 1px solid rgba(127,119,221,0.2); }
 
     .card-info { flex: 1; min-width: 0; }
-    .card-nome { font-size: 14px; font-weight: 500; color: #e8eeff; }
-    .card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #ffffff33; margin-top: 3px; }
+    .card-nome { font-size: 14px; font-weight: 600; color: var(--text); }
+    .card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(90, 100, 120, 0.75); margin-top: 3px; }
 
     .tag {
       font-family: 'Space Mono', monospace;
       font-size: 9px; padding: 3px 8px;
       border-radius: 20px; letter-spacing: 0.1em; flex-shrink: 0;
     }
-    .tag-ativo { background: rgba(0,212,255,0.08); color: #00d4ff88; border: 1px solid rgba(0,212,255,0.15); }
-    .tag-trial { background: rgba(255,200,0,0.08); color: #ffcc0088; border: 1px solid rgba(255,200,0,0.15); }
+    .tag-ativo { background: rgba(0, 119, 255, 0.08); color: rgba(0, 119, 255, 0.85); border: 1px solid rgba(0, 119, 255, 0.18); }
+    .tag-trial { background: rgba(245, 158, 11, 0.10); color: rgba(180, 110, 0, 0.95); border: 1px solid rgba(245, 158, 11, 0.18); }
 
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
     .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .dot-cyan { background: #00d4ff; animation: pulse-dot 2s infinite; box-shadow: 0 0 6px #00d4ff88; }
-    .dot-gray { background: rgba(255,255,255,0.15); }
+    .dot-gray { background: rgba(90, 100, 120, 0.25); }
 
     .btn-entrar {
-      background: linear-gradient(135deg, #0077ff, #00d4ff);
+      background: linear-gradient(135deg, var(--primary), var(--vortex-cyan));
       border: none; border-radius: 10px;
       padding: 7px 16px;
       font-family: 'Syncopate', sans-serif;
       font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
       color: #fff; cursor: pointer; flex-shrink: 0;
-      box-shadow: 0 2px 12px rgba(0,212,255,0.2);
+      box-shadow: var(--shadow-soft);
       transition: box-shadow .2s, transform .15s;
     }
-    .btn-entrar:hover { box-shadow: 0 4px 20px rgba(0,212,255,0.35); transform: translateY(-1px); }
+    .btn-entrar:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
     .btn-entrar.ghost {
       background: transparent;
-      border: 1px solid rgba(0,212,255,0.15);
-      color: #00d4ff55;
+      border: 1px solid rgba(0, 119, 255, 0.18);
+      color: rgba(0, 119, 255, 0.70);
       box-shadow: none;
     }
-    .btn-entrar.ghost:hover { border-color: rgba(0,212,255,0.3); color: #00d4ff99; transform: none; }
+    .btn-entrar.ghost:hover { border-color: rgba(0, 119, 255, 0.30); color: rgba(0, 119, 255, 0.90); transform: none; }
 
     .add-card {
-      border: 1px dashed rgba(0,212,255,0.1);
+      background: var(--surface);
+      border: 1px dashed rgba(0, 119, 255, 0.22);
       border-radius: 16px; padding: 14px 16px;
       display: flex; align-items: center; gap: 12px;
       cursor: pointer; margin-bottom: 8px;
       transition: border-color .2s;
     }
-    .add-card:hover { border-color: rgba(0,212,255,0.2); }
+    .add-card:hover { border-color: rgba(0, 119, 255, 0.35); }
     .add-icon {
       width: 40px; height: 40px; border-radius: 10px;
-      border: 1px dashed rgba(0,212,255,0.15);
+      border: 1px dashed rgba(0, 119, 255, 0.25);
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; color: rgba(0,212,255,0.3); flex-shrink: 0;
+      font-size: 20px; color: rgba(0, 119, 255, 0.55); flex-shrink: 0;
     }
-    .add-info .nome { font-size: 13px; color: rgba(255,255,255,0.3); font-weight: 500; }
-    .add-info .sub  { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.15); margin-top:2px; }
+    .add-info .nome { font-size: 13px; color: rgba(90, 100, 120, 0.90); font-weight: 600; }
+    .add-info .sub  { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(90, 100, 120, 0.70); margin-top:2px; }
 
     /* MÓDULOS */
     .back-btn {
       display: flex; align-items: center; gap: 6px;
       font-family: 'Space Mono', monospace;
-      font-size: 10px; letter-spacing: 0.1em; color: #00d4ff33;
+      font-size: 10px; letter-spacing: 0.1em; color: rgba(90, 100, 120, 0.80);
       background: none; border: none; cursor: pointer;
       margin-bottom: 1.5rem; padding: 0; text-transform: uppercase;
       transition: color .2s;
     }
-    .back-btn:hover { color: #00d4ff88; }
+    .back-btn:hover { color: rgba(0, 119, 255, 0.85); }
 
     .empresa-header {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 1.5rem; padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(0,212,255,0.08);
+      border-bottom: 1px solid var(--border);
     }
-    .empresa-header .nome { font-size: 15px; font-weight: 500; color: #e8eeff; }
+    .empresa-header .nome { font-size: 15px; font-weight: 700; color: var(--text); }
     .empresa-header .sub  {
       font-family: 'Space Mono', monospace;
       font-size: 9px; letter-spacing: 0.2em;
-      color: #00d4ff44; text-transform: uppercase; margin-top: 3px;
+      color: rgba(90, 100, 120, 0.70); text-transform: uppercase; margin-top: 3px;
     }
 
     .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
 
     .module-card {
-      background: rgba(14,14,26,0.95);
-      border: 1px solid rgba(0,212,255,0.06);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 14px; padding: 16px;
       cursor: pointer; transition: border-color .2s, box-shadow .2s;
       text-decoration: none; display: block;
     }
     .module-card.unlocked:hover {
-      border-color: rgba(0,212,255,0.25);
-      box-shadow: 0 0 20px rgba(0,212,255,0.06);
+      border-color: rgba(0, 119, 255, 0.22);
+      box-shadow: var(--shadow-hover);
     }
     .module-card.locked { opacity: .45; cursor: not-allowed; }
 
@@ -245,10 +247,10 @@
     .ic-blue   { background: rgba(0,119,255,0.08); border: 1px solid rgba(0,119,255,0.12); }
     .ic-purple { background: rgba(127,119,221,0.08); border: 1px solid rgba(127,119,221,0.12); }
     .ic-yellow { background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.15); }
-    .ic-gray   { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
+    .ic-gray   { background: rgba(90, 100, 120, 0.08); border: 1px solid rgba(90, 100, 120, 0.14); }
 
-    .mod-name { font-size: 13px; font-weight: 500; color: #e8eeff; }
-    .mod-desc { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 3px; line-height: 1.4; }
+    .mod-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .mod-desc { font-size: 11px; color: rgba(90, 100, 120, 0.75); margin-top: 3px; line-height: 1.4; }
 
     .mod-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -258,27 +260,34 @@
     }
     .mb-active { background: rgba(0,212,255,0.08); color: #00d4ff88; border: 1px solid rgba(0,212,255,0.15); }
     .mb-soon   { background: rgba(127,119,221,0.08); color: #9f99dd88; border: 1px solid rgba(127,119,221,0.15); }
-    .mb-locked { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.06); }
+    .mb-locked { background: rgba(90, 100, 120, 0.08); color: rgba(90, 100, 120, 0.80); border: 1px solid rgba(90, 100, 120, 0.14); }
+
+    .ic-gray svg [stroke],
+    .ic-gray svg path,
+    .ic-gray svg circle,
+    .ic-gray svg rect {
+      stroke: rgba(90, 100, 120, 0.75);
+    }
 
     /* FOOTER */
     .footer {
       margin-top: 2rem; text-align: center;
       font-family: 'Space Mono', monospace;
       font-size: 9px; letter-spacing: 0.2em;
-      color: rgba(255,255,255,0.08); text-transform: uppercase;
+      color: rgba(90, 100, 120, 0.55); text-transform: uppercase;
     }
-    .footer .ia-online { color: #00d4ff44; }
+    .footer .ia-online { color: rgba(0, 119, 255, 0.75); }
     @keyframes pulse-ia { 0%,100%{opacity:1} 50%{opacity:.3} }
     .ia-dot-small {
       display: inline-block; width: 5px; height: 5px;
-      border-radius: 50%; background: #00d4ff;
+      border-radius: 50%; background: var(--primary);
       animation: pulse-ia 1.5s infinite;
       vertical-align: middle; margin-right: 4px;
-      box-shadow: 0 0 4px #00d4ff;
+      box-shadow: 0 0 6px rgba(0, 119, 255, 0.35);
     }
   </style>
 </head>
-<body>
+<body class="ios-body launcher-page">
   <div class="grid-bg"></div>
   <div class="glow-bg"></div>
 
@@ -292,7 +301,7 @@
         <div class="vls-dot"></div>
       </div>
       <div>
-        <div class="wordmark">VOR<span>TEX</span></div>
+        <div class="wordmark">Vortex <span>Sync</span></div>
         <div class="sub-label" id="brand-sub">Process · Automate · Deliver</div>
       </div>
     </div>
@@ -331,7 +340,7 @@
         </div>
       </div>
 
-      <div class="footer">Vortex v{{ versao }}</div>
+      <div class="footer">Vortex Sync v{{ versao }}</div>
     </div>
 
     <!-- TELA 2: MÓDULOS -->
@@ -348,7 +357,7 @@
         <div class="avatar" id="mod-avatar" style="width:40px;height:40px;border-radius:10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;"></div>
         <div>
           <div class="nome" id="mod-nome"></div>
-          <div class="sub">Plataforma Vortex · Módulos</div>
+          <div class="sub">Plataforma Vortex Sync · Módulos</div>
         </div>
       </div>
 
@@ -356,7 +365,7 @@
 
       <div class="footer">
         <span class="ia-online"><span class="ia-dot-small"></span>IA online</span>
-        &nbsp;·&nbsp; Vortex v{{ versao }}
+        &nbsp;·&nbsp; Vortex Sync v{{ versao }}
       </div>
 
     </div>

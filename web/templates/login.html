@@ -10,7 +10,7 @@
 
     .vortex-login-page {
       min-height: 100vh;
-      background: #080810;
+      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -25,7 +25,7 @@
       width: 600px;
       height: 600px;
       border-radius: 50%;
-      background: radial-gradient(circle, #00d4ff08 0%, transparent 65%);
+      background: radial-gradient(circle, rgba(0, 119, 255, 0.10) 0%, transparent 65%);
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -42,8 +42,8 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(0, 119, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 119, 255, 0.06) 1px, transparent 1px);
       background-size: 48px 48px;
       pointer-events: none;
     }
@@ -51,13 +51,13 @@
     .vortex-login-card {
       width: 100%;
       max-width: 420px;
-      background: rgba(14, 14, 26, 0.95);
-      border: 1px solid rgba(0, 212, 255, 0.12);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 24px;
       padding: 48px 40px;
       position: relative;
       z-index: 1;
-      box-shadow: 0 0 0 1px rgba(0,212,255,0.04), 0 24px 60px rgba(0,0,0,0.6), 0 0 80px rgba(0,212,255,0.04);
+      box-shadow: var(--shadow-hover);
       animation: card-in 0.5s ease-out both;
     }
 
@@ -126,22 +126,21 @@
       font-family: 'Syncopate', sans-serif;
       font-size: 28px;
       font-weight: 700;
-      letter-spacing: 0.1em;
-      color: #fff;
+      letter-spacing: 0.08em;
+      color: var(--text);
       line-height: 1;
       text-align: center;
     }
 
     .vortex-login-wordmark span {
-      color: #00d4ff;
-      text-shadow: 0 0 20px #00d4ff66;
+      color: var(--primary);
     }
 
     .vortex-login-sub {
       font-family: 'Space Mono', monospace;
       font-size: 9px;
       letter-spacing: 0.3em;
-      color: #00d4ff44;
+      color: rgba(90, 100, 120, 0.75);
       text-transform: uppercase;
       margin-top: 6px;
       text-align: center;
@@ -169,33 +168,33 @@
       font-family: 'Space Mono', monospace;
       font-size: 10px;
       letter-spacing: 0.2em;
-      color: #00d4ff66;
+      color: rgba(90, 100, 120, 0.85);
       text-transform: uppercase;
     }
 
     .vortex-field input {
-      background: rgba(0, 212, 255, 0.04);
-      border: 1px solid rgba(0, 212, 255, 0.12);
+      background: var(--card-strong);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 14px 16px;
       font-family: 'DM Sans', sans-serif;
       font-size: 15px;
-      color: #e8eeff;
+      color: var(--text);
       outline: none;
       transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
       width: 100%;
     }
 
-    .vortex-field input::placeholder { color: #ffffff22; font-size: 14px; }
+    .vortex-field input::placeholder { color: rgba(90, 100, 120, 0.60); font-size: 14px; }
 
     .vortex-field input:focus {
-      border-color: rgba(0, 212, 255, 0.4);
-      background: rgba(0, 212, 255, 0.06);
-      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+      border-color: rgba(0, 119, 255, 0.45);
+      background: var(--card);
+      box-shadow: 0 0 0 4px var(--ring);
     }
 
     .vortex-btn-login {
-      background: linear-gradient(135deg, #0077ff, #00d4ff);
+      background: linear-gradient(135deg, var(--primary), var(--vortex-cyan));
       border: none;
       border-radius: 12px;
       padding: 15px;
@@ -208,14 +207,14 @@
       width: 100%;
       margin-top: 8px;
       transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+      box-shadow: var(--shadow-soft);
       position: relative;
       overflow: hidden;
     }
 
     .vortex-btn-login:hover {
       transform: translateY(-1px);
-      box-shadow: 0 8px 28px rgba(0, 212, 255, 0.35);
+      box-shadow: var(--shadow-hover);
     }
 
     .vortex-btn-login:active { transform: translateY(0); }
@@ -239,7 +238,7 @@
       font-family: 'Space Mono', monospace;
       font-size: 9px;
       letter-spacing: 0.2em;
-      color: #ffffff11;
+      color: rgba(90, 100, 120, 0.55);
       text-transform: uppercase;
     }
 
@@ -247,20 +246,21 @@
       position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(14, 14, 26, 0.8);
-      border: 1px solid rgba(0, 212, 255, 0.12);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 8px 12px;
       cursor: pointer;
       font-size: 16px;
       z-index: 10;
-      transition: border-color 0.2s;
+      box-shadow: var(--shadow-soft);
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
     }
 
-    .vortex-theme-btn:hover { border-color: rgba(0, 212, 255, 0.3); }
+    .vortex-theme-btn:hover { border-color: rgba(0, 119, 255, 0.30); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
   </style>
 </head>
-<body class="ios-body dark vortex-login-page">
+<body class="ios-body vortex-login-page">
 
   <div class="login-grid-bg"></div>
 
@@ -276,7 +276,7 @@
         <div class="vls-dot"></div>
       </div>
       <div>
-        <div class="vortex-login-wordmark">VOR<span>TEX</span></div>
+        <div class="vortex-login-wordmark">Vortex <span>Sync</span></div>
         <div class="vortex-login-sub">Process · Automate · Deliver</div>
       </div>
     </div>

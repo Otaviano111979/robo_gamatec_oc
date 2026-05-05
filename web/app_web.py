@@ -25,6 +25,9 @@ from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("GAMATEC_SECRET_KEY", "chave_fallback_local")
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # ── Catálogo Steck/Schneider ─────────────────────────────────────────────────
 # Integração gerada a partir de INTEGRACAO_VORTEX.py
@@ -32,16 +35,19 @@ try:
     import sys as _sys
     _sys.path.insert(0, os.path.dirname(__file__))
     from catalogo_steck import catalogo_bp, init_catalogo
-    _STECK_OK = True
+    init_catalogo(app)
+    app.register_blueprint(catalogo_bp)
+    print("[CATALOGO STECK] Módulo carregado — /catalogo/steck/")
 except ImportError:
-    _STECK_OK = False
+    print("[CATALOGO STECK] catalogo_steck.py não encontrado — módulo desativado")
 
 # ── Comparador de Orçamento ──────────────────────────────────────────────────
 try:
     from comparador_bp import comparador_bp
-    _COMPARADOR_OK = True
+    app.register_blueprint(comparador_bp)
+    print("[COMPARADOR] Módulo carregado — /comparador/")
 except ImportError:
-    _COMPARADOR_OK = False
+    print("[COMPARADOR] comparador_bp.py não encontrado — módulo desativado")
 
 # diretorio raiz do projeto — lido do .env, com fallback para a pasta pai deste arquivo
 BASE_DIR = os.environ.get(
@@ -54,20 +60,6 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
 # limite maximo de upload: 20MB (protege contra arquivos gigantes)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-
-# ── Registra blueprint do catálogo Steck (se o módulo foi importado com sucesso)
-if _STECK_OK:
-    init_catalogo(app)
-    app.register_blueprint(catalogo_bp)
-    print("[STECK] Catálogo Steck/Schneider registrado em /catalogo/steck/")
-else:
-    print("[STECK] Módulo catalogo_steck não encontrado — catálogo desativado")
-
-if _COMPARADOR_OK:
-    app.register_blueprint(comparador_bp)
-    print("[COMPARADOR] Módulo comparador registrado em /comparador/")
-else:
-    print("[COMPARADOR] Módulo comparador_bp não encontrado — comparador desativado")
 
 PASTA_ENTRADA = os.path.join(BASE_DIR, "entrada_oc")
 PASTA_LOGS = os.path.join(BASE_DIR, "web", "logs")

@@ -4,21 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vortex | Painel Operacional</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260505_1901">
   <style>
-    .vortex-header { display:flex;align-items:center;gap:14px; }
-    .vortex-spinner { width:36px;height:36px;position:relative;flex-shrink:0; }
-    .vs-ring { position:absolute;border-radius:50%;border:1.5px solid transparent; }
-    .vs-ring:nth-child(1) { inset:0;border-top-color:var(--vortex-cyan);border-right-color:var(--vortex-cyan-dim);animation:vs-spin 2s linear infinite; }
-    .vs-ring:nth-child(2) { inset:6px;border-top-color:var(--vortex-blue);border-left-color:#0077ff33;animation:vs-spin 1.5s linear infinite reverse; }
-    .vs-ring:nth-child(3) { inset:12px;border-top-color:#00d4ff55;animation:vs-spin 1s linear infinite; }
-    .vs-dot { position:absolute;inset:15px;background:var(--vortex-cyan);border-radius:50%;box-shadow:0 0 8px var(--vortex-cyan); }
-    @keyframes vs-spin { to { transform:rotate(360deg); } }
-    .vortex-wordmark { font-family:'Syncopate',sans-serif;font-size:18px;font-weight:700;letter-spacing:0.08em;color:var(--text);line-height:1; }
-    .vortex-wordmark span { color:var(--vortex-cyan);text-shadow:0 0 16px var(--vortex-cyan-dim); }
-    .vortex-sub { font-family:'Space Mono',monospace;font-size:8px;letter-spacing:0.25em;color:var(--vortex-cyan-dim);text-transform:uppercase;margin-top:3px; }
-    .topbar-vortex { background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px); }
-    body.dark .topbar-vortex { box-shadow:0 1px 0 rgba(0,212,255,0.06); }
     .vortex-loading-overlay { display:none;position:fixed;inset:0;background:rgba(8,8,16,0.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:24px;backdrop-filter:blur(8px); }
     .vortex-loading-overlay.ativo { display:flex; }
     .vlo-spinner { width:80px;height:80px;position:relative; }
@@ -83,9 +70,9 @@
     @keyframes vproc-scan  { from{left:-40%;}to{left:140%;} }
     @keyframes vproc-shimmer { 0%,100%{left:-60%;opacity:0;}30%{opacity:1;}to{left:140%;} }
     @keyframes vproc-blink { 0%,100%{opacity:1;}50%{opacity:.3;} }
+
   </style>
-</head>
-<body class="ios-body dark">
+<body class="ios-body dashboard-page">
 
   <!-- LOADING OVERLAY VORTEX -->
   <div class="vortex-loading-overlay" id="vortex-loading">
@@ -98,30 +85,48 @@
     <div class="vlo-msg" id="vlo-msg">PROCESSANDO...</div>
   </div>
 
-  <header class="topbar-vortex">
-    <div class="vortex-header">
-      <div class="vortex-spinner">
-        <div class="vs-ring"></div><div class="vs-ring"></div><div class="vs-ring"></div>
-        <div class="vs-dot"></div>
+  <div class="dash-layout">
+    <aside class="dash-sidebar">
+      <a class="dash-brand" href="/dashboard" aria-label="Vortex Sync">
+        <div class="dash-brand-text">
+          <div class="dash-brand-title">Vortex <span>Sync</span></div>
+          <div class="dash-brand-sub">Motor operacional ativo</div>
+        </div>
+      </a>
+      <nav class="dash-nav" aria-label="Navegação">
+        <a class="dash-nav-item is-active" href="/dashboard"><span class="dash-ico">▦</span><span>Dashboard</span></a>
+        {% if session.get('tipo') in ('admin', 'supervisor') %}
+        <a class="dash-nav-item" href="/painel"><span class="dash-ico">⬡</span><span>Painel</span></a>
+        {% endif %}
+        <a class="dash-nav-item" href="/catalogo/steck/"><span class="dash-ico">⌁</span><span>Catálogo Steck</span></a>
+        <a class="dash-nav-item" href="/comparador/"><span class="dash-ico">⟐</span><span>Comparador</span></a>
+        {% if session.get("tipo") == "admin" %}
+        <a class="dash-nav-item" href="/admin/clientes"><span class="dash-ico">◎</span><span>Clientes</span></a>
+        <a class="dash-nav-item" href="/admin/usuarios"><span class="dash-ico">⧉</span><span>Usuários</span></a>
+        {% endif %}
+      </nav>
+      <div class="dash-sidebar-footer">
+        <span class="dash-user">👤 {{ session.get('user') }}</span>
+        <a href="/logout" class="dash-logout" onclick="return confirm('Deseja realmente sair?')">Sair</a>
       </div>
-      <div>
-        <div class="vortex-wordmark">VOR<span>TEX</span></div>
-        <div class="vortex-sub">Process · Automate · Deliver</div>
-      </div>
-    </div>
-    <div class="topbar-actions">
-      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-      {% if session.get("tipo") == "admin" %}
-      <a href="/admin/clientes" class="ios-button secondary">Admin Clientes</a>
-      <a href="/admin/usuarios" class="ios-button secondary">Admin Usuários</a>
-      {% endif %}
-      {% if session.get('tipo') in ('admin', 'supervisor') %}
-      <a href="/painel" class="ios-button secondary">⬡ Painel</a>
-      {% endif %}
-      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
-      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
-    </div>
-  </header>
+    </aside>
+
+    <main class="dash-main">
+      <header class="topbar-vortex">
+        <div class="vortex-header">
+          <div class="vortex-spinner" aria-hidden="true">
+            <div class="vs-ring"></div><div class="vs-ring"></div><div class="vs-ring"></div>
+            <div class="vs-dot"></div>
+          </div>
+          <div>
+            <div class="vortex-wordmark">Vortex <span>Sync</span></div>
+            <div class="vortex-sub">Process · Automate · Deliver</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+        </div>
+      </header>
 
   {% with mensagens = get_flashed_messages() %}
     {% if mensagens %}
@@ -169,7 +174,7 @@
     </div>
   </section>
 
-  <section class="ios-card erros-card" id="erros-card" style="margin:16px 24px 0 24px;display:none;">
+  <section class="ios-card erros-card" id="erros-card" style="display:none;">
     <div class="card-header">
       <div>
         <h2>⚠️ OCs com erro</h2>
@@ -210,8 +215,8 @@
           <div><h2>Fila de OCs</h2><p>Filtros rápidos e exibição das 10 mais recentes.</p></div>
           <span class="badge" id="fila-count">{{ arquivos|length }} arquivo(s)</span>
         </div>
-        <div id="fila-info" class="page-subtitle" style="margin-bottom:12px;">Carregando informações da fila...</div>
-        <div class="status-panel status-panel-compact" style="margin-bottom:16px;">
+        <div id="fila-info" class="page-subtitle">Carregando informações da fila...</div>
+        <div class="status-panel status-panel-compact">
           <div class="status-card">
             <span class="status-title">Número da OC</span>
             <input id="filtro-oc" type="text" class="ios-field-input" placeholder="Digite o número da OC">
@@ -221,7 +226,7 @@
             <input id="filtro-data" type="date" class="ios-field-input">
           </div>
         </div>
-        <div class="actions-wrap" style="margin-bottom:14px;">
+        <div class="actions-wrap">
           <button class="ios-button small secondary" type="button" id="ordenar-recente">Mais recentes</button>
           <button class="ios-button small secondary" type="button" id="ordenar-antigo">Mais antigos</button>
           <button class="ios-button small secondary" type="button" id="btn-ver-todas">Ver todas</button>
@@ -288,6 +293,11 @@
                       {% endif %}
                       {% if item.tem_planilha %}
                         <a class="ios-button small success ready-button" href="/baixar-planilha/{{ item.nome }}">⬇ Planilha</a>
+                        <a href="/comparador/{{ item.nome_base }}" 
+                           class="ios-button small secondary btn-comparar" 
+                           title="Comparar com orçamento e calcular descontos">
+                          📊 Comparar
+                        </a>
                       {% endif %}
                       <div class="acoes-menu-wrap">
                         <button class="ios-button small secondary acoes-menu-btn" type="button" onclick="toggleMenu(this)">•••</button>
@@ -302,7 +312,7 @@
                           {% endif %}
                           {% if item.tem_planilha %}
                             <button class="acoes-menu-item acoes-menu-item-automacao" type="button"
-                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">🤖 Automação GAMATEC</button>
+                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">🤖 Automação ERP</button>
                           {% endif %}
                           {% if not item.processando %}
                             <button class="acoes-menu-item acoes-menu-item-danger" type="button"
@@ -364,6 +374,8 @@
       </section>
     </section>
   </section>
+    </main>
+  </div>
 
   <!-- PAINEL AGENTE EMAIL -->
   <div id="painel-agente-email" class="agente-email-painel" style="display:none;">
@@ -400,18 +412,18 @@
   <div id="modal-calibracao" class="modal-overlay" style="display:none;">
     <div class="modal-box">
       <div class="modal-header">
-        <h2>🎯 Calibração do GAMATEC</h2>
+        <h2>🎯 Calibração do ERP</h2>
         <button class="modal-fechar" onclick="fecharModalCalibracao()">✕</button>
       </div>
       <div class="modal-body">
         <div id="calib-intro">
           <p class="automacao-instrucao" style="margin-bottom:14px;">
-            A calibração captura as coordenadas dos campos na tela do GAMATEC.<br>
+            A calibração captura as coordenadas dos campos na tela do ERP.<br>
             Você posiciona o mouse em cada ponto indicado e clica em <strong>Capturar</strong>.<br>
             <strong>Precisa ser feita apenas uma vez</strong> — fica salva para uso futuro.
           </p>
           <div class="flash-msg flash-ok" style="margin-bottom:14px;">
-            ✅ Antes de começar: abra o GAMATEC na tela <strong>Itens com Mix</strong> e deixe a grade visível.
+            ✅ Antes de começar: abra o ERP na tela <strong>Itens com Mix</strong> e deixe a grade visível.
           </div>
           <button class="ios-button primary" onclick="iniciarCalibracao()">▶ Iniciar Calibração</button>
           <button class="ios-button secondary" onclick="fecharModalCalibracao()" style="margin-left:8px;">Cancelar</button>
@@ -425,7 +437,7 @@
             <p class="calib-numero" id="calib-numero">Ponto 1</p>
             <p class="calib-descricao" id="calib-descricao">—</p>
             <p class="calib-dica">
-              Posicione o mouse no ponto indicado na tela do GAMATEC.<br>
+              Posicione o mouse no ponto indicado na tela do ERP.<br>
               Quando estiver posicionado, clique em <strong>Capturar</strong>.<br>
               Você terá <strong>3 segundos</strong> após clicar para posicionar o mouse.
             </p>
@@ -451,11 +463,11 @@
     </div>
   </div>
 
-  <!-- MÓDULO DE AUTOMAÇÃO GAMATEC -->
+  <!-- MÓDULO DE AUTOMAÇÃO ERP -->
   <div id="modal-automacao" class="modal-overlay" style="display:none;">
     <div class="modal-box">
       <div class="modal-header">
-        <h2>🤖 Automação GAMATEC</h2>
+        <h2>🤖 Automação ERP</h2>
         <button class="modal-fechar" onclick="fecharModalAutomacao()">✕</button>
       </div>
       <div class="modal-body">
@@ -464,7 +476,7 @@
           <p class="automacao-instrucao">
             Antes de iniciar, certifique-se de que:<br>
             1. A planilha desta OC já foi processada<br>
-            2. O GAMATEC está aberto na tela <strong>Recálculo de Mix</strong><br>
+            2. O ERP está aberto na tela <strong>Recálculo de Mix</strong><br>
             3. Os itens estão visíveis na tela
           </p>
         </div>
@@ -497,9 +509,9 @@
     <div class="vproc-card">
 
       <!-- header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
         <div>
-          <div style="font-family:'Syncopate',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);margin-bottom:6px;opacity:.8;" id="vproc-eyebrow">Plataforma Vortex · OC em processamento</div>
+          <div style="font-family:'Syncopate',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);margin-bottom:6px;opacity:.8;" id="vproc-eyebrow">Plataforma Vortex Sync · OC em processamento</div>
           <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;" id="vproc-titulo">Processando...</div>
           <div style="font-size:12px;color:var(--subtext);margin-top:3px;font-family:'Space Mono',monospace;" id="vproc-filename">—</div>
         </div>
@@ -510,8 +522,8 @@
       </div>
 
       <!-- pipeline -->
-      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:96px;">
           <div id="vproc-icon-extracao" class="vproc-etapa-icon waiting">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><polyline points="9,15 11,17 15,13"/></svg>
           </div>
@@ -519,7 +531,7 @@
           <div style="font-size:11px;text-align:center;color:var(--subtext);line-height:1.4;" id="vproc-label-extracao">Aguardando</div>
         </div>
         <div id="vproc-linha-1" class="vproc-linha waiting"></div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:96px;">
           <div id="vproc-icon-match" class="vproc-etapa-icon waiting">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </div>
@@ -527,7 +539,7 @@
           <div style="font-size:11px;text-align:center;color:var(--subtext);line-height:1.4;" id="vproc-label-match">Aguardando</div>
         </div>
         <div id="vproc-linha-2" class="vproc-linha waiting"></div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:96px;">
           <div id="vproc-icon-planilha" class="vproc-etapa-icon waiting">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
           </div>
@@ -537,7 +549,7 @@
       </div>
 
       <!-- barra de progresso -->
-      <div style="margin-bottom:20px;">
+      <div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <span style="font-size:11px;font-weight:600;color:var(--subtext);text-transform:uppercase;letter-spacing:.06em;">Progresso geral</span>
           <span style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--primary);text-shadow:0 0 16px rgba(0,212,255,.4);" id="vproc-pct">0%</span>
@@ -554,32 +566,32 @@
       </div>
 
       <!-- stats -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,119,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(0,119,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5ff" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
           </div>
           <div>
             <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Itens lidos</div>
-            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#60a5ff;line-height:1;" id="vproc-total">—</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#60a5ff;line-height:1;" id="vproc-total">—</div>
           </div>
         </div>
-        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
           </div>
           <div>
             <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Matches</div>
-            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#34d399;line-height:1;" id="vproc-matches">—</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#34d399;line-height:1;" id="vproc-matches">—</div>
           </div>
         </div>
-        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
           </div>
           <div>
             <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Pendentes</div>
-            <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#fbbf24;line-height:1;" id="vproc-pendentes">—</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#fbbf24;line-height:1;" id="vproc-pendentes">—</div>
           </div>
         </div>
       </div>
