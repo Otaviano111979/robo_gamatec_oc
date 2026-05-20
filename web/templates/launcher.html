@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortex | Plataforma</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <title>Vortex Ecosystem | Launcher</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260506_eco_01">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
 
@@ -44,7 +44,8 @@
     }
 
     .container {
-      width: 100%; max-width: 480px;
+      width: 100%;
+      max-width: 980px;
       position: relative; z-index: 1;
     }
 
@@ -144,6 +145,8 @@
     }
     .av-cyan   { background: rgba(0,212,255,0.1);  color: #00d4ff;  border: 1px solid rgba(0,212,255,0.2); }
     .av-blue   { background: rgba(0,119,255,0.1);  color: #4499ff;  border: 1px solid rgba(0,119,255,0.2); }
+    .av-teal   { background: rgba(16,185,129,0.10); color: #10b981; border: 1px solid rgba(16,185,129,0.20); }
+    .av-amber  { background: rgba(245,158,11,0.10); color: #f59e0b; border: 1px solid rgba(245,158,11,0.20); }
     .av-purple { background: rgba(127,119,221,0.1);color: #9f99dd;  border: 1px solid rgba(127,119,221,0.2); }
 
     .card-info { flex: 1; min-width: 0; }
@@ -223,7 +226,37 @@
       color: rgba(90, 100, 120, 0.70); text-transform: uppercase; margin-top: 3px;
     }
 
-    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+    .hub-sections { display: grid; gap: 14px; margin-bottom: 1.5rem; }
+    .hub-section { background: transparent; }
+    .hub-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+    .hub-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .hub-section-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(90, 100, 120, 0.70);
+      white-space: nowrap;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
 
     .module-card {
       background: var(--card);
@@ -237,6 +270,14 @@
       box-shadow: var(--shadow-hover);
     }
     .module-card.locked { opacity: .45; cursor: not-allowed; }
+    .module-card.placeholder {
+      border-style: dashed;
+      border-color: rgba(0, 119, 255, 0.18);
+      background: linear-gradient(180deg, rgba(0, 119, 255, 0.04), transparent 70%), var(--card);
+      cursor: default;
+      opacity: 1;
+    }
+    .module-card.placeholder:hover { box-shadow: var(--shadow-soft); }
 
     .mod-icon {
       width: 32px; height: 32px; border-radius: 8px;
@@ -258,8 +299,8 @@
       font-size: 9px; padding: 2px 8px; border-radius: 20px;
       letter-spacing: 0.05em;
     }
-    .mb-active { background: rgba(0,212,255,0.08); color: #00d4ff88; border: 1px solid rgba(0,212,255,0.15); }
-    .mb-soon   { background: rgba(127,119,221,0.08); color: #9f99dd88; border: 1px solid rgba(127,119,221,0.15); }
+    .mb-active { background: rgba(0, 119, 255, 0.10); color: rgba(0, 119, 255, 0.92); border: 1px solid rgba(0, 119, 255, 0.20); }
+    .mb-soon   { background: rgba(127,119,221,0.10); color: rgba(95, 85, 200, 0.92); border: 1px solid rgba(127,119,221,0.20); }
     .mb-locked { background: rgba(90, 100, 120, 0.08); color: rgba(90, 100, 120, 0.80); border: 1px solid rgba(90, 100, 120, 0.14); }
 
     .ic-gray svg [stroke],
@@ -285,6 +326,15 @@
       vertical-align: middle; margin-right: 4px;
       box-shadow: 0 0 6px rgba(0, 119, 255, 0.35);
     }
+    @media (max-width: 860px) {
+      .container { max-width: 520px; }
+      .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 520px) {
+      .module-grid { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body class="ios-body launcher-page">
@@ -301,8 +351,8 @@
         <div class="vls-dot"></div>
       </div>
       <div>
-        <div class="wordmark">Vortex <span>Sync</span></div>
-        <div class="sub-label" id="brand-sub">Process · Automate · Deliver</div>
+        <div class="wordmark">Vortex <span>Ecosystem</span></div>
+        <div class="sub-label" id="brand-sub">Launcher · HUB modular</div>
       </div>
     </div>
 
@@ -340,7 +390,7 @@
         </div>
       </div>
 
-      <div class="footer">Vortex Sync v{{ versao }}</div>
+      <div class="footer">Vortex Ecosystem v{{ versao }} · Sync engine ativo</div>
     </div>
 
     <!-- TELA 2: MÓDULOS -->
@@ -357,11 +407,11 @@
         <div class="avatar" id="mod-avatar" style="width:40px;height:40px;border-radius:10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;"></div>
         <div>
           <div class="nome" id="mod-nome"></div>
-          <div class="sub">Plataforma Vortex Sync · Módulos</div>
+          <div class="sub">Vortex Ecosystem · HUB modular</div>
         </div>
       </div>
 
-      <div class="module-grid" id="mod-grid"></div>
+      <div class="hub-sections" id="mod-grid"></div>
 
       <div class="footer">
         <span class="ia-online"><span class="ia-dot-small"></span>IA online</span>
@@ -379,24 +429,37 @@
   const EMPRESA_URLS = JSON.parse(document.getElementById('empresa-urls').textContent || '{}');
 
   const TODOS_MODULOS = [
-    { id:'oc',    nome:'Pedidos / OC',    desc:'Match automático Krona',       ic:'ic-cyan',   url_key:'dashboard',
+    { id:'oc',    nome:'Vortex Sync',    desc:'Motor operacional · OCs e processamento', ic:'ic-cyan',   url_key:'dashboard', group:'engines',
       svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#00d4ff" stroke-width="1.5"/><path d="M5 6h8M5 9h6M5 12h4" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
-    { id:'email', nome:'Agente de email', desc:'Monitor e resposta automática', ic:'ic-blue',   url_key:'painel',
+    { id:'core',  nome:'Vortex Core',    desc:'Decision Engine · regras e decisões', ic:'ic-purple', url_key:null, group:'engines', placeholder:true,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M6 3h6l3 3v6l-3 3H6l-3-3V6l3-3z" stroke="#9f99dd" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 9h5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'email', nome:'Agente de Email', desc:'Serviço interno do Sync · monitor e respostas', ic:'ic-blue',   url_key:'painel', group:'internal',
       svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#4499ff" stroke-width="1.5"/><path d="M2 6l7 5 7-5" stroke="#4499ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
-    { id:'crm',   nome:'CRM',            desc:'Clientes e histórico de OCs',   ic:'ic-purple', url_key:null,
+    { id:'crm',   nome:'Vortex CRM',     desc:'Clientes, jornadas e histórico', ic:'ic-purple', url_key:null, group:'apps', placeholder:true,
       svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="#9f99dd" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/></svg>` },
-    { id:'inteligencia', nome:'Inteligência', desc:'Tendências e análises', ic:'ic-gray', url_key:null,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.8 5.4H16l-4.6 3.4 1.8 5.4L9 13l-4.2 3.2 1.8-5.4L2 7.4h5.2z" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
-    { id:'financeiro', nome:'Financeiro', desc:'Comissões e receita', ic:'ic-gray', url_key:null,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="3" height="8" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/><rect x="7" y="5" width="3" height="11" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/><rect x="12" y="2" width="3" height="14" rx="1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/></svg>` },
-    { id:'steck', nome:'Catálogo Elétrico', desc:'Steck / Schneider', ic:'ic-yellow', url_key:'catalogo/steck',
+    { id:'geo',   nome:'Vortex GEO',     desc:'Mapa, rotas e presença territorial', ic:'ic-gray', url_key:null, group:'apps', placeholder:true,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 16s5-3.5 5-8a5 5 0 10-10 0c0 4.5 5 8 5 8z" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="8" r="1.75" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/></svg>` },
+    { id:'flow',  nome:'Vortex Flow',    desc:'Workflows, aprovações e automações', ic:'ic-gray', url_key:null, group:'apps', placeholder:true,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M5 4h4v4H5V4zM9 10h4v4H9v-4z" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><path d="M9 6h2a2 2 0 012 2v2" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'analytics', nome:'Analytics', desc:'Indicadores, tendências e insights', ic:'ic-gray', url_key:null, group:'insights', placeholder:true,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="9" width="2.5" height="6" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><rect x="7.75" y="6" width="2.5" height="9" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><rect x="12.5" y="3" width="2.5" height="12" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/></svg>` },
+    { id:'steck', nome:'Catálogo Steck', desc:'Produtos · Steck / Schneider', ic:'ic-yellow', url_key:'catalogo/steck', group:'integrations',
       svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M10 2L4 10h5l-1 6 6-8h-5z" stroke="#f5c842" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
-    { id:'futuro', nome:'Em breve', desc:'Novos módulos chegando', ic:'ic-gray', url_key:null,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/><path d="M9 6v3l2 2" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+    { id:'servicos', nome:'Serviços futuros', desc:'Conectores e módulos do ecossistema', ic:'ic-gray', url_key:null, group:'future', placeholder:true,
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><path d="M9 6v3l2 2" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+  ];
+
+  const SECOES = [
+    { key:'engines',      titulo:'Motores',             sub:'Núcleo do ecossistema',             ids:['oc','core'] },
+    { key:'internal',     titulo:'Serviços internos',   sub:'Operação do Sync',                 ids:['email'] },
+    { key:'apps',         titulo:'Aplicações',          sub:'Módulos de negócio',               ids:['crm','geo','flow'] },
+    { key:'insights',     titulo:'Analytics',           sub:'Inteligência operacional',         ids:['analytics'] },
+    { key:'integrations', titulo:'Catálogos',           sub:'Bases e integrações',              ids:['steck'] },
+    { key:'future',       titulo:'Em expansão',         sub:'Serviços futuros',                 ids:['servicos'] },
   ];
 
   function abrirEmpresa(id, nome, sigla, avClass) {
-    document.getElementById('brand-sub').textContent = nome;
+    document.getElementById('brand-sub').textContent = `HUB · ${nome}`;
     const av = document.getElementById('mod-avatar');
     av.textContent = sigla;
     av.className = 'avatar ' + avClass;
@@ -407,20 +470,40 @@
     const grid = document.getElementById('mod-grid');
     grid.innerHTML = '';
 
-    TODOS_MODULOS.forEach(mod => {
-      const ativo    = m.ativos && m.ativos.includes(mod.id);
-      const trial    = m.trial  && m.trial.includes(mod.id);
-      const liberado = ativo || trial;
-      const badge    = ativo  ? '<span class="mod-badge mb-active"><span style="width:4px;height:4px;border-radius:50%;background:#00d4ff;display:inline-block;box-shadow:0 0 4px #00d4ff"></span>ativo</span>'
-                     : trial  ? '<span class="mod-badge mb-soon">trial</span>'
-                     : mod.id === 'crm' ? '<span class="mod-badge mb-soon">em breve</span>'
-                     : '<span class="mod-badge mb-locked">bloqueado</span>';
+    const byId = new Map(TODOS_MODULOS.map(x => [x.id, x]));
 
-      const el = document.createElement(liberado ? 'a' : 'div');
-      el.className = 'module-card ' + (liberado ? 'unlocked' : 'locked');
-      if (liberado && mod.url_key) el.href = base + '/' + mod.url_key;
-      el.innerHTML = `<div class="mod-icon ${mod.ic}">${mod.svg}</div><div class="mod-name">${mod.nome}</div><div class="mod-desc">${mod.desc}</div>${badge}`;
-      grid.appendChild(el);
+    SECOES.forEach(sec => {
+      const wrap = document.createElement('section');
+      wrap.className = 'hub-section';
+      wrap.innerHTML = `<div class="hub-section-head"><div class="hub-section-title">${sec.titulo}</div><div class="hub-section-sub">${sec.sub}</div></div><div class="module-grid"></div>`;
+
+      const gridSec = wrap.querySelector('.module-grid');
+      sec.ids.forEach(modId => {
+        const mod = byId.get(modId);
+        if (!mod) return;
+
+        const ativo    = m.ativos && m.ativos.includes(mod.id);
+        const trial    = m.trial  && m.trial.includes(mod.id);
+        const liberado = ativo || trial;
+
+        const badge = ativo
+          ? '<span class="mod-badge mb-active"><span style="width:4px;height:4px;border-radius:50%;background:rgba(0,119,255,0.95);display:inline-block;box-shadow:0 0 4px rgba(0,119,255,0.35)"></span>ativo</span>'
+          : trial
+            ? '<span class="mod-badge mb-soon">trial</span>'
+            : mod.placeholder
+              ? '<span class="mod-badge mb-soon">em preparação</span>'
+              : '<span class="mod-badge mb-locked">bloqueado</span>';
+
+        const tagName = (liberado && mod.url_key) ? 'a' : 'div';
+        const el = document.createElement(tagName);
+
+        if (liberado && mod.url_key) el.href = base + '/' + mod.url_key;
+        el.className = 'module-card ' + (mod.placeholder ? 'placeholder' : (liberado ? 'unlocked' : 'locked'));
+        el.innerHTML = `<div class="mod-icon ${mod.ic}">${mod.svg}</div><div class="mod-name">${mod.nome}</div><div class="mod-desc">${mod.desc}</div>${badge}`;
+        gridSec.appendChild(el);
+      });
+
+      grid.appendChild(wrap);
     });
 
     document.getElementById('screen-empresas').classList.remove('active');
@@ -430,7 +513,7 @@
   function voltarEmpresas() {
     document.getElementById('screen-modulos').classList.remove('active');
     document.getElementById('screen-empresas').classList.add('active');
-    document.getElementById('brand-sub').textContent = 'Process · Automate · Deliver';
+    document.getElementById('brand-sub').textContent = 'Launcher · HUB modular';
   }
 
   window.addEventListener('load', () => {

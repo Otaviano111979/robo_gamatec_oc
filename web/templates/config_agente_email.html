@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vortex | Config Agente Email</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <style>
+    .cfg-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 20px 80px 20px;
+    }
+
+    .cfg-secao {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .cfg-titulo {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--subtext);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cfg-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .cfg-row label {
+      font-size: 12px;
+      color: var(--subtext);
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+
+    .cfg-row input[type="number"] {
+      width: 100px;
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* toggle switch */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: var(--vortex-cyan, #00d4ff); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .badge-ativo   { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: #10b981; }
+    .badge-inativo { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--subtext); }
+
+    /* textarea de corpo */
+    .cfg-textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      box-sizing: border-box;
+      margin-top: 10px;
+    }
+
+    .cfg-textarea:focus {
+      outline: none;
+      border-color: var(--vortex-cyan, #00d4ff);
+    }
+
+    /* tags de clientes sem resposta */
+    .tags-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tag-cliente {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    .tag-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--subtext);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .tag-remove:hover { color: #ff453a; }
+
+    .add-cliente-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .add-cliente-row input[type="text"] {
+      width: 160px;
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      text-transform: lowercase;
+    }
+
+    /* variaveis hint */
+    .vars-hint {
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--subtext);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .vars-hint code {
+      color: var(--vortex-cyan, #00d4ff);
+      background: none;
+      font-size: 11px;
+    }
+
+    /* rodapé */
+    .cfg-footer {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .cfg-msg {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .cfg-msg.ok    { background: #10b98122; color: #10b981; border: 1px solid #10b98144; }
+    .cfg-msg.erro  { background: #ff453a22; color: #ff453a; border: 1px solid #ff453a44; }
+
+    /* modal preview */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      display: none;
+    }
+
+    .modal-overlay.aberto { display: flex; }
+
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 540px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-titulo {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--subtext);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .preview-select {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .preview-select button {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      background: var(--surface, var(--bg-secondary));
+      color: var(--subtext);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .preview-select button.ativo,
+    .preview-select button:hover {
+      border-color: var(--vortex-cyan, #00d4ff);
+      color: var(--vortex-cyan, #00d4ff);
+    }
+
+    .preview-corpo {
+      white-space: pre-wrap;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text);
+      background: var(--surface, var(--bg-secondary));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body class="ios-body">
+
+  <header class="topbar-vortex">
+    <div class="vortex-header">
+      <div class="vortex-spinner">
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-ring"></div>
+        <div class="vs-dot"></div>
+      </div>
+      <div>
+        <div class="vortex-wordmark">Vortex <span>Sync</span></div>
+        <div class="vortex-sub">Agente de Email — Configurações</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+      <a href="/painel" class="ios-button secondary">Painel</a>
+      <a href="/dashboard" class="ios-button secondary">Dashboard</a>
+      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
+      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
+    </div>
+  </header>
+
+  <div class="cfg-wrap">
+
+    <!-- GERAL -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">⚙ Geral</div>
+      <div class="cfg-row">
+        <label>Intervalo entre ciclos (minutos)</label>
+        <input type="number" id="intervalo_minutos" min="1" max="60"
+               value="{{ config.geral.intervalo_minutos }}">
+      </div>
+      <div class="cfg-row">
+        <label>Máx. emails por ciclo</label>
+        <input type="number" id="max_emails_por_ciclo" min="1" max="100"
+               value="{{ config.geral.max_emails_por_ciclo }}">
+      </div>
+    </div>
+
+    <!-- RESPOSTA OC -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">✉ Resposta — Ordem de Compra</div>
+      <div class="toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="oc_ativo"
+                 {% if config.respostas.oc.ativo %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Resposta automática</span>
+        <span id="oc_badge" class="{{ 'badge-ativo' if config.respostas.oc.ativo else 'badge-inativo' }}">
+          {{ 'ATIVO' if config.respostas.oc.ativo else 'INATIVO' }}
+        </span>
+      </div>
+      <div class="vars-hint" style="margin-bottom:8px;">
+        Variáveis: <code>{nome}</code> — nome do remetente &nbsp;·&nbsp; <code>{assinatura}</code> — assinatura configurada abaixo
+      </div>
+      <textarea class="cfg-textarea" id="oc_corpo"
+                placeholder="Corpo do email de resposta para OC...">{{ config.respostas.oc.corpo }}</textarea>
+    </div>
+
+    <!-- RESPOSTA COTAÇÃO -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">✉ Resposta — Cotação de Preços</div>
+      <div class="toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="cotacao_ativo"
+                 {% if config.respostas.cotacao.ativo %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Resposta automática</span>
+        <span id="cotacao_badge" class="{{ 'badge-ativo' if config.respostas.cotacao.ativo else 'badge-inativo' }}">
+          {{ 'ATIVO' if config.respostas.cotacao.ativo else 'INATIVO' }}
+        </span>
+      </div>
+      <div class="vars-hint" style="margin-bottom:8px;">
+        Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
+      </div>
+      <textarea class="cfg-textarea" id="cotacao_corpo"
+                placeholder="Corpo do email de resposta para cotação...">{{ config.respostas.cotacao.corpo }}</textarea>
+    </div>
+
+    <!-- RESPOSTA NÃO IDENTIFICADO -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">✉ Resposta — Documento Não Identificado</div>
+      <div class="toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="nao_identificado_ativo"
+                 {% if config.respostas.nao_identificado.ativo %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Resposta automática</span>
+        <span id="nao_identificado_badge"
+              class="{{ 'badge-ativo' if config.respostas.nao_identificado.ativo else 'badge-inativo' }}">
+          {{ 'ATIVO' if config.respostas.nao_identificado.ativo else 'INATIVO' }}
+        </span>
+      </div>
+      <div class="vars-hint" style="margin-bottom:8px;">
+        Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
+      </div>
+      <textarea class="cfg-textarea" id="nao_identificado_corpo"
+                placeholder="Corpo do email de resposta para documentos não identificados...">{{ config.respostas.nao_identificado.corpo }}</textarea>
+    </div>
+
+    <!-- ASSINATURA -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">✍ Assinatura</div>
+      <p style="font-size:12px;color:var(--subtext);margin:0 0 10px;">
+        Aplicada em todos os templates via <code style="font-size:11px;color:var(--vortex-cyan,#00d4ff);">{assinatura}</code>.
+      </p>
+      <textarea class="cfg-textarea" id="assinatura" style="min-height:80px;"
+                placeholder="Texto da assinatura...">{{ config.assinatura }}</textarea>
+    </div>
+
+    <!-- CLIENTES SEM RESPOSTA -->
+    <div class="cfg-secao">
+      <div class="cfg-titulo">🚫 Clientes sem Resposta Automática</div>
+      <p style="font-size:12px;color:var(--subtext);margin:0 0 14px;">
+        Clientes nesta lista não recebem nenhuma resposta automática, independente do tipo de email.
+      </p>
+      <div class="tags-wrap" id="tags-clientes">
+        {% for cliente in config.clientes_sem_resposta %}
+        <span class="tag-cliente" data-id="{{ cliente }}">
+          {{ cliente | upper }}
+          <button class="tag-remove" type="button" onclick="removerCliente('{{ cliente }}')" title="Remover">×</button>
+        </span>
+        {% endfor %}
+      </div>
+      <div class="add-cliente-row">
+        <input type="text" id="novo_cliente" placeholder="ex: brasal" maxlength="40"
+               onkeydown="if(event.key==='Enter'){adicionarCliente();}">
+        <button class="ios-button secondary" type="button" onclick="adicionarCliente()">Adicionar</button>
+      </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="cfg-secao" style="background:transparent;border:none;padding:0;">
+      <div class="cfg-footer">
+        <button class="ios-button" type="button" onclick="salvar()">Salvar Configurações</button>
+        <button class="ios-button secondary" type="button" onclick="abrirPreview()">Testar Preview</button>
+        <span id="cfg-msg" class="cfg-msg"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL PREVIEW -->
+  <div class="modal-overlay" id="modal-preview">
+    <div class="modal-box">
+      <div class="modal-titulo">Preview — resposta simulada</div>
+      <div class="preview-select">
+        <button onclick="previewTipo('oc', this)" class="ativo">OC</button>
+        <button onclick="previewTipo('cotacao', this)">Cotação</button>
+        <button onclick="previewTipo('nao_identificado', this)">Não Identificado</button>
+      </div>
+      <div class="preview-corpo" id="preview-corpo"></div>
+      <div style="margin-top:16px;text-align:right;">
+        <button class="ios-button secondary" type="button" onclick="fecharPreview()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── tema ───────────────────────────────────────────────
+    (function(){
+      const saved = localStorage.getItem('vortex-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+    })();
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', cur);
+      localStorage.setItem('vortex-theme', cur);
+      document.getElementById('themeToggle').textContent = cur === 'dark' ? '☀️' : '🌙';
+    });
+
+    // ── badge toggle ───────────────────────────────────────
+    ['oc', 'cotacao', 'nao_identificado'].forEach(tipo => {
+      const chk = document.getElementById(tipo + '_ativo');
+      const badge = document.getElementById(tipo + '_badge');
+      if (!chk || !badge) return;
+      chk.addEventListener('change', () => {
+        badge.textContent = chk.checked ? 'ATIVO' : 'INATIVO';
+        badge.className = chk.checked ? 'badge-ativo' : 'badge-inativo';
+      });
+    });
+
+    // ── clientes sem resposta ──────────────────────────────
+    let clientesSemResposta = [
+      {% for c in config.clientes_sem_resposta %}"{{ c }}"{% if not loop.last %},{% endif %}{% endfor %}
+    ];
+
+    function renderTags() {
+      const wrap = document.getElementById('tags-clientes');
+      wrap.innerHTML = clientesSemResposta.map(c => `
+        <span class="tag-cliente" data-id="${c}">
+          ${c.toUpperCase()}
+          <button class="tag-remove" type="button" onclick="removerCliente('${c}')" title="Remover">×</button>
+        </span>
+      `).join('');
+    }
+
+    function removerCliente(id) {
+      clientesSemResposta = clientesSemResposta.filter(c => c !== id);
+      renderTags();
+    }
+
+    function adicionarCliente() {
+      const inp = document.getElementById('novo_cliente');
+      const val = inp.value.trim().toLowerCase();
+      if (!val) return;
+      if (clientesSemResposta.includes(val)) { inp.value = ''; return; }
+      clientesSemResposta.push(val);
+      renderTags();
+      inp.value = '';
+    }
+
+    // ── salvar ─────────────────────────────────────────────
+    function salvar() {
+      const payload = {
+        geral: {
+          intervalo_minutos:    parseInt(document.getElementById('intervalo_minutos').value) || 5,
+          max_emails_por_ciclo: parseInt(document.getElementById('max_emails_por_ciclo').value) || 20,
+        },
+        respostas: {
+          oc: {
+            ativo: document.getElementById('oc_ativo').checked,
+            corpo: document.getElementById('oc_corpo').value,
+          },
+          cotacao: {
+            ativo: document.getElementById('cotacao_ativo').checked,
+            corpo: document.getElementById('cotacao_corpo').value,
+          },
+          nao_identificado: {
+            ativo: document.getElementById('nao_identificado_ativo').checked,
+            corpo: document.getElementById('nao_identificado_corpo').value,
+          },
+        },
+        assinatura: document.getElementById('assinatura').value,
+        clientes_sem_resposta: clientesSemResposta,
+      };
+
+      const msg = document.getElementById('cfg-msg');
+
+      fetch('/api/agente-email/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      })
+      .then(r => r.json())
+      .then(d => {
+        msg.textContent = d.mensagem || (d.ok ? 'Salvo!' : 'Erro.');
+        msg.className = 'cfg-msg ' + (d.ok ? 'ok' : 'erro');
+        msg.style.display = 'inline-block';
+        setTimeout(() => { msg.style.display = 'none'; }, 4000);
+      })
+      .catch(() => {
+        msg.textContent = 'Erro de conexão.';
+        msg.className = 'cfg-msg erro';
+        msg.style.display = 'inline-block';
+        setTimeout(() => { msg.style.display = 'none'; }, 4000);
+      });
+    }
+
+    // ── preview ────────────────────────────────────────────
+    let previewTipoAtual = 'oc';
+
+    function abrirPreview() {
+      document.getElementById('modal-preview').classList.add('aberto');
+      previewTipo('oc', document.querySelector('.preview-select button'));
+    }
+
+    function fecharPreview() {
+      document.getElementById('modal-preview').classList.remove('aberto');
+    }
+
+    document.getElementById('modal-preview').addEventListener('click', function(e) {
+      if (e.target === this) fecharPreview();
+    });
+
+    function previewTipo(tipo, btn) {
+      previewTipoAtual = tipo;
+      document.querySelectorAll('.preview-select button').forEach(b => b.classList.remove('ativo'));
+      if (btn) btn.classList.add('ativo');
+
+      const ativoId = tipo + '_ativo';
+      const corpoId = tipo + '_corpo';
+      const assinatura = document.getElementById('assinatura').value;
+
+      const ativo = document.getElementById(ativoId)?.checked ?? false;
+      const corpo = document.getElementById(corpoId)?.value ?? '';
+
+      if (!ativo) {
+        document.getElementById('preview-corpo').textContent =
+          '[Resposta desativada para este tipo — nenhum email será enviado]';
+        return;
+      }
+
+      const textoFinal = corpo
+        .replace('{nome}', 'João Silva')
+        .replace('{assinatura}', assinatura || 'Atenciosamente,\nUNE Representacoes');
+
+      document.getElementById('preview-corpo').textContent =
+        textoFinal || '[Corpo vazio — o fallback padrão será usado]';
+    }
+  </script>
+
+</body>
+</html>

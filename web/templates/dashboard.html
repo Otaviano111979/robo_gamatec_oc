@@ -94,6 +94,7 @@
         </div>
       </a>
       <nav class="dash-nav" aria-label="Navegação">
+        <a class="dash-nav-item" href="/launcher"><span class="dash-ico">◈</span><span>Launcher</span></a>
         <a class="dash-nav-item is-active" href="/dashboard"><span class="dash-ico">▦</span><span>Dashboard</span></a>
         {% if session.get('tipo') in ('admin', 'supervisor') %}
         <a class="dash-nav-item" href="/painel"><span class="dash-ico">⬡</span><span>Painel</span></a>
@@ -256,6 +257,9 @@
                       <div class="row-badges">
                         {% if item.nome.startswith('EMAIL_') %}
                           <span class="badge-email"><span class="badge-dot-orange"></span>VIA EMAIL</span>
+                        {% endif %}
+                        {% if item.cliente_novo %}
+                          <span class="badge-email" style="background:rgba(249,115,22,0.14);border-color:rgba(249,115,22,0.40);color:#f97316;" title="Cliente não cadastrado — verifique o matching">🆕 CLIENTE NOVO</span>
                         {% endif %}
                         {% if item.numero_oc %}
                           <span class="mini-badge mini-badge-primary">OC {{ item.numero_oc }}</span>

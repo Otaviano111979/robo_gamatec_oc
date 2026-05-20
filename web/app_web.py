@@ -749,6 +749,19 @@ def montar_status_oc(nome_arquivo):
         data_ref = time.strftime("%d/%m/%Y %H:%M", time.localtime(ts))
         data_ref_iso = time.strftime("%Y-%m-%d", time.localtime(ts))
 
+    # lê flag cliente_novo do email_meta.json se existir
+    cliente_novo = False
+    if nome_arquivo.startswith("EMAIL_"):
+        nome_base = nome_base_arquivo(nome_arquivo)
+        meta_path = os.path.join(BASE_DIR, "saida", "documentos", nome_base, "email_meta.json")
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                cliente_novo = bool(meta.get("cliente_novo", False))
+            except Exception:
+                pass
+
     return {
         "nome": nome_arquivo,
         "nome_base": nome_base_arquivo(nome_arquivo),
@@ -771,7 +784,8 @@ def montar_status_oc(nome_arquivo):
         "erro_processamento": progresso_info["erro_processamento"],
         "itens_lidos": metricas["itens_lidos"],
         "matches_encontrados": metricas["matches_encontrados"],
-        "pendentes": metricas["pendentes"]
+        "pendentes": metricas["pendentes"],
+        "cliente_novo": cliente_novo,
     }
 
 
@@ -2086,6 +2100,143 @@ def api_agente_email_log():
         return jsonify({"ok": True, "log": "".join(linhas[-60:])})
     except Exception as e:
         return jsonify({"ok": False, "log": str(e)})
+
+
+# =========================
+# SHADOW MODE — STATS
+# =========================
+
+@app.route("/api/shadow/stats")
+def api_shadow_stats():
+    """Retorna estatisticas do shadow mode para acompanhamento."""
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+
+    shadow_path = os.path.join(BASE_DIR, "saida", "shadow_mode.jsonl")
+    if not os.path.exists(shadow_path):
+        return jsonify({"ok": True, "total": 0, "concordancia": 0, "registros": []})
+
+    try:
+        registros = []
+        with open(shadow_path, "r", encoding="utf-8") as f:
+            for linha in f:
+                linha = linha.strip()
+                if linha:
+                    registros.append(json.loads(linha))
+
+        total     = len(registros)
+        concordam = sum(1 for r in registros if r.get("concordam"))
+        divergem  = total - concordam
+        pct       = round((concordam / total * 100), 1) if total else 0
+
+        # ultimos 20 para exibicao
+        ultimos = registros[-20:][::-1]
+
+        return jsonify({
+            "ok":           True,
+            "total":        total,
+            "concordam":    concordam,
+            "divergem":     divergem,
+            "concordancia": pct,
+            "registros":    ultimos,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)})
+
+
+# =========================
+# AGENTE EMAIL — CONFIG
+# =========================
+
+CONFIG_AGENTE_EMAIL_PATH = os.path.join(BASE_DIR, "dados", "config_agente_email.json")
+
+CONFIG_AGENTE_EMAIL_FALLBACK = {
+    "geral": {"intervalo_minutos": 5, "max_emails_por_ciclo": 20},
+    "respostas": {
+        "oc":              {"ativo": True,  "corpo": ""},
+        "cotacao":         {"ativo": True,  "corpo": ""},
+        "nao_identificado":{"ativo": False, "corpo": ""},
+    },
+    "assinatura": "Atenciosamente,\nUNE Representacoes\nRepresentante Oficial KRONA Tubos e Conexoes",
+    "clientes_sem_resposta": ["mrv"],
+}
+
+
+def _ler_config_agente_email() -> dict:
+    try:
+        with open(CONFIG_AGENTE_EMAIL_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return CONFIG_AGENTE_EMAIL_FALLBACK
+
+
+def _salvar_config_agente_email(config: dict) -> bool:
+    try:
+        os.makedirs(os.path.dirname(CONFIG_AGENTE_EMAIL_PATH), exist_ok=True)
+        with open(CONFIG_AGENTE_EMAIL_PATH, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+@app.route("/agente-email/config")
+def pagina_config_agente_email():
+    if not usuario_logado():
+        return redirect("/")
+    config = _ler_config_agente_email()
+    return render_template("config_agente_email.html", config=config)
+
+
+@app.route("/api/agente-email/config", methods=["GET"])
+def api_agente_email_config_get():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    return jsonify({"ok": True, "config": _ler_config_agente_email()})
+
+
+@app.route("/api/agente-email/config", methods=["POST"])
+def api_agente_email_config_post():
+    if not usuario_logado():
+        return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
+    try:
+        data = request.get_json(force=True)
+        config_atual = _ler_config_agente_email()
+
+        # geral
+        if "geral" in data:
+            config_atual["geral"]["intervalo_minutos"]    = int(data["geral"].get("intervalo_minutos", 5))
+            config_atual["geral"]["max_emails_por_ciclo"] = int(data["geral"].get("max_emails_por_ciclo", 20))
+
+        # respostas
+        if "respostas" in data:
+            for tipo in ("oc", "cotacao", "nao_identificado"):
+                if tipo in data["respostas"]:
+                    config_atual["respostas"][tipo]["ativo"] = bool(data["respostas"][tipo].get("ativo", False))
+                    config_atual["respostas"][tipo]["corpo"] = str(data["respostas"][tipo].get("corpo", ""))
+
+        # assinatura
+        if "assinatura" in data:
+            config_atual["assinatura"] = str(data["assinatura"])
+
+        # clientes sem resposta — lista de strings lowercase
+        if "clientes_sem_resposta" in data:
+            raw = data["clientes_sem_resposta"]
+            if isinstance(raw, list):
+                config_atual["clientes_sem_resposta"] = [str(c).lower().strip() for c in raw if str(c).strip()]
+            elif isinstance(raw, str):
+                config_atual["clientes_sem_resposta"] = [
+                    c.strip().lower() for c in raw.split(",") if c.strip()
+                ]
+
+        ok = _salvar_config_agente_email(config_atual)
+        if ok:
+            return jsonify({"ok": True, "mensagem": "Configuracoes salvas com sucesso."})
+        else:
+            return jsonify({"ok": False, "mensagem": "Erro ao salvar arquivo de configuracao."}), 500
+
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": str(e)}), 500
 
 
 # =========================

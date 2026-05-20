@@ -195,6 +195,21 @@
       flex-shrink: 0;
     }
 
+    .badge-cliente-novo {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(249,115,22,0.12);
+      border: 1px solid rgba(249,115,22,0.35);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      color: #f97316;
+      letter-spacing: 0.05em;
+    }
+
     .revisao-vazio {
       font-family: 'Space Mono', monospace;
       font-size: 11px;
@@ -352,6 +367,8 @@
       <a href="#aprendizado" onclick="navAtivo(this)">Aprendizado</a>
       <span class="painel-nav-sep">·</span>
       <a href="#revisao" onclick="navAtivo(this)">Revisão Emails</a>
+      <span class="painel-nav-sep">·</span>
+      <a href="/agente-email/config">Config Email</a>
       <span class="painel-nav-sep">·</span>
       {% if nivel == "admin" %}
       <span class="painel-nav-sep">·</span>
@@ -651,7 +668,9 @@
         lista.innerHTML = data.emails.map(email => `
           <div class="revisao-item" id="rev-${email.id}">
             <div class="revisao-info">
-              <div class="revisao-assunto">${email.assunto || "(sem assunto)"}</div>
+              <div class="revisao-assunto">
+                ${email.cliente_novo ? '<span class="badge-cliente-novo" title="Cliente não cadastrado — verifique o matching">🆕 CLIENTE NOVO</span> ' : ''}${email.assunto || "(sem assunto)"}
+              </div>
               <div class="revisao-meta">${email.remetente} · ${email.timestamp || ""}</div>
               <div>
                 <span class="revisao-motivo">${email.motivo || "revisao_manual"}</span>
