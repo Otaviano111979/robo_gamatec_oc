@@ -238,6 +238,8 @@ class MotorSemantico:
     def _carregar_modelo(self):
         if self._modelo is not None:
             return
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        os.environ["HF_HUB_OFFLINE"] = "1"
         from sentence_transformers import SentenceTransformer
         logger.info(f"[MOTOR] Carregando modelo {self.MODELO_NOME}...")
         self._modelo = SentenceTransformer(self.MODELO_NOME)

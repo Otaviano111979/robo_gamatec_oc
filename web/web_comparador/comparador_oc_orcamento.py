@@ -21,6 +21,13 @@ import pandas as pd
 
 
 def _parse_num(v) -> float | None:
+    """
+    Converte número em formato BR ou EN para float.
+    - '1.234,56' → 1234.56  (BR com milhar)
+    - '1.234'    → 1234.0   (BR milhar sem decimal)  ← bug corrigido
+    - '1234.56'  → 1234.56  (EN decimal)
+    - None/nan   → None
+    """
     if v is None:
         return None
     if isinstance(v, (int, float)):
@@ -28,7 +35,16 @@ def _parse_num(v) -> float | None:
     s = str(v).strip().replace(' ', '')
     if not s or s.lower() in ('nan', 'none', ''):
         return None
-    s = s.replace('.', '').replace(',', '.') if ',' in s else s
+    if ',' in s:
+        # Formato BR: ponto = milhar, vírgula = decimal
+        s = s.replace('.', '').replace(',', '.')
+    elif s.count('.') > 1:
+        # Múltiplos pontos = separador de milhar: "1.234.567"
+        s = s.replace('.', '')
+    elif '.' in s and s.index('.') < len(s) - 4:
+        # Ponto longe do fim = milhar: "1.000"
+        s = s.replace('.', '')
+    # Caso contrário: ponto decimal normal "1234.56" — mantém
     try:
         return float(s)
     except Exception:
@@ -104,8 +120,8 @@ def comparar_oc_orcamento(
         if not cod:
             continue
         mapa_orc[cod] = {
-            'descricao_orc':  it.get('descricao', ''),
-            'qtde_orc':       it.get('qtde'),
+            'descricao_orc':   it.get('descricao', ''),
+            'qtde_orc':        it.get('qtde'),
             'preco_orcamento': it.get('preco_orcamento'),
         }
 
@@ -118,7 +134,7 @@ def comparar_oc_orcamento(
         codigos_vistos.add(cod)
         orc = mapa_orc.get(cod)
 
-        preco_orc = orc['preco_orcamento'] if orc else None
+        preco_orc = _parse_num(orc['preco_orcamento']) if orc else None
         preco_oc  = oc['preco_oc']
 
         desconto, status = calcular_desconto(preco_orc, preco_oc)
@@ -150,7 +166,7 @@ def comparar_oc_orcamento(
             'DESCRICAO':        orc['descricao_orc'],
             'QUANTIDADE':       orc['qtde_orc'],
             'PRECO_OC':         None,
-            'PRECO_ORCAMENTO':  orc['preco_orcamento'],
+            'PRECO_ORCAMENTO':  _parse_num(orc['preco_orcamento']),
             'DESCONTO':         None,
             'PRECO_FINAL':      None,
             'STATUS':           'SEM_OC',

@@ -130,7 +130,7 @@ def calcular_desconto_percentual(preco_sistema, preco_alvo):
     return round(desconto, 5)
 
 
-def estimar_preco_final(preco_sistema, desconto_percentual):
+def estimar_preco_final(preco_sistema, desconto_percentual, preco_alvo=None):
     preco_sistema = valor_numerico(preco_sistema)
     desconto_percentual = valor_numerico(desconto_percentual)
 
@@ -138,7 +138,15 @@ def estimar_preco_final(preco_sistema, desconto_percentual):
         return None
 
     preco_final = preco_sistema * (1 - (desconto_percentual / 100.0))
-    return round(preco_final, 5)
+    preco_final = round(preco_final, 5)
+    
+    # Trava de segurança: nunca maior que o alvo
+    if preco_alvo is not None:
+        preco_alvo = valor_numerico(preco_alvo)
+        if preco_alvo is not None and preco_final > preco_alvo:
+            preco_final = preco_alvo
+            
+    return preco_final
 
 
 def preparar_descontos_gamatec():

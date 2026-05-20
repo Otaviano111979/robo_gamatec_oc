@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import os
 import unicodedata
+import pandas as pd
 from typing import Dict, Optional, Any, List
 
 
@@ -139,71 +140,73 @@ def _mapear_colunas(fieldnames: List[str]) -> Dict[str, str]:
 
 def carregar_base_mrv(caminho_arquivo: str) -> Dict[str, Dict[str, Any]]:
     """
-    Carrega base MRV (CSV/TXT delimitado) e retorna índice por codigo_mrv.
-
-    Retorno:
-    {
-        "1101047": {
-            "codigo_mrv": "1101047",
-            "codigo_krona": "123456",
-            "linha_original": {...}
-        },
-        ...
-    }
+    Carrega base MRV (CSV/TXT delimitado) usando Pandas e retorna índice por codigo_mrv.
+    Converte colunas de preço (PR, SC, RS, MT, MS, GO, DF) para float.
     """
     if not os.path.exists(caminho_arquivo):
         raise FileNotFoundError(f"Base MRV não encontrada: {caminho_arquivo}")
 
-    with open(caminho_arquivo, "r", encoding="utf-8-sig", newline="") as f:
+    # 1. Detectar delimitador lendo a primeira linha
+    with open(caminho_arquivo, "r", encoding="latin1", newline="") as f:
         primeira_linha = f.readline()
         if not primeira_linha:
             raise ValueError("Arquivo da base MRV está vazio.")
-
         delimitador = _detectar_delimitador(primeira_linha)
-        print(f"[BASE MRV] Delimitador detectado: {repr(delimitador)}")
 
-        f.seek(0)
-        reader = csv.DictReader(f, delimiter=delimitador)
+    # 2. Carregar com Pandas
+    df = pd.read_csv(caminho_arquivo, sep=delimitador, encoding="latin1")
+    
+    if df.empty:
+        raise ValueError("Não foi possível ler dados da base MRV.")
 
-        if not reader.fieldnames:
-            raise ValueError("Não foi possível ler o cabeçalho da base MRV.")
+    print(f"[BASE MRV] Delimitador detectado: {repr(delimitador)}")
+    print(f"[BASE MRV] Colunas originais: {df.columns.tolist()}")
 
-        print(f"[BASE MRV] Cabeçalho original: {reader.fieldnames}")
+    # 3. Mapear colunas obrigatórias
+    mapeamento = _mapear_colunas(df.columns.tolist())
+    print(f"[BASE MRV] Coluna MRV mapeada: {mapeamento['codigo_mrv']}")
+    print(f"[BASE MRV] Coluna Krona mapeada: {mapeamento['codigo_krona']}")
 
-        mapeamento = _mapear_colunas(reader.fieldnames)
+    # 4. Converter colunas de preço para float (conforme solicitado pelo usuário)
+    cols_preco = ['PR', 'SC', 'RS', 'MT', 'MS', 'GO', 'DF']
+    for col in cols_preco:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace('#N/D', '', regex=False)
+                .str.replace(',', '.', regex=False)
+            )
+            df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        print(f"[BASE MRV] Coluna MRV mapeada: {mapeamento['codigo_mrv']}")
-        print(f"[BASE MRV] Coluna Krona mapeada: {mapeamento['codigo_krona']}")
+    # 5. Indexar os dados
+    indice: Dict[str, Dict[str, Any]] = {}
+    duplicados = 0
+    linhas_validas = 0
 
-        indice: Dict[str, Dict[str, Any]] = {}
-        duplicados = 0
-        linhas_lidas = 0
-        linhas_validas = 0
+    for _, row in df.iterrows():
+        row_dict = row.to_dict()
+        codigo_mrv = _normalizar_codigo(row_dict.get(mapeamento["codigo_mrv"]))
+        codigo_krona = _normalizar_codigo(row_dict.get(mapeamento["codigo_krona"]))
 
-        for row in reader:
-            linhas_lidas += 1
+        if not codigo_mrv:
+            continue
 
-            codigo_mrv = _normalizar_codigo(row.get(mapeamento["codigo_mrv"]))
-            codigo_krona = _normalizar_codigo(row.get(mapeamento["codigo_krona"]))
+        registro = {
+            "codigo_mrv": codigo_mrv,
+            "codigo_krona": codigo_krona,
+            "linha_original": row_dict,
+        }
 
-            if not codigo_mrv:
-                continue
+        if codigo_mrv in indice:
+            duplicados += 1
 
-            registro = {
-                "codigo_mrv": codigo_mrv,
-                "codigo_krona": codigo_krona,
-                "linha_original": row,
-            }
-
-            if codigo_mrv in indice:
-                duplicados += 1
-
-            indice[codigo_mrv] = registro
-            linhas_validas += 1
+        indice[codigo_mrv] = registro
+        linhas_validas += 1
 
     print("\n[BASE MRV]")
     print(f"Arquivo: {caminho_arquivo}")
-    print(f"Linhas lidas: {linhas_lidas}")
+    print(f"Linhas lidas: {len(df)}")
     print(f"Linhas válidas indexadas: {linhas_validas}")
     print(f"Códigos únicos indexados: {len(indice)}")
     print(f"Duplicados sobrescritos: {duplicados}")

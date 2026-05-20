@@ -17,6 +17,7 @@ import sqlite3
 import re
 import pandas as pd
 from pathlib import Path
+import unicodedata
 
 XLSX1 = Path(r"C:\robo_gamatec_oc\instance\catalogo_steck_raw.xlsx")
 XLSX2 = Path(r"C:\robo_gamatec_oc\instance\catalogo_steck_lote.xlsx")
@@ -28,6 +29,16 @@ def norm(v):
 
 def digits(v):
     return "".join(re.findall(r"\d+", str(v or "")))
+
+def strip_accents(s: str) -> str:
+    return "".join(ch for ch in unicodedata.normalize("NFD", s or "") if unicodedata.category(ch) != "Mn")
+
+def normalize_code(code: str) -> str:
+    s = norm(code)
+    s = strip_accents(s)
+    s = re.sub(r"[\s\.\-/_\\]+", "", s)
+    s = re.sub(r"[^A-Z0-9]+", "", s)
+    return s
 
 def clean_lote(v):
     if v is None:
@@ -44,6 +55,20 @@ def clean_lote(v):
 def find_col(df, *candidates):
     cols = set(df.columns)
     return next((c for c in candidates if c in cols), None)
+
+def parse_percent(v):
+    if v is None:
+        return None
+    if isinstance(v, float) and v != v:
+        return None
+    s = str(v).strip().replace(" ", "")
+    if not s or s.lower() in ("nan", "none", "-"):
+        return None
+    s = s.replace("%", "").replace(",", ".")
+    try:
+        return float(s)
+    except Exception:
+        return None
 
 
 def main():
@@ -133,14 +158,25 @@ def main():
     inseridos = 0
     pulados   = 0
     com_lote  = 0
+    duplicados = 0
+    vistos = set()
 
     for _, row in df1.iterrows():
         raw = norm(row.get(col1_sku) if col1_sku else "")
         if not raw or raw in ("NAN", "NONE", ""):
             pulados += 1
             continue
+        produto_norm = normalize_code(raw)
+        if not produto_norm:
+            pulados += 1
+            continue
+        if produto_norm in vistos:
+            duplicados += 1
+            continue
+        vistos.add(produto_norm)
 
-        desc = norm(row.get(col1_desc) if col1_desc else "")
+        desc = str(row.get(col1_desc) if col1_desc else "" or "").strip()
+        desc = desc if desc.lower() not in ("nan", "none") else ""
 
         ean = ean2_map.get(raw) or (str(row.get(col1_ean) or "").strip() if col1_ean else "")
         if ean.lower() in ("nan", "none", ""):
@@ -161,11 +197,11 @@ def main():
                    descricao, lote_minimo, clas_fiscal, cst, icms, ipi, ean13)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """, (
-                raw, norm(raw), digits(raw), raw[:4],
+                raw, produto_norm, digits(produto_norm), produto_norm[:4],
                 desc, lote, ncm,
-                cst_map.get(raw),
-                icms_map.get(raw),
-                ipi_map.get(raw),
+                cst_map.get(raw) or None,
+                parse_percent(icms_map.get(raw)),
+                parse_percent(ipi_map.get(raw)),
                 ean,
             ))
             inseridos += 1
@@ -179,6 +215,7 @@ def main():
     pct = round(com_lote / inseridos * 100) if inseridos else 0
     print(f"\n✓ {inseridos} produtos importados")
     print(f"  {com_lote} com lote mínimo ({pct}%)")
+    print(f"  {duplicados} linhas duplicadas (mesmo código) ignoradas")
     print(f"  {pulados} linhas puladas")
     print(f"  Banco: {DB}")
     print("\nPronto! Reinicie o servidor Vortex.")

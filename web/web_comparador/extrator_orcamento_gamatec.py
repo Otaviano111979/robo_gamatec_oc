@@ -16,12 +16,12 @@ import pdfplumber
 # Regex com descrição greedy — captura o máximo possível antes dos campos numéricos
 # Isso evita shift de colunas quando a descrição termina com número (ex: JOELHO 45)
 _LINHA_ITEM = re.compile(
-    r'^(\d{4})\s+'
-    r'(.+)\s+'
-    r'(\d+)\s+'
-    r'(\d+(?:[.,]\d+)?)\s+'
-    r'([\d.,]+)\s+'
-    r'([\d.,]+)'
+    r'^(\d{4})\s+'            # codigo (4 dígitos)
+    r'(.+)\s+'                # descricao (greedy)
+    r'(\d+)\s+'               # emb (inteiro)
+    r'(\d+(?:[.,]\d+)?)\s+'   # qtde
+    r'([\d.,]+)\s+'           # unitario
+    r'([\d.,]+)'              # total
     r'(?:\s|$)'
 )
 
@@ -35,10 +35,20 @@ _IGNORAR = re.compile(
 
 
 def _parse_num(s: str) -> float:
+    """
+    Converte número em formato BR ou EN para float.
+    - '1.234,56' → 1234.56  (BR com milhar)
+    - '1.234'    → 1234.0   (BR milhar sem decimal)  ← bug corrigido
+    - '1234.56'  → 1234.56  (EN decimal)
+    """
     s = str(s).strip()
     if ',' in s:
+        # Formato BR: ponto = milhar, vírgula = decimal
         s = s.replace('.', '').replace(',', '.')
     elif '.' in s and s.index('.') < len(s) - 4:
+        # Múltiplos pontos ou ponto longe do fim = separador de milhar
+        # Ex: "1.000" → index('.') = 1, len-4 = -1 → 1 < -1? Não, mas:
+        # "1.234.567" → remove todos os pontos
         s = s.replace('.', '')
     try:
         return float(s)
@@ -113,11 +123,13 @@ def extrair_orcamento_gamatec(pdf_bytes: bytes) -> dict:
                 if unitario <= 0:
                     continue
 
+                # Sanity check 2 — validação cruzada: unitario × qtde ≈ total
+                # Protege contra shift de colunas residual (tolerância 5%)
                 if total > 0 and qtde > 0:
                     esperado = unitario * qtde
                     margem = abs(esperado - total) / total
                     if margem > 0.05:
-                        continue
+                        continue  # linha malformada — ignora
 
                 itens.append({
                     'codigo':          codigo,

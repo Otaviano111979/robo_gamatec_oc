@@ -757,19 +757,410 @@
       "assunto": "A cotação VNKNPKA expirou!",
       "classificacao": "ignorado",
       "timestamp": "2026-04-28 08:13:03"
+    },
+    "19dd413b3bc24716": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509417364",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509417364.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:03"
+    },
+    "19dd40eeab85a63f": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA K77645 - KRONA - THN CONSTRUTORA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_OC K77645 - KRONA - THNCONSTRUTORA  - (1).pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:09"
+    },
+    "19dd40b20cc87e27": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509417166",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509417166.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:11"
+    },
+    "19dd4093f2b30312": {
+      "remetente": "\"UNE Representações\" <unerepresentacao@gmail.com>",
+      "assunto": "ORDEM DE COMPRA k77657 - KRONA - DIAL DISTRIBUIDORA",
+      "classificacao": "oc",
+      "motivo": "palavras_chave_oc",
+      "cliente": "UNE Representações",
+      "cliente_id": "une",
+      "anexos": [
+        "EMAIL_OC K77657 - KRONA - DIAL DISTRIBUIDORA LTDA .pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:15"
+    },
+    "19dd4021a0fe1daf": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509416592",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509416592.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:17"
+    },
+    "19dd3f984ab8fbf4": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509416058",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509416058.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:20"
+    },
+    "19dd3f93031f61bc": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509416111",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509416111.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:22"
+    },
+    "19dd3f91f6d3ec07": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509415968",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509415968.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:15:24"
+    },
+    "19dd3f47380e5671": {
+      "remetente": "Camille Oliveira Dos Santos <santos.camille@mrv.com.br>",
+      "assunto": "RE: [Número do Chamado :##RE-7071422##] : antecipação pedido krona tubo pvc",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 10:15:26"
+    },
+    "19dd3e9f90b3752b": {
+      "remetente": "GEO CONSTRUTORA GYN <geoconstrutoragyn@gmail.com>",
+      "assunto": "Autorização de compras",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 10:15:26"
+    },
+    "19dd41af6c062d80": {
+      "remetente": "Jose Carlos Magalhaes <JCMagalhaes@brasal.com.br>",
+      "assunto": "Pedido de Compra da Brasal 908417",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (brasal)",
+      "cliente": "Brasal Incorporações",
+      "cliente_id": "brasal",
+      "anexos": [
+        "EMAIL_Pedido_908417.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-28 10:36:22"
+    },
+    "19dd45966f411cad": {
+      "remetente": "Giovanni Barroso Santos <giovanni.santos@ebm.com.br>",
+      "assunto": "RE: Pedido de Compra 7720/26",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 11:08:42"
+    },
+    "19dd47a1accde9b1": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7091030##] : Antecipação | 4509412391",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 11:35:27"
+    },
+    "19dd47a16fd4a469": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7091018##] : KRONA | CINTAMENTO | 4509413307",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 11:35:28"
+    },
+    "19dd479da72d8bed": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7090666##] : Antecipação de pedido Krona 4509395152",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-28 11:35:28"
+    },
+    "19dd92572e1d00f5": {
+      "remetente": "Johan Mendes Skare <johan.mendes@mrv.com.br>",
+      "assunto": "RE: [Número do Chamado :##RE-7090666##] : Antecipação de pedido Krona 4509395152",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:17"
+    },
+    "19dd9201e629c81f": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7091566##] : Antecipação de pedido 4509417364",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:17"
+    },
+    "19dd8f222409c727": {
+      "remetente": "Vivo Empresas <comunicacao@mail.vivo.com.br>",
+      "assunto": "OFERTA IMBATÍVEL: até 24GB por R$39,99/mês 💥",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:18"
+    },
+    "19dd5b9d4137a4a8": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7090666##] : Antecipação de pedido Krona 4509395152",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:19"
+    },
+    "19dd5afa01436e0f": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7071422##] : antecipação pedido krona tubo pvc",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:20"
+    },
+    "19dd5acf2a299c75": {
+      "remetente": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+      "assunto": "Delivery Status Notification (Failure)",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:21"
+    },
+    "19dd50a218a69be5": {
+      "remetente": "Informativo CEC <cec@ovd.com.br>",
+      "assunto": "CEC - Convite para Live de Produtos VONDER",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-29 09:57:21"
+    },
+    "19dddd570ee81742": {
+      "remetente": "Obra Play <noreply@ses.obraplay.com>",
+      "assunto": "A cotação MGSJFDD expirou!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 07:18:50"
+    },
+    "19dddba199144a45": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509423178",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509423178.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:18:53"
+    },
+    "19dddb9f88a6cf67": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509421710",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509421710.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:18:55"
+    },
+    "19ddb969c5ead652": {
+      "remetente": "Google Gemini <google-gemini-noreply@google.com>",
+      "assunto": "UNE, arrase nas provas finais com o Gemini",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 07:18:56"
+    },
+    "19ddaf84e3f8407f": {
+      "remetente": "Italo Fernandes Lorenzo <italo.lorenzo@ebm.com.br>",
+      "assunto": "RE: Certificados e laudos - Eletroduto - Now Alameda EBM",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 07:18:57"
+    },
+    "19dda9106c4c8fe4": {
+      "remetente": "Obra Play <noreply@ses.obraplay.com>",
+      "assunto": "Queremos cotar com você!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 07:18:58"
+    },
+    "19dd9611b526237b": {
+      "remetente": "\"OrçaAqui\" <contato@orcaaqui.com.br>",
+      "assunto": "Nova cotação disponível - KRONA TUBOS E CONEXOES DO NORDESTE LTDA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 07:18:58"
+    },
+    "19dddf3725f13857": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509423073",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509423073.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:34:59"
+    },
+    "19dddf33009fa35f": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509422850",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509422850.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:35:02"
+    },
+    "19ddded8b7453274": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509421628",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509421628.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:35:04"
+    },
+    "19dddea741d5696a": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509421973",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509421973.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:35:06"
+    },
+    "19dddea187d9bf99": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509421656",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509421656.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:35:09"
+    },
+    "19dddea13b161c49": {
+      "remetente": "<confirmacaopedidos@mrv.com.br>",
+      "assunto": "Pedido de Compras MRV: 4509421654",
+      "classificacao": "oc",
+      "motivo": "cliente_conhecido_promovido (mrv)",
+      "cliente": "MRV Engenharia",
+      "cliente_id": "mrv",
+      "anexos": [
+        "EMAIL_Ped. MRV4509421654.pdf"
+      ],
+      "ok": true,
+      "timestamp": "2026-04-30 07:35:11"
+    },
+    "19dde12223b3d9e7": {
+      "remetente": "Informativo OVD <informativo@mktovd.com.br>",
+      "assunto": "VONDER - Empilhadeira Elétrica EEV 153-LI",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 09:21:44"
+    },
+    "19dde56c6d15e6fe": {
+      "remetente": "Marian Siqueira De Almeida <marian.almeida@mrv.com.br>",
+      "assunto": "RE: PEDIDOS SEM RETORNO - KRONA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 09:26:46"
+    },
+    "19dde7d501c91b0b": {
+      "remetente": "Informativo OVD <informativo@mktovd.com.br>",
+      "assunto": "VONDER PLUS - Grampos de Fixação Rápida e Grampo Tipo Sargento Angular",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 10:05:49"
+    },
+    "19dde88c4b252965": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7093058##] : Mirante do Vale - Antecipação Krona (Hidraulica) - OC 4509414054.",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 10:20:54"
+    },
+    "19ddeb3bd6328ded": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7093283##] : TUBOS ESGOTO - 4509420432",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 11:06:37"
+    },
+    "19ddef90b908d771": {
+      "remetente": "\"Amanda Gregio | Obra Play\" <amanda.gregio@obraplay.com>",
+      "assunto": "O erro que te tira das vendas na construção!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 13:52:47"
+    },
+    "19ddef6420332dba": {
+      "remetente": "Informativo OVD <informativo@mktovd.com.br>",
+      "assunto": "No estádio e no trabalho profissional, ferramenta é VONDER!",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 13:52:48"
+    },
+    "19ddee9f20934769": {
+      "remetente": "Informativo OVD <informativo@mktovd.com.br>",
+      "assunto": "VONDER PLUS - Caixas Plásticas para Ferramentas CPV 910 e CPV 920",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 13:52:48"
+    },
+    "19ddedf8c54ec3ca": {
+      "remetente": "CLARO EMPRESAS <claroempresas@minhaclaro.com.br>",
+      "assunto": "Claro empresas: Organize e simplifique o controle de sua empresa com Gestao de Negocios",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 13:52:49"
+    },
+    "19ddff2ac7ab5dc7": {
+      "remetente": "Keli - Eletro Transol <keli.adriane@eletrotransol.com.br>",
+      "assunto": "Solicitação de Cotação - KRONA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 17:04:08"
+    },
+    "19ddf772af643239": {
+      "remetente": "Agilis <agilis@mrv.com.br>",
+      "assunto": "Re: [Número do Chamado :##RE-7090737##] : ÁNTECIPAÇÃO PEDIDO 4509415307 | KRONA | PORTO ESSENZA",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 17:04:10"
+    },
+    "19ddf6326ec57948": {
+      "remetente": "Vivo Empresas <comunicacao@mail.vivo.com.br>",
+      "assunto": "Internet Fibra de 700 MEGA + WIFI 6 por apenas R$ 99,99/mês",
+      "classificacao": "ignorado",
+      "timestamp": "2026-04-30 17:04:11"
     }
   },
   "revisao": [
-    {
-      "id": "19dac7641d95f78c",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1977 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-20 17:01:05"
-    },
     {
       "id": "19dac69abc387d73",
       "remetente": "Cristiano <cristiano@dsaengenharia.com.br>",
@@ -803,126 +1194,6 @@
       "timestamp": "2026-04-22 08:59:47"
     },
     {
-      "id": "19db507ca0afc00e",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1070 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 08:59:47"
-    },
-    {
-      "id": "19db5035b9ec6d30",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 33 - SPE Jundiaí Emisa Empreendimentos Imobiliários LTDA",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 08:59:48"
-    },
-    {
-      "id": "19db54d6721dca19",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2002 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:47"
-    },
-    {
-      "id": "19db54bb95c2e38d",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2001 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:48"
-    },
-    {
-      "id": "19db5466ca01531b",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2000 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:48"
-    },
-    {
-      "id": "19db5441f37007a7",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1999 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:49"
-    },
-    {
-      "id": "19db5436e11ee958",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1999 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:50"
-    },
-    {
-      "id": "19db53bf804fd43f",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1997 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:14:51"
-    },
-    {
-      "id": "19db563770e4af5b",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2003 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:35:09"
-    },
-    {
-      "id": "19db56f7b2522d69",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2005 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:45:18"
-    },
-    {
-      "id": "19db56cd0352e9d0",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2004 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:45:19"
-    },
-    {
-      "id": "19db5733bb48d01a",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 2006 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 10:50:24"
-    },
-    {
       "id": "19db573039dcc7be",
       "remetente": "\"Emerson Montalvão\" <emerson.montalvao@bpincorporadora.com>",
       "assunto": "TOQUIO",
@@ -931,266 +1202,6 @@
         "PEDIDO 39351 KRONA GRAN TOQUIO.pdf"
       ],
       "timestamp": "2026-04-22 10:50:25"
-    },
-    {
-      "id": "19db5858841f7168",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1072 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 11:10:44"
-    },
-    {
-      "id": "19db58fb3d185946",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1076 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 11:20:55"
-    },
-    {
-      "id": "19db5a951e46550e",
-      "remetente": "Suprimentos OM <suprimentos@ominc.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para Cotação nº 1477 - SPE COMERCIAL CITY 24 EMPREENDIMENTOS LTDA",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 12:54:20"
-    },
-    {
-      "id": "19db6147323fb773",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1085 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 13:47:11"
-    },
-    {
-      "id": "19db66ea32c4d2b8",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5058 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:45"
-    },
-    {
-      "id": "19db6603dae42782",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5053 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:46"
-    },
-    {
-      "id": "19db65e706a71969",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5052 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:47"
-    },
-    {
-      "id": "19db65c9cf94dfc9",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5052 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:48"
-    },
-    {
-      "id": "19db657bcd23c92e",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5051 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:49"
-    },
-    {
-      "id": "19db651fecb07666",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5049 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:49"
-    },
-    {
-      "id": "19db64ec381132be",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5048 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:50"
-    },
-    {
-      "id": "19db64d0fbea93af",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 5047 - Avenida Parque Empreendimentos Imobiliários SPE Ltda.",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:51"
-    },
-    {
-      "id": "19db62d6b187f9db",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1093 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:52"
-    },
-    {
-      "id": "19db62b7b5530559",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1092 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:53"
-    },
-    {
-      "id": "19db62a9152aeb7d",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1092 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:54"
-    },
-    {
-      "id": "19db626df27222cf",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1091 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:55"
-    },
-    {
-      "id": "19db623dec8a554f",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1090 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:56"
-    },
-    {
-      "id": "19db61e90d3f7d5d",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1088 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:56"
-    },
-    {
-      "id": "19db61b688015423",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1087 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:57"
-    },
-    {
-      "id": "19db617471a542be",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1086 - SPE 24 De Agosto Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-22 17:25:58"
-    },
-    {
-      "id": "19dbb8ab4d101eb2",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1999 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-24 08:13:23"
-    },
-    {
-      "id": "19dbb77563de15b6",
-      "remetente": "Suprimentos AORB <suprimentos@aorb.com.br>",
-      "assunto": "MAPA DE COTAÇÃO - COTAÇÃO 1078 - SPE QD TRES RIO VERDE EMPREENDIMENTO IMOBILIARIO LTDA",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-24 08:13:24"
-    },
-    {
-      "id": "19dbfaa645a3aae5",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1998 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-24 13:13:25"
-    },
-    {
-      "id": "19dc07dee43e28eb",
-      "remetente": "Ezequiel Alves <compras@engecomconstrutora.com.br>",
-      "assunto": "Ordem de Compra",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "CamScanner 24-04-2026 14.14.pdf"
-      ],
-      "timestamp": "2026-04-24 14:50:11"
-    },
-    {
-      "id": "19dcede50f1b697b",
-      "remetente": "Henrique Batista <henrique.batista@7lm.com.br>",
-      "assunto": "Carta de correção",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "ZENITE 49675.pdf"
-      ],
-      "timestamp": "2026-04-27 13:28:52"
-    },
-    {
-      "id": "19dc0eaa8054f862",
-      "remetente": "Suprimentos OM <suprimentos@ominc.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para Cotação nº 1477 - SPE COMERCIAL CITY 24 EMPREENDIMENTOS LTDA",
-      "motivo": "nao_identificado_como_krona",
-      "anexos": [
-        "RELATORIO.pdf"
-      ],
-      "timestamp": "2026-04-27 13:29:01"
     },
     {
       "id": "19dd0889b58906e3",
@@ -1213,14 +1224,45 @@
       "timestamp": "2026-04-27 17:14:11"
     },
     {
-      "id": "19dd0a52bab9495e",
-      "remetente": "Notas Emisa <notas@construtoraemisa.com.br>",
-      "assunto": "MAPA DE COTAÇÃO Convite para cotação nº 1998 - SPE Morro Limpo e Boa Vista Empreendimentos Imobiliários Ltda",
-      "motivo": "nao_identificado_como_krona",
+      "id": "19dd4215973296de",
+      "remetente": "\"Elizangela B. da Silva\" <elizangela@portobeloweb.com.br>",
+      "assunto": " COTAÇÃO  - SESI - TRINDADE GO - PORTA PVC",
+      "motivo": "anexo_sem_pdf",
       "anexos": [
-        "RELATORIO.pdf"
+        "PORTA PVC.xlsx"
       ],
-      "timestamp": "2026-04-28 08:13:04"
+      "timestamp": "2026-04-28 10:14:59"
+    },
+    {
+      "id": "19dd3e2b5f6afa79",
+      "remetente": "Junior Queiroz <junior.queiroz@tciconstrutora.com.br>",
+      "assunto": "COTAÇÃO",
+      "motivo": "cliente_nao_identificado",
+      "anexos": [
+        "COTAÇÃO-KRONA.pdf"
+      ],
+      "timestamp": "2026-04-28 11:48:33"
+    },
+    {
+      "id": "19dde7bb02be79c8",
+      "remetente": "Karoline <karoline@eletrotransol.com.br>",
+      "assunto": "RES: Orçamento Philips",
+      "motivo": "resposta_ou_encaminhamento",
+      "anexos": [
+        "Ordem de compra Nr. 76293 SIGNIFY.PDF"
+      ],
+      "timestamp": "2026-04-30 10:05:50"
+    },
+    {
+      "id": "19ddf5e3e1ccdbe8",
+      "remetente": "Bruno Goncalves Correa <bruno.gcorrea@mrv.com.br>",
+      "assunto": "RE: CNO - MRV - OC 4509423073",
+      "motivo": "resposta_ou_encaminhamento",
+      "anexos": [
+        "DF - CNO TORRES DO POENTE (snoopy).pdf",
+        "DF - CNO TORRES DO POENTE (snoopy).pdf"
+      ],
+      "timestamp": "2026-04-30 14:12:54"
     }
   ],
   "erros": []

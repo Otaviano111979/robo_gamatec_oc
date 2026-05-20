@@ -76,6 +76,7 @@
     .badge-abx  { background: rgba(0, 119, 255, 0.08);  color: var(--primary); border-color: rgba(0, 119, 255, 0.18); }
     .badge-warn { background: rgba(245, 158, 11, 0.10); color: rgba(180, 110, 0, 0.95); border-color: rgba(245, 158, 11, 0.18); }
     .badge-err  { background: rgba(255, 69, 58, 0.10); color: var(--danger); border-color: rgba(255, 69, 58, 0.18); }
+    .badge-limit { background: rgba(125, 211, 252, 0.12); color: rgba(2, 132, 199, 0.95); border-color: rgba(125, 211, 252, 0.35); }
 
     .empty { text-align: center; padding: 40px; color: var(--subtext); font-size: 13px; }
 
@@ -176,10 +177,10 @@
           </td>
           <td class="td-preco-final">
             {% if r.PRECO_FINAL is not none %}
-              {% if r.PRECO_OC and r.PRECO_FINAL <= r.PRECO_OC %}
-                <span class="preco-final-ok">R$ {{ "%.3f"|format(r.PRECO_FINAL) }}</span>
+              {% if r.STATUS in ('OK','ABAIXO') %}
+                <span class="preco-final-ok">R$ {{ r.PRECO_FINAL }}</span>
               {% else %}
-                <span class="preco-final-bad">R$ {{ "%.3f"|format(r.PRECO_FINAL) }}</span>
+                <span class="preco-final-bad">R$ {{ r.PRECO_FINAL }}</span>
               {% endif %}
             {% else %}—{% endif %}
           </td>
@@ -194,6 +195,9 @@
               <span class="badge badge-err">✗ Fora OC</span>
             {% else %}
               <span class="badge badge-warn">{{ r.STATUS }}</span>
+            {% endif %}
+            {% if r.OBS %}
+              <span class="badge badge-limit">{{ r.OBS }}</span>
             {% endif %}
           </td>
         </tr>

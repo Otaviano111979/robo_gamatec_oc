@@ -17,6 +17,7 @@ import io
 import json
 import pandas as pd
 from pathlib import Path
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, InvalidOperation
 from flask import (
     Blueprint, render_template, request, redirect,
     url_for, session, send_file, flash, jsonify
@@ -29,6 +30,47 @@ from comparador_oc_orcamento import comparar_oc_orcamento, gerar_planilha_descon
 _HERE     = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR  = Path(os.environ.get('GAMATEC_BASE_DIR', Path(_HERE).parent))
 SAIDA_DIR = BASE_DIR / 'saida' / 'ocs_individuais'
+
+# Pasta para armazenar dados grandes da sessão no disco
+SESSION_TMP_DIR = os.path.join(_HERE, "tmp_session")
+os.makedirs(SESSION_TMP_DIR, exist_ok=True)
+
+def _save_session_data(key: str, data: any) -> str:
+    """Salva dados no disco e retorna o caminho do arquivo."""
+    file_id = f"sess_{session.get('user', 'anon')}_{key}.json"
+    path = os.path.join(SESSION_TMP_DIR, file_id)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    return file_id
+
+def _load_session_data(file_id: str, default: any = None) -> any:
+    """Carrega dados do disco usando o ID salvo na sessão."""
+    if not file_id: return default
+    path = os.path.join(SESSION_TMP_DIR, file_id)
+    if not os.path.exists(path): return default
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _preco_seguro_ate_oc(preco_calculado, preco_oc) -> str | None:
+    try:
+        preco_calculado_dec = Decimal(str(preco_calculado))
+        preco_oc_dec = Decimal(str(preco_oc))
+    except (InvalidOperation, ValueError):
+        return None
+
+    preco_oc_cents = preco_oc_dec.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+
+    if preco_calculado_dec >= preco_oc_dec:
+        return f"{preco_oc_cents:.2f}"
+
+    candidato = preco_calculado_dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if candidato > preco_oc_cents:
+        candidato = preco_oc_cents
+    return f"{candidato:.2f}"
 
 comparador_bp = Blueprint(
     'comparador',
@@ -109,7 +151,7 @@ def processar(oc_id: str):
         flash(f'Erro na comparação: {e}')
         return redirect(url_for('comparador.upload_page', oc_id=oc_id))
 
-    # ── Salvar resultado na sessão ────────────────────────────────────────────
+    # ── Salvar resultado no DISCO e ID na sessão ───────────────────────────────
     registros = df_comp.to_dict('records')
     # Converter NaN para None (JSON-safe)
     for r in registros:
@@ -117,7 +159,7 @@ def processar(oc_id: str):
             if isinstance(v, float) and v != v:
                 r[k] = None
 
-    session[_session_key(oc_id)] = {
+    dados_comparacao = {
         'oc_id':            oc_id,
         'numero_orcamento': orcamento['numero_orcamento'],
         'cliente':          orcamento['cliente'],
@@ -125,6 +167,9 @@ def processar(oc_id: str):
         'total_orcamento':  orcamento['total_itens'],
         'registros':        registros,
     }
+    
+    # Salva no disco e guarda apenas o ID na session
+    session[_session_key(oc_id)] = _save_session_data(f"comp_{oc_id}", dados_comparacao)
 
     # ── Salvar xlsx no disco ─────────────────────────────────────────────────
     pasta_saida = SAIDA_DIR / oc_id
@@ -142,12 +187,26 @@ def processar(oc_id: str):
 
 @comparador_bp.get('/<oc_id>/resultado')
 def resultado(oc_id: str):
-    dados = session.get(_session_key(oc_id))
+    # Carrega do disco usando o ID salvo na session
+    file_id = session.get(_session_key(oc_id))
+    dados = _load_session_data(file_id)
+    
     if not dados:
         flash('Sessão expirada. Faça o upload novamente.')
         return redirect(url_for('comparador.upload_page', oc_id=oc_id))
 
     registros = dados['registros']
+    for r in registros:
+        if r.get('STATUS') not in ('OK', 'ABAIXO'):
+            continue
+        preco_final = r.get('PRECO_FINAL')
+        preco_oc = r.get('PRECO_OC')
+        if preco_final is None or preco_oc is None:
+            continue
+        preco_final_safe = _preco_seguro_ate_oc(preco_final, preco_oc)
+        if preco_final_safe is None:
+            continue
+        r['PRECO_FINAL'] = preco_final_safe
 
     # Estatísticas
     total      = len(registros)
@@ -176,7 +235,10 @@ def resultado(oc_id: str):
 
 @comparador_bp.get('/<oc_id>/download')
 def download(oc_id: str):
-    dados = session.get(_session_key(oc_id))
+    # Carrega do disco usando o ID salvo na session
+    file_id = session.get(_session_key(oc_id))
+    dados = _load_session_data(file_id)
+    
     if not dados:
         flash('Sessão expirada.')
         return redirect(url_for('comparador.upload_page', oc_id=oc_id))
@@ -194,6 +256,9 @@ def download(oc_id: str):
         desconto = r.get('DESCONTO')
         # Desconto com ponto (string formatada)
         desconto_str = f"{desconto:.5f}".replace(',', '.') if desconto is not None else ''
+        preco_final = r.get('PRECO_FINAL')
+        if preco_final is not None and preco_oc is not None:
+            preco_final = _preco_seguro_ate_oc(preco_final, preco_oc) or preco_final
         linhas.append({
             'CODIGO':        r.get('CODIGO', ''),
             'DESCRICAO':     r.get('DESCRICAO', ''),
@@ -202,7 +267,8 @@ def download(oc_id: str):
             'TOTAL OC':      total_oc,
             'PRECO ORC.':    r.get('PRECO_ORCAMENTO'),
             'DESCONTO %':    desconto_str,
-            'PRECO FINAL':   r.get('PRECO_FINAL'),
+            'PRECO FINAL':   preco_final,
+            'OBS':           r.get('OBS') or '',
         })
 
     df = pd.DataFrame(linhas)
@@ -220,7 +286,8 @@ def download(oc_id: str):
         fmt_total_oc = wb.add_format({'bg_color': '#0a2030', 'font_color': '#00d4ff', 'bold': True, 'num_format': 'R$ #,##0.00'})
         fmt_preco_orc= wb.add_format({'bg_color': '#1a1a0a', 'font_color': '#fde68a', 'num_format': 'R$ #,##0.000'})
         fmt_desconto = wb.add_format({'bg_color': '#0a1a0a', 'font_color': '#4ade80', 'bold': True, 'align': 'center'})
-        fmt_final    = wb.add_format({'font_color': '#4ade80', 'num_format': 'R$ #,##0.000'})
+        fmt_final    = wb.add_format({'font_color': '#4ade80'})
+        fmt_obs      = wb.add_format({'font_color': '#7dd3fc'})
         fmt_num      = wb.add_format({'align': 'right'})
 
         # Largura das colunas
@@ -232,6 +299,7 @@ def download(oc_id: str):
         ws.set_column('F:F', 14)   # PRECO ORC
         ws.set_column('G:G', 14)   # DESCONTO %
         ws.set_column('H:H', 14)   # PRECO FINAL
+        ws.set_column('I:I', 20)   # OBS
 
         # Aplicar formatos por coluna (linha a linha)
         for row_idx, row in enumerate(linhas, start=1):
@@ -247,6 +315,8 @@ def download(oc_id: str):
             ws.write(row_idx, 6, row['DESCONTO %'],  fmt_desconto)
             if row['PRECO FINAL'] is not None:
                 ws.write(row_idx, 7, row['PRECO FINAL'], fmt_final)
+            if row.get('OBS'):
+                ws.write(row_idx, 8, row['OBS'], fmt_obs)
 
     output.seek(0)
 

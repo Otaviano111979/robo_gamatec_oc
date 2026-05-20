@@ -34,6 +34,15 @@
           <button class="vx-btn" type="submit">Buscar</button>
         </form>
 
+        {% if q %}
+          <div class="vx-hint" style="margin-top:-6px;margin-bottom:12px;">
+            Resultados: <span class="vx-mono">{{ total if total is not none else (results|length) }}</span>
+            {% if pages and pages|int > 1 %}
+              &nbsp;·&nbsp; Página <span class="vx-mono">{{ page }}</span>/<span class="vx-mono">{{ pages }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
         {% if results|length == 0 %}
           <div class="vx-empty">
             <div class="vx-empty-title">Nenhum resultado</div>
@@ -79,6 +88,17 @@
               </div>
             {% endfor %}
           </div>
+
+          {% if pages and pages|int > 1 %}
+            <div class="vx-actions" style="margin-top:14px;justify-content:flex-end;">
+              {% if page|int > 1 %}
+                <a class="vx-chip" href="{{ url_for('catalogo_steck.search') }}?q={{ q|urlencode }}&page={{ page|int - 1 }}">← Anterior</a>
+              {% endif %}
+              {% if page|int < pages|int %}
+                <a class="vx-chip vx-chip-cyan" href="{{ url_for('catalogo_steck.search') }}?q={{ q|urlencode }}&page={{ page|int + 1 }}">Próxima →</a>
+              {% endif %}
+            </div>
+          {% endif %}
         {% endif %}
       </section>
 
@@ -132,31 +152,63 @@
       const data = new FormData(form);
       const btn = form.querySelector("button[type=submit]");
       btn.disabled = true;
-      btn.textContent = "✓";
+      btn.textContent = "...";
 
-      const res = await fetch(form.action, {
-        method: "POST", body: data,
-        headers: {"Accept": "application/json", "X-Requested-With": "fetch"}
-      });
-      const json = await res.json();
-      if (json.ok) {
-        document.getElementById("cartTotalItens").textContent = json.summary.total_itens;
-        document.getElementById("cartTotalQtd").textContent   = json.summary.total_quantidade;
+      try {
+        const res = await fetch(form.action, {
+          method: "POST", body: data,
+          headers: {"Accept": "application/json", "X-Requested-With": "fetch"}
+        });
 
-        const list = document.getElementById("cartList");
-        if (list) {
-          list.innerHTML = json.cart.map(i => `
-            <div class="vx-cart-item">
-              <div class="vx-mono vx-cart-code">${i.codigo}</div>
-              <div class="vx-cart-desc">${i.descricao}</div>
-              <div class="vx-cart-meta">
-                <span class="vx-badge">Lote: ${i.lote_minimo || "—"}</span>
-                <span class="vx-badge vx-badge-cyan">${i.quantidade}</span>
-              </div>
-            </div>`).join("");
+        if (!res.ok) {
+          console.error("[STECK ADD] servidor retornou HTTP", res.status, "para", form.action);
+          throw new Error("HTTP " + res.status);
         }
+
+        let json;
+        try {
+          json = await res.json();
+        } catch (parseErr) {
+          console.error("[STECK ADD] resposta nao e JSON:", parseErr);
+          const txt = await res.clone().text().catch(() => "(sem corpo)");
+          console.error("[STECK ADD] corpo recebido:", txt.slice(0, 200));
+          throw parseErr;
+        }
+
+        if (json.ok) {
+          const elItens = document.getElementById("cartTotalItens");
+          const elQtd   = document.getElementById("cartTotalQtd");
+          if (elItens) elItens.textContent = json.summary.total_itens;
+          if (elQtd)   elQtd.textContent   = json.summary.total_quantidade;
+
+          const list = document.getElementById("cartList");
+          if (list) {
+            list.innerHTML = json.cart.map(i => `
+              <div class="vx-cart-item">
+                <div class="vx-mono vx-cart-code">${i.codigo}</div>
+                <div class="vx-cart-desc">${i.descricao}</div>
+                <div class="vx-cart-meta">
+                  <span class="vx-badge">Lote: ${i.lote_minimo || "—"}</span>
+                  <span class="vx-badge vx-badge-cyan">${i.quantidade}</span>
+                </div>
+              </div>`).join("");
+          }
+          btn.textContent = "✓";
+          setTimeout(() => { btn.disabled = false; btn.textContent = "+ Adicionar"; }, 1200);
+        } else {
+          console.error("[STECK ADD] servidor retornou ok=false:", json);
+          btn.disabled = false;
+          btn.textContent = "+ Adicionar";
+        }
+
+      } catch (err) {
+        console.error("[STECK ADD] erro no fetch, enviando formulario normalmente:", err);
+        btn.disabled = false;
+        btn.textContent = "+ Adicionar";
+        // fallback: submete o formulário normalmente (sem AJAX)
+        // isso garante que o request sempre chega ao Flask
+        form.submit();
       }
-      setTimeout(() => { btn.disabled = false; btn.textContent = "+ Adicionar"; }, 1200);
     });
   });
   </script>

@@ -18,5 +18,9 @@
   "junior": {
     "senha": "$2b$12$U5oEOox6A02Ta5OcutJutuj9sNLNN.S47orQDo.F3rCeI6KNSkKFW",
     "tipo": "supervisor"
+  },
+  "wash": {
+    "senha": "$2b$12$Hf8PwJ15BkW0kqBCLy2epO8bU3iYsbrB51bMU5I32DJt1dNMqahFS",
+    "tipo": "operador"
   }
 }

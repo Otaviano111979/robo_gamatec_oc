@@ -18,6 +18,7 @@ Status por item:
 import os
 import io
 import pandas as pd
+from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, ROUND_UP, InvalidOperation
 
 
 def _parse_num(v) -> float | None:
@@ -35,6 +36,34 @@ def _parse_num(v) -> float | None:
         return None
 
 
+def _to_decimal(v) -> Decimal | None:
+    if v is None:
+        return None
+    if isinstance(v, Decimal):
+        return v
+    try:
+        return Decimal(str(v))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def preco_seguro_ate_oc(preco_calculado, preco_oc) -> Decimal | None:
+    preco_calculado_dec = _to_decimal(preco_calculado)
+    preco_oc_dec = _to_decimal(preco_oc)
+    if preco_calculado_dec is None or preco_oc_dec is None:
+        return None
+
+    preco_oc_cents = preco_oc_dec.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+
+    if preco_calculado_dec >= preco_oc_dec:
+        return preco_oc_cents
+
+    candidato = preco_calculado_dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if candidato > preco_oc_cents:
+        return preco_oc_cents
+    return candidato
+
+
 def _norm_codigo(v) -> str:
     """Normaliza código Krona: remove zeros à esquerda."""
     s = str(v or '').strip()
@@ -50,19 +79,20 @@ def calcular_desconto(preco_orcamento: float, preco_oc: float) -> tuple[float, s
     Regra: preço final deve ser <= preço_oc.
     desconto = ((preco_orcamento - preco_oc) / preco_orcamento) * 100
     """
-    if preco_orcamento is None or preco_oc is None:
+    orc_dec = _to_decimal(preco_orcamento)
+    oc_dec = _to_decimal(preco_oc)
+    if orc_dec is None or oc_dec is None:
         return None, 'SEM_PRECO'
-
-    if preco_orcamento <= 0:
+    if orc_dec <= 0:
         return None, 'SEM_PRECO'
-
-    if preco_orcamento <= preco_oc:
-        # Orçamento já abaixo ou igual à OC — sem desconto necessário
+    if orc_dec <= oc_dec:
         return 0.0, 'ABAIXO'
 
-    desconto = ((preco_orcamento - preco_oc) / preco_orcamento) * 100.0
-    desconto = max(0.0, round(desconto, 5))
-    return desconto, 'OK'
+    desconto_dec = ((orc_dec - oc_dec) / orc_dec) * Decimal("100")
+    if desconto_dec < 0:
+        desconto_dec = Decimal("0")
+    desconto_dec = desconto_dec.quantize(Decimal("0.00001"), rounding=ROUND_UP)
+    return float(desconto_dec), 'OK'
 
 
 def comparar_oc_orcamento(
@@ -126,9 +156,24 @@ def comparar_oc_orcamento(
         if orc is None:
             status = 'SEM_ORC'
 
+        obs = None
         preco_final = None
-        if preco_orc and desconto is not None:
-            preco_final = round(preco_orc * (1 - desconto / 100), 5)
+        preco_orc_dec = _to_decimal(preco_orc)
+        preco_oc_dec = _to_decimal(preco_oc)
+
+        if preco_orc_dec is not None and desconto is not None:
+            desconto_dec = _to_decimal(desconto)
+            if desconto_dec is None:
+                desconto_dec = Decimal("0")
+
+            preco_final_calc = preco_orc_dec * (Decimal("1") - (desconto_dec / Decimal("100")))
+            preco_final_safe_dec = preco_seguro_ate_oc(preco_final_calc, preco_oc_dec) if preco_oc_dec is not None else None
+
+            if preco_oc_dec is not None and preco_final_calc > preco_oc_dec:
+                obs = "Limitado pela OC"
+
+            if preco_final_safe_dec is not None:
+                preco_final = f"{preco_final_safe_dec:.2f}"
 
         registros.append({
             'CODIGO':           cod,
@@ -138,6 +183,7 @@ def comparar_oc_orcamento(
             'PRECO_ORCAMENTO':  preco_orc,
             'DESCONTO':         desconto,
             'PRECO_FINAL':      preco_final,
+            'OBS':              obs,
             'STATUS':           status,
         })
 
@@ -153,6 +199,7 @@ def comparar_oc_orcamento(
             'PRECO_ORCAMENTO':  orc['preco_orcamento'],
             'DESCONTO':         None,
             'PRECO_FINAL':      None,
+            'OBS':              None,
             'STATUS':           'SEM_OC',
         })
 
