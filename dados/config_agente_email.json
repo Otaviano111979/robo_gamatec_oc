@@ -1,0 +1,22 @@
+{
+  "geral": {
+    "intervalo_minutos": 5,
+    "max_emails_por_ciclo": 20
+  },
+  "respostas": {
+    "oc": {
+      "ativo": true,
+      "corpo": "Ola, {nome}!\n\nConfirmamos o recebimento da sua Ordem de Compra e ja iniciamos o processamento.\n\nPrazo de entrega: 15 dias uteis apos a confirmacao do pedido.\n\nEm breve nossa equipe entrara em contato com as informacoes necessarias.\n\n{assinatura}"
+    },
+    "cotacao": {
+      "ativo": true,
+      "corpo": "Ola, {nome}!\n\nRecebemos sua solicitacao de Cotacao de Precos e ja estamos trabalhando nos valores.\n\nPrazo de retorno: em ate 2 dias uteis com os precos preenchidos.\n\nEm breve retornaremos com as informacoes completas.\n\n{assinatura}"
+    },
+    "nao_identificado": {
+      "ativo": false,
+      "corpo": "Ola, {nome}!\n\nConfirmamos o recebimento do seu documento e ja estamos analisando.\n\nEm breve nossa equipe entrara em contato.\n\n{assinatura}"
+    }
+  },
+  "assinatura": "Atenciosamente,\nUNE Representacoes\nRepresentante Oficial KRONA Tubos e Conexoes",
+  "clientes_sem_resposta": ["mrv"]
+}
