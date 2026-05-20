@@ -10,6 +10,15 @@ from base_brasal_loader import carregar_base_brasal
 from matcher_brasal import match_por_codigo_brasal
 from regra_quantidade import ajustar_quantidade_tubo
 
+# ── IA Helper — fallback seguro se modulo nao disponivel ──────────────────
+try:
+    from ia_helper import ia_disponivel, sugerir_match as ia_sugerir_match
+    IA_DISPONIVEL = True
+except ImportError:
+    IA_DISPONIVEL = False
+    ia_disponivel    = lambda: False
+    ia_sugerir_match = lambda *a, **k: None
+
 
 CAMINHO_BASE_KRONA = CAMINHO_BASE_KRONA_FINAL
 # caminho lido do config, sem valor fixo no codigo

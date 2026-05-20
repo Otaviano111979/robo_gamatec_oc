@@ -367,4 +367,15 @@ def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List
             "observacoes":             item.observacoes,
         })
 
+    # fallback generico — clientes nao cadastrados
+    if not resultado:
+        try:
+            from extracao_oc.extrator_generico import detectar_generico, extrair_itens_generico
+            if detectar_generico(caminho_pdf):
+                itens = extrair_itens_generico(caminho_pdf)
+                if itens:
+                    return itens, "GENERICO"
+        except Exception as e:
+            print(f"[EXTRATOR] Erro no extrator generico: {e}")
+
     return resultado

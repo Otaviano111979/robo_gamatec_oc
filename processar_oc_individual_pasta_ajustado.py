@@ -146,15 +146,56 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
 
     from extrator_oc import extrair_itens_oc
 
-    itens = extrair_itens_oc(caminho_oc, caminho_debug=caminho_debug)
-    if not itens:
-        return pd.DataFrame()
+    resultado_extracao = extrair_itens_oc(caminho_oc, caminho_debug=caminho_debug)
 
-    df = pd.DataFrame(itens)
-    df["descricao_oc"] = df["descricao_reconstruida"]
-    df["quantidade_oc"] = df["quantidade"]
-    df["unidade_oc"] = df["unidade_normalizada"]
-    df["codigo_oc"] = df["codigo_interno_oc"]
+    # desempacota tuple (itens, formato) do extrator generico ou lista normal
+    if isinstance(resultado_extracao, tuple):
+        itens, formato = resultado_extracao
+    else:
+        itens, formato = resultado_extracao, "DEDICADO"
+
+    if not itens:
+        raise ValueError("Nenhum item encontrado na extração desta OC.")
+
+    # converte para DataFrame independente do formato
+    if isinstance(itens, list) and len(itens) > 0 and isinstance(itens[0], dict):
+        df = pd.DataFrame(itens)
+    elif isinstance(itens, pd.DataFrame):
+        df = itens
+    else:
+        df = pd.DataFrame(itens)
+
+    print(f"[EXTRATOR] Formato: {formato} | Itens: {len(df)}")
+
+    if "descricao_reconstruida" in df.columns:
+        df["descricao_oc"] = df["descricao_reconstruida"]
+    elif "descricao_oc" not in df.columns:
+        df["descricao_oc"] = ""
+
+    if "quantidade" in df.columns and "quantidade_oc" not in df.columns:
+        df["quantidade_oc"] = df["quantidade"]
+    elif "quantidade_oc" not in df.columns:
+        df["quantidade_oc"] = None
+
+    if "unidade_normalizada" in df.columns and "unidade_oc" not in df.columns:
+        df["unidade_oc"] = df["unidade_normalizada"]
+    elif "unidade" in df.columns and "unidade_oc" not in df.columns:
+        df["unidade_oc"] = df["unidade"]
+    elif "unidade_oc" not in df.columns:
+        df["unidade_oc"] = "PC"
+
+    if "codigo_interno_oc" in df.columns and "codigo_oc" not in df.columns:
+        df["codigo_oc"] = df["codigo_interno_oc"]
+    elif "codigo_cliente" in df.columns and "codigo_oc" not in df.columns:
+        df["codigo_oc"] = df["codigo_cliente"]
+    elif "codigo_oc" not in df.columns:
+        df["codigo_oc"] = ""
+
+    if "preco_unitario" in df.columns and "preco_unit" not in df.columns:
+        df["preco_unit"] = df["preco_unitario"]
+    elif "preco_unit" not in df.columns:
+        df["preco_unit"] = None
+
     return df
 
 

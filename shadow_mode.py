@@ -35,7 +35,9 @@ def _rodar_shadow(item: dict, resultado_atual: dict, base_krona):
             or item.get("descricao_original")
             or ""
         )
-        if not descricao.strip():
+        # limpa quebras de linha e espacos extras
+        descricao = str(descricao).replace("\n", " ").replace("\r", " ").strip()
+        if not descricao:
             return
 
         t0 = time.time()

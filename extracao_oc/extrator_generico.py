@@ -59,11 +59,16 @@ def _parsear_linha(linha: list, cabecalho: list) -> dict:
             continue
         val = str(linha[i] or "").strip()
         if any(p in col_lower for p in ["descr", "desc"]):
-            mapa["descricao"] = val
+            mapa["descricao"] = val.replace("\n", " ").replace("\r", " ").strip()
         elif any(p in col_lower for p in ["qtde", "qtd", "quant"]):
             mapa["quantidade"] = _num(val)
         elif any(p in col_lower for p in ["un", "unid"]):
-            mapa["unidade"] = val
+            # valida: unidade nao pode ser numerica (ex: "1,7360" e preco, nao unidade)
+            val_limpo = val.replace(",", "").replace(".", "").strip()
+            if val_limpo.isdigit() or (val_limpo.replace(" ", "") == ""):
+                pass  # ignora valor numerico na coluna de unidade
+            else:
+                mapa["unidade"] = val
         elif any(p in col_lower for p in ["cod", "codigo"]):
             mapa["codigo_cliente"] = val
         elif "item" in col_lower:
