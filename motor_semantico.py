@@ -19,6 +19,10 @@ import pandas as pd
 
 logger = logging.getLogger("vortex.motor_semantico")
 
+_BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+_INDEX_PATH = os.path.join(_BASE_DIR, "dados", "faiss_krona.index")
+_RECS_PATH  = os.path.join(_BASE_DIR, "dados", "faiss_krona_registros.json")
+
 # ================================================================
 # DICIONARIO TECNICO KRONA
 # ================================================================
@@ -137,6 +141,74 @@ def normalizar_tecnico(texto: str) -> str:
     return t
 
 
+# ================================================================
+# ENRIQUECEDOR DE DESCRICOES KRONA
+# Adiciona sinonimos para aproximar vocabulario Krona ao das OCs
+# ================================================================
+
+_ENRIQUECIMENTOS = {
+    # PORTA GRELHA — traduz nomenclatura interna para linguagem cliente
+    r"PORTA\s*GRELHA.*?CX\.?SIF\.?\s*100":
+        "PORTA GRELHA PVC QUADRADA BRANCA 100MM 100X100MM CAIXA SIFONADA",
+    r"PORTA\s*GRELHA.*?CX\.?SIF\.?\s*150":
+        "PORTA GRELHA PVC QUADRADA BRANCA 150MM 150X150MM CAIXA SIFONADA",
+    r"PORTA\s*GRELHA.*?100X100":
+        "PORTA GRELHA PVC QUADRADA BRANCA 100MM 100X100MM",
+    r"PORTA\s*GRELHA.*?150X150":
+        "PORTA GRELHA PVC QUADRADA BRANCA 150MM 150X150MM",
+    r"GRELHA.*?QUADR.*?100":
+        "GRELHA QUADRADA BRANCA PVC 100MM CAIXA SIFONADA",
+    r"GRELHA.*?QUADR.*?150":
+        "GRELHA QUADRADA BRANCA PVC 150MM CAIXA SIFONADA",
+    # ELETRODUTO — detecta MM ou polegadas e adiciona variante
+    r"ELETRODUTO.*?RIGIDO.*?SOLDAVEL\s*20MM":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 20MM 3/4 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?SOLDAVEL\s*25MM":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 25MM 1 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?SOLDAVEL\s*32MM":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 32MM 1.1/4 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?SOLDAVEL\s*40MM":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 40MM 1.1/2 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?SOLDAVEL\s*50MM":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 50MM 2 POLEGADAS",
+    # ELETRODUTO RIGIDO com polegadas (detecta 3/4, 1, 1.1/4, etc antes da conversao)
+    r"ELETRODUTO.*?RIGIDO.*?[^\d]3/4\b":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 20MM 3/4 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?[\s\D]1[\s'\"]":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 25MM 1 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?1\s*1/4":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 32MM 1.1/4 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?1\s*1/2":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 40MM 1.1/2 POLEGADA",
+    r"ELETRODUTO.*?RIGIDO.*?[\s\D]2[\s'\"]":
+        "ELETRODUTO PVC RIGIDO SOLDAVEL 50MM 2 POLEGADAS",
+    # ELETRODUTO FLEX — adiciona bitola em polegadas
+    r"ELETRODUTO.*?FLEX.*?20MM":
+        "ELETRODUTO PVC FLEXIVEL CORRUGADO 20MM 3/4 POLEGADA",
+    r"ELETRODUTO.*?FLEX.*?25MM":
+        "ELETRODUTO PVC FLEXIVEL CORRUGADO 25MM 1 POLEGADA",
+    r"ELETRODUTO.*?FLEX.*?32MM":
+        "ELETRODUTO PVC FLEXIVEL CORRUGADO 32MM 1.1/4 POLEGADA",
+    # TE REDUCAO — adiciona variantes de nomenclatura
+    r"TE\s*RED.*?SOLD.*?25\s*X\s*20":
+        "TE REDUCAO PVC SOLDAVEL 25X20MM MARROM CLASSE 15 90 GRAUS",
+    r"TE\s*RED.*?SOLD.*?32\s*X\s*25":
+        "TE REDUCAO PVC SOLDAVEL 32X25MM MARROM CLASSE 15 90 GRAUS",
+}
+
+
+def enriquecer_descricao_krona(descricao: str) -> str:
+    """
+    Enriquece descricao Krona com sinonimos para melhorar matching semantico.
+    Retorna descricao original + termos adicionais quando houver match.
+    """
+    desc_upper = str(descricao or "").upper()
+    for padrao, enriquecimento in _ENRIQUECIMENTOS.items():
+        if re.search(padrao, desc_upper):
+            return f"{descricao} {enriquecimento}"
+    return descricao
+
+
 def extrair_atributos(descricao_normalizada: str) -> dict:
     t = descricao_normalizada
     categoria = None
@@ -245,39 +317,81 @@ class MotorSemantico:
         self._modelo = SentenceTransformer(self.MODELO_NOME)
         logger.info("[MOTOR] Modelo carregado.")
 
-    def indexar(self, base_krona: pd.DataFrame):
-        import faiss
+    def indexar(self, base_krona: pd.DataFrame, forcar_reindexar: bool = False):
+        """
+        Indexa o catalogo Krona para busca vetorial.
+        Se o indice ja existir em disco, carrega sem reprocessar.
+        Use forcar_reindexar=True quando a base Krona for atualizada.
+        """
+        import faiss, json
+
+        # carrega do disco se existir e nao forcar reindexar
+        if not forcar_reindexar and os.path.exists(_INDEX_PATH) and os.path.exists(_RECS_PATH):
+            try:
+                logger.info("[MOTOR] Carregando indice FAISS do disco...")
+                self._carregar_modelo()
+                self._index     = faiss.read_index(_INDEX_PATH)
+                with open(_RECS_PATH, "r", encoding="utf-8") as f:
+                    self._registros = json.load(f)
+                self._indexado  = True
+                logger.info(f"[MOTOR] Indice carregado: {len(self._registros)} produtos.")
+                return
+            except Exception as e:
+                logger.warning(f"[MOTOR] Erro ao carregar indice do disco: {e}. Reindexando...")
+
+        # indexa do zero
         self._carregando = True
         try:
             self._carregar_modelo()
             logger.info(f"[MOTOR] Indexando {len(base_krona)} produtos Krona...")
             t0 = time.time()
+
             descricoes = []
             registros  = []
             for _, row in base_krona.iterrows():
-                r = row.to_dict()
+                r    = row.to_dict()
                 desc = str(r.get("descricao_normalizada") or r.get("descricao_krona") or "")
-                descricoes.append(normalizar_tecnico(desc))
+                desc_enriquecida = enriquecer_descricao_krona(desc)
+                descricoes.append(normalizar_tecnico(desc_enriquecida))
                 registros.append(r)
+
             embeddings = self._modelo.encode(
                 descricoes, batch_size=64,
                 show_progress_bar=False, normalize_embeddings=True,
             )
             embeddings = np.array(embeddings, dtype="float32")
+
             dim   = embeddings.shape[1]
             index = faiss.IndexFlatIP(dim)
             index.add(embeddings)
+
             self._index     = index
             self._registros = registros
             self._indexado  = True
-            logger.info(f"[MOTOR] Indexacao concluida em {round(time.time()-t0,2)}s")
+
+            # salva em disco
+            os.makedirs(os.path.dirname(_INDEX_PATH), exist_ok=True)
+            faiss.write_index(index, _INDEX_PATH)
+            with open(_RECS_PATH, "w", encoding="utf-8") as f:
+                recs_serial = []
+                for r in registros:
+                    recs_serial.append({
+                        k: (v if isinstance(v, (str, int, float, bool, type(None))) else str(v))
+                        for k, v in r.items()
+                    })
+                json.dump(recs_serial, f, ensure_ascii=False)
+
+            elapsed = round(time.time() - t0, 2)
+            logger.info(f"[MOTOR] Indexacao concluida em {elapsed}s — indice salvo em disco.")
+
         finally:
             self._carregando = False
 
     def match(self, descricao_oc: str) -> dict:
         if not self._indexado:
             return {"match_encontrado": False, "motivo_match": "MOTOR_NAO_INDEXADO"}
-        desc_norm = normalizar_tecnico(descricao_oc)
+        desc_enriquecida = enriquecer_descricao_krona(descricao_oc)
+        desc_norm = normalizar_tecnico(desc_enriquecida)
         atributos = extrair_atributos(desc_norm)
         vetor = self._modelo.encode([desc_norm], normalize_embeddings=True)
         vetor = np.array(vetor, dtype="float32")
