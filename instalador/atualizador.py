@@ -43,12 +43,19 @@ def aplicar_atualizacao():
         )
 
         if req_mudou:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install",
-                 "-r", os.path.join(APP_DIR, "requirements.txt"),
-                 "--quiet", "--break-system-packages"],
-                check=True, capture_output=True
+            req_path = os.path.join(APP_DIR, "requirements.txt")
+            resultado = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-r", req_path, "--quiet"],
+                capture_output=True, text=True
             )
+            if resultado.returncode != 0:
+                resultado = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-r", req_path,
+                     "--quiet", "--user"],
+                    capture_output=True, text=True
+                )
+            if resultado.returncode != 0:
+                raise Exception(f"pip install falhou com codigo {resultado.returncode}")
 
         return True
     except Exception:
