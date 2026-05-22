@@ -77,3 +77,10 @@ instalador/build/
 instalador/__pycache__/
 instalador/*.spec
 instalador/instalar_vortex.py
+
+flask_sessions/
+web/tmp_session/
+dados/crm.db
+dados/faiss_krona*
+*.pyc
+*.bak_*
