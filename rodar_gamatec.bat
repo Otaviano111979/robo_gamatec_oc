@@ -1,6 +1,15 @@
 @echo off
 title Rodar Sistema GAMATEC
 
+cd /d C:\robo_gamatec_oc
+
+echo.
+echo Verificando atualizacoes...
+python instalador\atualizador.py
+if errorlevel 1 (
+    py instalador\atualizador.py
+)
+
 cd /d C:\robo_gamatec_oc\web
 
 echo.
@@ -10,7 +19,7 @@ echo ==========================================
 
 echo.
 echo Abrindo navegador em 3 segundos...
-start cmd /c "timeout /t 3 >nul && start http://127.0.0.1:5000"
+start cmd /c "timeout /t 3 >nul && start http://127.0.0.1:5000/dashboard_v2"
 
 echo.
 echo Iniciando servidor...

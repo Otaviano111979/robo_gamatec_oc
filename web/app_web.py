@@ -927,6 +927,63 @@ def dashboard():
 
 
 # =========================
+# DASHBOARD V2 (redesign clean)
+# =========================
+@app.route("/dashboard_v2")
+def dashboard_v2():
+    if not usuario_logado():
+        return redirect("/")
+
+    arquivos = [montar_status_oc(nome) for nome in listar_todos_arquivos()]
+    arquivos.sort(key=lambda x: x.get("timestamp_ref", 0), reverse=True)
+
+    total_entrada     = sum(1 for a in arquivos if a.get("em_entrada") and not a.get("processando"))
+    total_processando = sum(1 for a in arquivos if a.get("processando"))
+    total_concluidos  = sum(1 for a in arquivos if a.get("tem_planilha") and a.get("em_processados"))
+
+    # itens de revisão: divergências do shadow mode com score abaixo de 0.80
+    itens_revisao = []
+    shadow_path = os.path.join(BASE_DIR, "saida", "shadow_mode.jsonl")
+    if os.path.exists(shadow_path):
+        try:
+            seen = set()
+            with open(shadow_path, "r", encoding="utf-8") as f:
+                for linha in f:
+                    linha = linha.strip()
+                    if not linha:
+                        continue
+                    try:
+                        reg = json.loads(linha)
+                    except Exception:
+                        continue
+                    if reg.get("concordam"):
+                        continue
+                    score = float(reg.get("motor_atual", {}).get("score") or 0)
+                    desc  = reg.get("descricao_oc", "")
+                    if not desc or desc in seen:
+                        continue
+                    seen.add(desc)
+                    itens_revisao.append({
+                        "descricao_oc": desc,
+                        "tipo_match":   reg.get("motor_atual", {}).get("tipo_match") or "—",
+                        "arquivo":      reg.get("ts", "")[:10],
+                        "score_total":  score,
+                    })
+            itens_revisao.sort(key=lambda x: x["score_total"])
+        except Exception:
+            itens_revisao = []
+
+    return render_template(
+        "dashboard_v2.html",
+        arquivos=arquivos,
+        total_entrada=total_entrada,
+        total_processando=total_processando,
+        total_concluidos=total_concluidos,
+        itens_revisao=itens_revisao,
+    )
+
+
+# =========================
 # PROCESSAR OC
 # =========================
 @app.route("/processar/<path:arquivo>")

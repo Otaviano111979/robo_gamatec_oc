@@ -660,6 +660,28 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     # =========================================================
     match_desc = match_por_descricao(item, base_krona)
     if match_desc.get("match_encontrado"):
+        score_desc = match_desc.get("score_total", 0)
+        # se score alto, retorna direto
+        if score_desc >= 0.80:
+            return match_desc
+        # score baixo — tenta motor semantico antes
+        try:
+            from motor_semantico import obter_motor
+            motor = obter_motor()
+            if not motor.pronto:
+                motor.indexar(base_krona)
+            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+            descricao = str(descricao).replace("\n", " ").strip()
+            if descricao:
+                resultado_semantico = motor.match(descricao)
+                score_sem = resultado_semantico.get("score_total", 0)
+                # usa semantico se for melhor que o fuzzy
+                if resultado_semantico.get("match_encontrado") and score_sem > score_desc:
+                    resultado_semantico["via_motor_semantico"] = True
+                    return resultado_semantico
+        except Exception as e:
+            print(f"[MATCHER] Motor semantico indisponivel: {e}")
+        # semantico nao melhorou — retorna fuzzy mesmo
         return match_desc
 
     # =========================================================
@@ -728,7 +750,7 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                         "comprimento_krona_m": obter_comprimento_krona(cadastro),
                     }
 
-        return {
+        _resultado_sem_match = {
             "match_encontrado": False,
             "codigo_krona": None,
             "descricao_krona": None,
@@ -749,7 +771,31 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
             "comprimento_krona_m": None,
         }
 
-    return {
+        # tenta motor semantico antes de retornar SEM_MATCH
+        try:
+            from motor_semantico import obter_motor
+            motor = obter_motor()
+            if not motor.pronto:
+                motor.indexar(base_krona)
+            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+            descricao = str(descricao).replace("\n", " ").strip()
+            if descricao:
+                resultado_semantico = motor.match(descricao)
+                if resultado_semantico.get("match_encontrado"):
+                    resultado_semantico["via_motor_semantico"] = True
+                    return resultado_semantico
+        except Exception as e:
+            print(f"[MATCHER] Motor semantico indisponivel: {e}")
+
+        # shadow mode (fallback)
+        try:
+            from shadow_mode import registrar_shadow
+            registrar_shadow(item, _resultado_sem_match, base_krona)
+        except Exception:
+            pass
+        return _resultado_sem_match
+
+    _resultado_tradicional = {
         "match_encontrado": True,
         "codigo_krona": melhor.get("codigo_krona"),
         "descricao_krona": melhor.get("descricao_krona"),
@@ -769,6 +815,25 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
         "diametro_krona_mm": obter_diametro_krona(melhor),
         "comprimento_krona_m": obter_comprimento_krona(melhor),
     }
+
+    # se score baixo, tenta motor semantico antes de retornar TRADICIONAL
+    if score_melhor < 0.70:
+        try:
+            from motor_semantico import obter_motor
+            motor = obter_motor()
+            if not motor.pronto:
+                motor.indexar(base_krona)
+            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+            descricao = str(descricao).replace("\n", " ").strip()
+            if descricao:
+                resultado_semantico = motor.match(descricao)
+                if resultado_semantico.get("match_encontrado"):
+                    resultado_semantico["via_motor_semantico"] = True
+                    return resultado_semantico
+        except Exception as e:
+            print(f"[MATCHER] Motor semantico indisponivel: {e}")
+
+    return _resultado_tradicional
 
 
 # ============================================================

@@ -101,4 +101,4 @@ def registrar_shadow(item: dict, resultado_atual: dict, base_krona):
         daemon=True,
     )
     t.start()
-    t.join(timeout=30)  # aguarda ate 30s (primeira vez faz download do modelo)
+    t.join(timeout=120)  # primeira indexacao pode demorar mais

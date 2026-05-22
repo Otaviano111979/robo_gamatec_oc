@@ -1,0 +1,656 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ============================================================
+   TEMA CLARO — padrão
+   ============================================================ */
+:root {
+  --vd-bg:        #f4f6fb;
+  --vd-surface:   #ffffff;
+  --vd-raised:    #f8fafc;
+  --vd-hover:     #fafbfc;
+  --vd-border:    #eef0f5;
+  --vd-borderstr: #e2e8f0;
+  --vd-text:      #0f172a;
+  --vd-sub:       #1e293b;
+  --vd-muted:     #64748b;
+  --vd-hint:      #94a3b8;
+  --vd-ghost:     #cbd5e1;
+  --vd-blue:      #1d4ed8;
+  --vd-blue-bg:   #eff6ff;
+  --vd-blue-text: #1d4ed8;
+  --vd-green:     #16a34a;
+  --vd-green-bg:  #f0fdf4;
+  --vd-amber:     #d97706;
+  --vd-amber-bg:  #fffbeb;
+  --vd-amber-brd: #fde68a;
+  --vd-red:       #dc2626;
+  --vd-red-bg:    #fef2f2;
+  --vd-red-brd:   #fecaca;
+  --vd-font:      'Inter', system-ui, sans-serif;
+  --vd-mono:      'JetBrains Mono', 'Courier New', monospace;
+  --vd-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --vd-shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ============================================================
+   TEMA ESCURO — quando body tem classe .dark
+   ============================================================ */
+body.dark {
+  --vd-bg:        #0f1117;
+  --vd-surface:   #161b2e;
+  --vd-raised:    #1e2540;
+  --vd-hover:     #1a2035;
+  --vd-border:    #1e2a45;
+  --vd-borderstr: #2a3555;
+  --vd-text:      #e2e8f4;
+  --vd-sub:       #c8d0e4;
+  --vd-muted:     #7b8ab0;
+  --vd-hint:      #4a5580;
+  --vd-ghost:     #2e3a5a;
+  --vd-blue:      #4d9fff;
+  --vd-blue-bg:   #0d1f3c;
+  --vd-blue-text: #93c5fd;
+  --vd-green:     #22c55e;
+  --vd-green-bg:  #0d2215;
+  --vd-amber:     #f59e0b;
+  --vd-amber-bg:  #1f1a08;
+  --vd-amber-brd: #3a2e08;
+  --vd-red:       #ef4444;
+  --vd-red-bg:    #1a0e0e;
+  --vd-red-brd:   #4a1515;
+  --vd-shadow:    0 1px 3px rgba(0,0,0,0.3);
+  --vd-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+.vd-page {
+  background: var(--vd-bg) !important;
+  color: var(--vd-text) !important;
+  font-family: var(--vd-font) !important;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.vd-layout { display: flex; min-height: 100vh; }
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.vd-sidebar {
+  width: 230px;
+  background: var(--vd-surface);
+  border-right: 1px solid var(--vd-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.vd-brand {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--vd-border);
+}
+
+.vd-brand-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vd-brand-icon {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--vd-blue);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.vd-brand-icon i { font-size: 17px; color: #fff; }
+
+.vd-brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vd-text);
+  letter-spacing: -0.01em;
+}
+
+.vd-brand-name .accent { color: var(--vd-blue); }
+
+.vd-brand-sub {
+  font-size: 10px;
+  color: var(--vd-ghost);
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+.vd-nav { padding: 10px 8px; flex: 1; overflow-y: auto; }
+
+.vd-nav-section {
+  font-size: 10px;
+  color: var(--vd-ghost);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 8px 5px;
+  font-weight: 500;
+}
+
+.vd-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--vd-muted);
+  cursor: pointer;
+  margin-bottom: 2px;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.vd-nav-link:hover {
+  background: var(--vd-raised);
+  color: var(--vd-sub);
+}
+
+.vd-nav-link.active {
+  background: var(--vd-blue);
+  color: #fff;
+}
+
+.vd-nav-link i { font-size: 16px; flex-shrink: 0; }
+.vd-nav-link.active i { color: #fff; }
+
+.vd-nav-badge {
+  margin-left: auto;
+  background: var(--vd-amber-bg);
+  color: var(--vd-amber);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+
+.vd-nav-link.active .vd-nav-badge {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.vd-user {
+  padding: 12px 16px;
+  border-top: 1px solid var(--vd-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vd-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--vd-blue-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  color: var(--vd-blue);
+  flex-shrink: 0;
+}
+
+.vd-username { font-size: 12px; color: var(--vd-muted); flex: 1; }
+
+.vd-logout {
+  font-size: 15px;
+  color: var(--vd-ghost);
+  cursor: pointer;
+  background: none; border: none;
+  text-decoration: none;
+  transition: color 0.12s;
+  padding: 2px;
+}
+
+.vd-logout:hover { color: var(--vd-red); }
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+.vd-main {
+  margin-left: 230px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.vd-topbar {
+  padding: 12px 22px;
+  background: var(--vd-surface);
+  border-bottom: 1px solid var(--vd-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0; z-index: 50;
+}
+
+.vd-topbar-left { display: flex; align-items: center; gap: 12px; }
+.vd-topbar-title { font-size: 15px; font-weight: 600; color: var(--vd-text); }
+.vd-topbar-sub   { font-size: 11px; color: var(--vd-hint); margin-top: 1px; }
+.vd-topbar-right { display: flex; align-items: center; gap: 8px; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.vd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  font-family: var(--vd-font);
+  transition: all 0.12s;
+}
+
+.vd-btn:active { transform: scale(0.97); }
+
+.vd-btn-primary { background: var(--vd-blue); color: #fff; }
+.vd-btn-primary:hover { opacity: 0.9; }
+
+.vd-btn-ghost {
+  background: transparent;
+  color: var(--vd-muted);
+  border: 1px solid var(--vd-borderstr);
+}
+
+.vd-btn-ghost:hover {
+  background: var(--vd-raised);
+  color: var(--vd-sub);
+}
+
+.vd-btn-amber {
+  background: var(--vd-amber-bg);
+  color: var(--vd-amber);
+  border: 1px solid var(--vd-amber-brd);
+}
+
+.vd-btn-sm { padding: 5px 10px; font-size: 11px; }
+.vd-btn-xs { padding: 3px 8px;  font-size: 10px; }
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+.vd-alert {
+  margin: 10px 18px 0;
+  padding: 9px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+
+.vd-alert-error {
+  background: var(--vd-red-bg);
+  border: 1px solid var(--vd-red-brd);
+  color: var(--vd-red);
+}
+
+.vd-alert-warn {
+  background: var(--vd-amber-bg);
+  border: 1px solid var(--vd-amber-brd);
+  color: var(--vd-amber);
+}
+
+.vd-alert-info {
+  background: var(--vd-blue-bg);
+  border: 1px solid #bfdbfe;
+  color: var(--vd-blue);
+}
+
+.vd-alert code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--vd-mono);
+  font-size: 11px;
+}
+
+body.dark .vd-alert code { background: rgba(255,255,255,0.08); }
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+.vd-content { padding: 18px 22px; flex: 1; }
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+.vd-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.vd-kpi {
+  background: var(--vd-surface);
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--vd-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--vd-shadow);
+}
+
+.vd-kpi-icon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.vd-kpi-icon i { font-size: 20px; }
+.vd-kpi-icon-blue   { background: var(--vd-blue-bg);  }
+.vd-kpi-icon-blue i { color: var(--vd-blue); }
+.vd-kpi-icon-amber   { background: var(--vd-amber-bg);  }
+.vd-kpi-icon-amber i { color: var(--vd-amber); }
+.vd-kpi-icon-green   { background: var(--vd-green-bg);  }
+.vd-kpi-icon-green i { color: var(--vd-green); }
+
+.vd-kpi-label {
+  font-size: 11px;
+  color: var(--vd-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+.vd-kpi-val { font-size: 26px; font-weight: 600; color: var(--vd-text); line-height: 1; }
+.vd-kpi-sub { font-size: 11px; color: var(--vd-ghost); margin-top: 2px; }
+
+/* ============================================================
+   GRID
+   ============================================================ */
+.vd-grid-2 { display: grid; grid-template-columns: 1fr 290px; gap: 14px; }
+
+/* ============================================================
+   CARDS / PANELS
+   ============================================================ */
+.vd-card {
+  background: var(--vd-surface);
+  border-radius: 12px;
+  border: 1px solid var(--vd-border);
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: var(--vd-shadow);
+}
+
+.vd-card:last-child { margin-bottom: 0; }
+.vd-card-warn { border-color: var(--vd-amber-brd); }
+
+.vd-card-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vd-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vd-card-head-warn { border-color: #fef9c3; }
+body.dark .vd-card-head-warn { border-color: var(--vd-amber-brd); }
+
+.vd-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vd-sub);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.vd-card-title i { font-size: 14px; color: var(--vd-blue); }
+.vd-card-title-warn { color: var(--vd-amber); }
+.vd-card-title-warn i { color: var(--vd-amber); }
+
+.vd-card-chip {
+  font-size: 11px;
+  color: var(--vd-blue-text);
+  background: var(--vd-blue-bg);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+
+.vd-card-chip-warn {
+  background: var(--vd-amber-bg);
+  color: var(--vd-amber);
+}
+
+/* ============================================================
+   UPLOAD
+   ============================================================ */
+.vd-drop {
+  margin: 12px 16px;
+  border: 1.5px dashed var(--vd-borderstr);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.vd-drop:hover {
+  border-color: var(--vd-blue);
+  background: var(--vd-blue-bg);
+}
+
+.vd-drop i { font-size: 24px; color: var(--vd-ghost); display: block; margin-bottom: 6px; }
+.vd-drop-text { font-size: 13px; color: var(--vd-muted); }
+.vd-drop-sub  { font-size: 11px; color: var(--vd-ghost); margin-top: 2px; }
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+.vd-input {
+  background: var(--vd-raised);
+  border: 1px solid var(--vd-borderstr);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--vd-text);
+  font-family: var(--vd-font);
+  width: 100%;
+  transition: border-color 0.12s;
+}
+
+.vd-input::placeholder { color: var(--vd-ghost); }
+.vd-input:focus { outline: none; border-color: var(--vd-blue); }
+
+/* ============================================================
+   FILTER ROW
+   ============================================================ */
+.vd-filter {
+  padding: 10px 16px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--vd-border);
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+.vd-table { width: 100%; border-collapse: collapse; }
+
+.vd-th {
+  font-size: 10px;
+  color: var(--vd-hint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--vd-border);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.vd-tr { border-bottom: 1px solid var(--vd-border); transition: background 0.1s; }
+.vd-tr:hover { background: var(--vd-raised); }
+.vd-tr:last-child { border-bottom: none; }
+
+.vd-td { padding: 10px 16px; font-size: 12px; color: var(--vd-muted); vertical-align: middle; }
+.vd-td-name { font-size: 13px; color: var(--vd-sub); font-weight: 500; }
+.vd-td-meta { font-size: 11px; color: var(--vd-ghost); margin-top: 2px; }
+
+/* ============================================================
+   TAGS
+   ============================================================ */
+.vd-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-right: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.vd-tag-blue   { background: var(--vd-blue-bg);  color: var(--vd-blue-text); }
+.vd-tag-green  { background: var(--vd-green-bg); color: var(--vd-green); }
+.vd-tag-amber  { background: var(--vd-amber-bg); color: var(--vd-amber); }
+.vd-tag-gray   { background: var(--vd-raised);   color: var(--vd-hint); }
+.vd-tag-purple { background: #f5f3ff; color: #7c3aed; }
+body.dark .vd-tag-purple { background: #1a1535; color: #a78bfa; }
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+.vd-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.vd-ok    { background: var(--vd-green-bg); color: var(--vd-green); }
+.vd-warn  { background: var(--vd-amber-bg); color: var(--vd-amber); }
+.vd-err   { background: var(--vd-red-bg);   color: var(--vd-red);   }
+.vd-info  { background: var(--vd-blue-bg);  color: var(--vd-blue-text); }
+.vd-gray  { background: var(--vd-raised);   color: var(--vd-muted); }
+
+/* ============================================================
+   ACTION BUTTONS (tabela)
+   ============================================================ */
+.vd-abt {
+  background: transparent;
+  border: 1px solid var(--vd-borderstr);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--vd-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--vd-font);
+  transition: all 0.12s;
+}
+
+.vd-abt:hover { background: var(--vd-raised); color: var(--vd-sub); }
+.vd-abt i { font-size: 12px; }
+
+.vd-abt-warn {
+  border-color: var(--vd-amber-brd);
+  color: var(--vd-amber);
+  background: var(--vd-amber-bg);
+}
+
+.vd-abt-warn:hover { opacity: 0.8; }
+
+/* ============================================================
+   PAINEL INFO GRID
+   ============================================================ */
+.vd-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.vd-info-label {
+  font-size: 10px;
+  color: var(--vd-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+.vd-info-val { font-size: 12px; color: var(--vd-sub); font-weight: 500; }
+.vd-info-val-empty { color: var(--vd-ghost); font-weight: 400; }
+
+/* ============================================================
+   REVIEW ITEMS
+   ============================================================ */
+.vd-review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--vd-border);
+}
+
+.vd-review-item:last-child { border-bottom: none; }
+.vd-review-desc { font-size: 12px; color: var(--vd-muted); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vd-review-meta { font-size: 10px; color: var(--vd-ghost); margin-top: 1px; }
+
+.vd-score { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+.vd-score-hi { background: var(--vd-green-bg); color: var(--vd-green); }
+.vd-score-md { background: var(--vd-amber-bg); color: var(--vd-amber); }
+.vd-score-lo { background: var(--vd-red-bg);   color: var(--vd-red);   }
+
+/* ============================================================
+   LOG
+   ============================================================ */
+.vd-log {
+  font-family: var(--vd-mono);
+  font-size: 11px;
+  color: var(--vd-hint);
+  line-height: 1.9;
+  padding: 12px 16px;
+}
+
+.vd-log .ok   { color: var(--vd-green); }
+.vd-log .err  { color: var(--vd-red);   }
+.vd-log .warn { color: var(--vd-amber); }
+.vd-log .info { color: var(--vd-blue);  }
+
+/* ============================================================
+   SIDE COLUMN
+   ============================================================ */
+.vd-side-col { display: flex; flex-direction: column; gap: 12px; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+.vd-page ::-webkit-scrollbar { width: 4px; }
+.vd-page ::-webkit-scrollbar-track { background: transparent; }
+.vd-page ::-webkit-scrollbar-thumb { background: var(--vd-borderstr); border-radius: 2px; }

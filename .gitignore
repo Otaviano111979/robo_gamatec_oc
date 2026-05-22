@@ -66,5 +66,14 @@ agente_email/estado_emails.json
 *.pickle 
 agente_email/token.pickle
 agente_email/estado_emails.json
-instance/*.xlsx 
-instance/*.db 
+instance/*.xlsx
+instance/*.db
+
+# =========================
+# INSTALADOR — artefatos de build
+# =========================
+instalador/dist/
+instalador/build/
+instalador/__pycache__/
+instalador/*.spec
+instalador/instalar_vortex.py
