@@ -1,0 +1,534 @@
+/* ============================================================
+   VORTEX SYNC — Theme Override
+   Sobrescreve o ios.css mantendo toda a funcionalidade intacta.
+   Toggle claro/escuro via classe .dark no body (app.js).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── VARIAVEIS TEMA CLARO ── */
+body {
+  --vt-bg:        #f4f6fb;
+  --vt-surface:   #ffffff;
+  --vt-raised:    #f8fafc;
+  --vt-border:    #e8ecf4;
+  --vt-borderstr: #d8dfe8;
+  --vt-text:      #0f172a;
+  --vt-sub:       #1e293b;
+  --vt-muted:     #64748b;
+  --vt-hint:      #94a3b8;
+  --vt-ghost:     #cbd5e1;
+  --vt-blue:      #1d4ed8;
+  --vt-blue-bg:   #eff6ff;
+  --vt-green:     #16a34a;
+  --vt-green-bg:  #f0fdf4;
+  --vt-amber:     #d97706;
+  --vt-amber-bg:  #fffbeb;
+  --vt-red:       #dc2626;
+  --vt-red-bg:    #fef2f2;
+  --vt-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --vt-shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+  font-family: 'Inter', 'DM Sans', sans-serif !important;
+  background: var(--vt-bg) !important;
+  color: var(--vt-text) !important;
+}
+
+/* ── VARIAVEIS TEMA ESCURO ── */
+body.dark {
+  --vt-bg:        #0f1117;
+  --vt-surface:   #161b2e;
+  --vt-raised:    #1e2540;
+  --vt-border:    #1e2a45;
+  --vt-borderstr: #2a3555;
+  --vt-text:      #e2e8f4;
+  --vt-sub:       #c8d0e4;
+  --vt-muted:     #7b8ab0;
+  --vt-hint:      #4a5580;
+  --vt-ghost:     #2e3a5a;
+  --vt-blue:      #4d9fff;
+  --vt-blue-bg:   #0d1f3c;
+  --vt-green:     #22c55e;
+  --vt-green-bg:  #0d2215;
+  --vt-amber:     #f59e0b;
+  --vt-amber-bg:  #1f1a08;
+  --vt-red:       #ef4444;
+  --vt-red-bg:    #1a0e0e;
+  --vt-shadow:    0 1px 3px rgba(0,0,0,0.3);
+  --vt-shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* ── FUNDO GERAL ── */
+.ios-body,
+.ios-body.dashboard-page,
+.ios-body.painel-page,
+.ios-body.login-page {
+  background: var(--vt-bg) !important;
+}
+
+/* ── SIDEBAR ── */
+.dash-sidebar {
+  background: var(--vt-surface) !important;
+  border-right: 1px solid var(--vt-border) !important;
+  box-shadow: none !important;
+}
+
+.dash-brand {
+  border-bottom: 1px solid var(--vt-border) !important;
+}
+
+.dash-brand-title {
+  color: var(--vt-text) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.dash-brand-title .brand-accent {
+  color: var(--vt-blue) !important;
+}
+
+.dash-brand-sub {
+  color: var(--vt-hint) !important;
+}
+
+.dash-nav-item {
+  color: var(--vt-muted) !important;
+  border-radius: 8px !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+
+.dash-nav-item:hover {
+  background: var(--vt-raised) !important;
+  color: var(--vt-sub) !important;
+}
+
+.dash-nav-item.active,
+.dash-nav-item.ios-nav-active {
+  background: var(--vt-blue) !important;
+  color: #ffffff !important;
+}
+
+.dash-nav-section {
+  color: var(--vt-ghost) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+}
+
+.user-info-name {
+  color: var(--vt-muted) !important;
+}
+
+.logout-btn,
+.sair-btn {
+  color: var(--vt-ghost) !important;
+}
+
+.logout-btn:hover,
+.sair-btn:hover {
+  color: var(--vt-red) !important;
+}
+
+/* ── TOPBAR ── */
+.topbar-vortex,
+.dash-topbar {
+  background: var(--vt-surface) !important;
+  border-bottom: 1px solid var(--vt-border) !important;
+  box-shadow: none !important;
+}
+
+.topbar-title,
+.page-title {
+  color: var(--vt-text) !important;
+  font-weight: 600 !important;
+}
+
+.topbar-sub,
+.page-sub {
+  color: var(--vt-hint) !important;
+}
+
+/* ── CARDS / PANELS ── */
+.ios-card,
+.dash-card,
+.compact-card,
+.list-card,
+.inspector-card,
+.painel-card {
+  background: var(--vt-surface) !important;
+  border: 1px solid var(--vt-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--vt-shadow) !important;
+}
+
+.card-header,
+.ios-card-header {
+  border-bottom: 1px solid var(--vt-border) !important;
+  background: transparent !important;
+}
+
+.card-title,
+.ios-card-title {
+  color: var(--vt-sub) !important;
+  font-weight: 600 !important;
+}
+
+/* ── BOTOES ── */
+.ios-button.primary,
+.btn-primary,
+.ios-btn-primary {
+  background: var(--vt-blue) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+.ios-button.primary:hover,
+.btn-primary:hover {
+  opacity: 0.9 !important;
+}
+
+.ios-button.secondary,
+.btn-secondary,
+.ios-btn-secondary {
+  background: transparent !important;
+  color: var(--vt-muted) !important;
+  border: 1px solid var(--vt-borderstr) !important;
+  border-radius: 8px !important;
+}
+
+.ios-button.secondary:hover {
+  background: var(--vt-raised) !important;
+  color: var(--vt-sub) !important;
+}
+
+.ios-button.success,
+.btn-success,
+.ready-button {
+  background: var(--vt-green-bg) !important;
+  color: var(--vt-green) !important;
+  border: 1px solid rgba(22,163,74,0.2) !important;
+  border-radius: 6px !important;
+}
+
+.ios-button.danger,
+.btn-danger {
+  background: var(--vt-red-bg) !important;
+  color: var(--vt-red) !important;
+  border: 1px solid rgba(220,38,38,0.2) !important;
+}
+
+/* ── INPUTS ── */
+.ios-field-input,
+.ios-input,
+input[type="text"],
+input[type="date"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+  background: var(--vt-raised) !important;
+  border: 1px solid var(--vt-borderstr) !important;
+  border-radius: 6px !important;
+  color: var(--vt-text) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.ios-field-input:focus,
+input:focus,
+select:focus {
+  border-color: var(--vt-blue) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(29,78,216,0.08) !important;
+}
+
+.ios-field-label,
+.field-label {
+  color: var(--vt-hint) !important;
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* ── TABELA ── */
+.ios-table,
+.oc-table,
+#oc-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.ios-table thead th,
+.oc-table thead th,
+#oc-table thead th {
+  background: var(--vt-raised) !important;
+  color: var(--vt-hint) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--vt-border) !important;
+  padding: 8px 12px !important;
+}
+
+.ios-table tbody tr,
+.oc-table tbody tr,
+#oc-table tbody tr {
+  border-bottom: 1px solid var(--vt-border) !important;
+  transition: background 0.1s !important;
+}
+
+.ios-table tbody tr:hover,
+.oc-table tbody tr:hover,
+#oc-table tbody tr:hover {
+  background: var(--vt-raised) !important;
+}
+
+.ios-table tbody td,
+.oc-table tbody td,
+#oc-table tbody td {
+  color: var(--vt-muted) !important;
+  padding: 10px 12px !important;
+  font-size: 12px !important;
+}
+
+.oc-filename,
+.file-name {
+  color: var(--vt-sub) !important;
+  font-weight: 500 !important;
+}
+
+/* ── STATUS PILLS ── */
+.status-pill,
+.ios-status {
+  border-radius: 99px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 3px 10px !important;
+}
+
+.status-pill.success,
+.status-pill[data-status="concluido"],
+.ios-status-success {
+  background: var(--vt-green-bg) !important;
+  color: var(--vt-green) !important;
+  border: none !important;
+}
+
+.status-pill.warning,
+.status-pill[data-status="revisao"],
+.ios-status-warning {
+  background: var(--vt-amber-bg) !important;
+  color: var(--vt-amber) !important;
+  border: none !important;
+}
+
+.status-pill.error,
+.status-pill[data-status="erro"],
+.ios-status-error {
+  background: var(--vt-red-bg) !important;
+  color: var(--vt-red) !important;
+  border: none !important;
+}
+
+.status-pill.processing,
+.status-pill[data-status="processando"],
+.ios-status-info {
+  background: var(--vt-blue-bg) !important;
+  color: var(--vt-blue) !important;
+  border: none !important;
+}
+
+/* ── MINI BADGES / TAGS ── */
+.mini-badge,
+.ios-badge,
+.oc-tag {
+  border-radius: 99px !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 2px 8px !important;
+}
+
+.mini-badge-primary,
+.ios-badge-primary {
+  background: var(--vt-blue-bg) !important;
+  color: var(--vt-blue) !important;
+  border: none !important;
+}
+
+.mini-badge-success,
+.ios-badge-success {
+  background: var(--vt-green-bg) !important;
+  color: var(--vt-green) !important;
+  border: none !important;
+}
+
+.mini-badge-neutral,
+.ios-badge-neutral {
+  background: var(--vt-raised) !important;
+  color: var(--vt-hint) !important;
+  border: none !important;
+}
+
+.mini-badge-warning,
+.ios-badge-warning {
+  background: var(--vt-amber-bg) !important;
+  color: var(--vt-amber) !important;
+  border: none !important;
+}
+
+/* ── KPI CARDS ── */
+.resumo-cards,
+.kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 12px !important;
+}
+
+.resumo-card,
+.kpi-card {
+  background: var(--vt-surface) !important;
+  border: 1px solid var(--vt-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--vt-shadow) !important;
+  padding: 16px 18px !important;
+}
+
+.resumo-card .numero,
+.kpi-number {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  color: var(--vt-text) !important;
+}
+
+.resumo-card .label,
+.kpi-label {
+  font-size: 10px !important;
+  color: var(--vt-hint) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* ── ALERTAS ── */
+.alert-bar,
+.ios-alert,
+.agente-status-bar {
+  border-radius: 8px !important;
+}
+
+.alert-bar.error,
+.ios-alert-error {
+  background: var(--vt-red-bg) !important;
+  border: 1px solid rgba(220,38,38,0.2) !important;
+  color: var(--vt-red) !important;
+}
+
+.alert-bar.warning,
+.ios-alert-warning {
+  background: var(--vt-amber-bg) !important;
+  border: 1px solid rgba(217,119,6,0.2) !important;
+  color: var(--vt-amber) !important;
+}
+
+.alert-bar.info,
+.ios-alert-info {
+  background: var(--vt-blue-bg) !important;
+  border: 1px solid rgba(29,78,216,0.2) !important;
+  color: var(--vt-blue) !important;
+}
+
+/* ── UPLOAD AREA ── */
+.upload-box,
+.drop-zone,
+.file-drop {
+  border: 1.5px dashed var(--vt-borderstr) !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  transition: border-color 0.15s, background 0.15s !important;
+}
+
+.upload-box:hover,
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: var(--vt-blue) !important;
+  background: var(--vt-blue-bg) !important;
+}
+
+.upload-text,
+.drop-label {
+  color: var(--vt-muted) !important;
+}
+
+/* ── LOG TECNICO ── */
+.log-output,
+.tech-log,
+#log-content {
+  background: var(--vt-raised) !important;
+  border: 1px solid var(--vt-border) !important;
+  border-radius: 6px !important;
+  color: var(--vt-muted) !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  font-size: 11px !important;
+}
+
+/* ── INSPECTOR / PAINEL OC ── */
+.inspector-card .inspector-label,
+.panel-label {
+  color: var(--vt-hint) !important;
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+.inspector-card .inspector-value,
+.panel-value {
+  color: var(--vt-sub) !important;
+  font-weight: 500 !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--vt-borderstr); border-radius: 2px; }
+
+/* ── LOGIN ── */
+.login-card,
+.auth-card {
+  background: var(--vt-surface) !important;
+  border: 1px solid var(--vt-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--vt-shadow-lg) !important;
+}
+
+/* ── DROPDOWN MENUS — garantir interatividade ── */
+.dropdown-menu,
+.ios-dropdown,
+.action-menu,
+.context-menu,
+[data-dropdown],
+.oc-actions-menu,
+.three-dots-menu,
+.dots-menu {
+  z-index: 9999 !important;
+  pointer-events: all !important;
+}
+
+.dropdown-toggle,
+.three-dots-btn,
+.dots-btn,
+[data-toggle="dropdown"],
+.oc-more-btn,
+.btn-dots {
+  pointer-events: all !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* garante que nenhum overlay bloqueia cliques */
+.ios-card,
+.dash-card,
+.compact-card,
+.list-card {
+  overflow: visible !important;
+}
