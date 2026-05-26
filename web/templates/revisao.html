@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisão de Itens · Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260505_1901">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vortex_theme.css') }}">
+  <style>
+    /* ── LAYOUT REVISÃO ── */
+    .revisao-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 0;
+    }
+
+    .revisao-header {
+      padding: 20px;
+      background: var(--vt-overlay);
+      border-bottom: 1px solid var(--vt-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .revisao-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--vt-primary);
+    }
+
+    .revisao-badge {
+      background: var(--vt-amber-bg);
+      color: var(--vt-amber);
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .revisao-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .revisao-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--vt-raised);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .revisao-table thead {
+      background: var(--vt-overlay);
+      border-bottom: 1px solid var(--vt-border);
+    }
+
+    .revisao-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--vt-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .revisao-table tbody tr {
+      border-bottom: 1px solid var(--vt-border);
+      transition: background 0.15s;
+    }
+
+    .revisao-table tbody tr:hover {
+      background: var(--vt-overlay);
+    }
+
+    .revisao-table td {
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--vt-muted);
+      vertical-align: middle;
+    }
+
+    .revisao-arquivo {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--vt-hint);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .revisao-descricao {
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--vt-primary);
+      font-weight: 500;
+    }
+
+    .revisao-match-sugerido {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .revisao-codigo {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--vt-cyan);
+    }
+
+    .revisao-descr-krona {
+      font-size: 10px;
+      color: var(--vt-muted);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .score-alto  { color: var(--vt-green); font-weight: 600; }
+    .score-medio { color: var(--vt-amber); font-weight: 600; }
+    .score-baixo { color: var(--vt-red);   font-weight: 600; }
+
+    .revisao-acoes {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-confirmar {
+      background: var(--vt-green-bg);
+      color: var(--vt-green);
+      border: 1px solid var(--vt-green);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-confirmar:hover {
+      background: var(--vt-green);
+      color: #fff;
+    }
+
+    .btn-corrigir {
+      background: var(--vt-amber-bg);
+      color: var(--vt-amber);
+      border: 1px solid var(--vt-amber);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-corrigir:hover {
+      background: var(--vt-amber);
+      color: #fff;
+    }
+
+    .btn-reprocessar {
+      background: transparent;
+      color: var(--vt-muted);
+      border: 1px solid var(--vt-border);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-reprocessar:hover {
+      background: var(--vt-overlay);
+      color: var(--vt-primary);
+      border-color: var(--vt-borderstr);
+    }
+
+    /* ── MODAL CORREÇÃO ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 8, 16, 0.80);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.ativo {
+      display: flex;
+    }
+
+    .modal-correcao {
+      background: var(--vt-overlay);
+      border: 1px solid var(--vt-border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-titulo {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--vt-primary);
+    }
+
+    .modal-descricao-oc {
+      padding: 12px;
+      background: var(--vt-raised);
+      border-left: 3px solid var(--vt-amber);
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--vt-muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .modal-busca-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--vt-muted);
+    }
+
+    .modal-busca-input {
+      padding: 10px 12px;
+      background: var(--vt-raised);
+      border: 1px solid var(--vt-border);
+      border-radius: 6px;
+      color: var(--vt-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+    }
+
+    .modal-busca-input:focus {
+      outline: none;
+      border-color: var(--vt-cyan);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+    }
+
+    .modal-resultados {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--vt-border);
+      border-radius: 6px;
+      background: var(--vt-raised);
+    }
+
+    .krona-result-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--vt-border);
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--vt-muted);
+      transition: background 0.1s, color 0.1s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .krona-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .krona-result-item:hover {
+      background: var(--vt-overlay);
+      color: var(--vt-primary);
+    }
+
+    .krona-codigo-resultado {
+      font-weight: 600;
+      color: var(--vt-cyan);
+      font-family: 'Space Mono', monospace;
+      min-width: 80px;
+    }
+
+    .krona-descricao-resultado {
+      flex: 1;
+      margin-left: 12px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .krona-selecionado {
+      padding: 10px 12px;
+      background: var(--vt-green-bg);
+      color: var(--vt-green);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .krona-selecionado::before {
+      content: '✓';
+      font-weight: 700;
+    }
+
+    .modal-campos {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-campo-grupo {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .modal-campo-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--vt-hint);
+    }
+
+    .modal-campo-input {
+      padding: 10px 12px;
+      background: var(--vt-raised);
+      border: 1px solid var(--vt-border);
+      border-radius: 6px;
+      color: var(--vt-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+    }
+
+    .modal-campo-input:focus {
+      outline: none;
+      border-color: var(--vt-cyan);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+    }
+
+    .modal-campo-input:disabled {
+      background: var(--vt-overlay);
+      color: var(--vt-muted);
+      cursor: not-allowed;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding-top: 12px;
+      border-top: 1px solid var(--vt-border);
+    }
+
+    .btn-modal-cancelar {
+      padding: 8px 16px;
+      background: var(--vt-raised);
+      color: var(--vt-muted);
+      border: 1px solid var(--vt-border);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-modal-cancelar:hover {
+      background: var(--vt-overlay);
+      color: var(--vt-primary);
+    }
+
+    .btn-modal-confirmar {
+      padding: 8px 16px;
+      background: var(--vt-green-bg);
+      color: var(--vt-green);
+      border: 1px solid var(--vt-green);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-modal-confirmar:hover:not(:disabled) {
+      background: var(--vt-green);
+      color: #fff;
+    }
+
+    .btn-modal-confirmar:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .modal-msg-vazio {
+      padding: 20px;
+      text-align: center;
+      color: var(--vt-hint);
+      font-size: 12px;
+    }
+
+  </style>
+</head>
+<body class="ios-body revisao-page">
+
+  <div class="revisao-container">
+    <!-- HEADER -->
+    <div class="revisao-header">
+      <div>
+        <a href="/dashboard"
+           style="display:inline-flex;align-items:center;gap:6px;
+                  padding:6px 14px;border-radius:8px;font-size:12px;
+                  font-weight:500;background:transparent;
+                  border:1px solid var(--vt-borderstr);
+                  color:var(--vt-muted);text-decoration:none;
+                  margin-bottom:12px;">
+          ← Voltar ao Dashboard
+        </a>
+        <div class="revisao-title">⚠️ Revisão de Itens</div>
+      </div>
+      <div class="revisao-badge">{{ total }} pendentes</div>
+    </div>
+
+    <!-- CONTEÚDO -->
+    <div class="revisao-content">
+      {% if itens %}
+      <table class="revisao-table">
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Descrição OC</th>
+            <th>Match Sugerido</th>
+            <th>Score</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in itens %}
+          <tr data-item-id="{{ item.id }}"
+              data-codigo-sugerido="{{ item.codigo_krona_sugerido or '' }}"
+              data-descricao-sugerida="{{ item.descricao_krona_sugerida or '' }}"
+              data-descricao-oc="{{ item.descricao_oc }}">
+            <td class="revisao-arquivo">{{ item.arquivo }}</td>
+            <td class="revisao-descricao" title="{{ item.descricao_oc }}">
+              {{ item.descricao_oc }}
+            </td>
+            <td>
+              <div class="revisao-match-sugerido">
+                <div class="revisao-codigo">{{ item.codigo_krona_sugerido or '—' }}</div>
+                <div class="revisao-descr-krona" title="{{ item.descricao_krona_sugerida or '' }}">
+                  {{ item.descricao_krona_sugerida or '—' }}
+                </div>
+              </div>
+            </td>
+            <td>
+              {% set score = item.score_total or 0 %}
+              {% if score >= 0.75 %}
+                <span class="score-alto">{{ "%.2f"|format(score) }}</span>
+              {% elif score >= 0.50 %}
+                <span class="score-medio">{{ "%.2f"|format(score) }}</span>
+              {% else %}
+                <span class="score-baixo">{{ "%.2f"|format(score) }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="revisao-acoes">
+                <button class="btn-confirmar" onclick="confirmarMatch({{ item.id }})">
+                  ✓ Confirmar
+                </button>
+                <button class="btn-corrigir" onclick="abrirModalCorrecao({{ item.id }})">
+                  ✏️ Corrigir
+                </button>
+                <button class="btn-reprocessar"
+                        onclick="reprocessarOC('{{ item.arquivo }}')"
+                        title="Mover para entrada e reprocessar">
+                  🔄 Reprocessar
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding: 40px; text-align: center; color: var(--vt-muted);">
+        <p style="font-size: 16px; margin-bottom: 10px;">✓</p>
+        <p style="font-size: 12px;">Nenhum item pendente de revisão!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- MODAL CORREÇÃO -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-correcao">
+      <div class="modal-titulo">Corrigir Item</div>
+
+      <div class="modal-descricao-oc" id="descricao-oc-display">—</div>
+
+      <div style="display: none;">
+        <input type="hidden" id="item-id-atual" value="">
+        <input type="hidden" id="descricao-oc-atual" value="">
+      </div>
+
+      <div class="modal-campo-grupo">
+        <label class="modal-busca-label">Buscar na base Krona</label>
+        <input
+          type="text"
+          id="campo-busca-krona"
+          class="modal-busca-input"
+          placeholder="Digite parte do nome do produto..."
+          autocomplete="off"
+          onkeyup="debounceSearch(this.value)">
+      </div>
+
+      <div class="modal-resultados" id="krona-resultados">
+        <div class="modal-msg-vazio">Digite para buscar...</div>
+      </div>
+
+      <div class="modal-campos">
+        <div class="modal-campo-grupo">
+          <label class="modal-campo-label">Código Krona</label>
+          <input
+            type="text"
+            id="campo-codigo-correto"
+            class="modal-campo-input"
+            placeholder="Código"
+            readonly>
+        </div>
+
+        <div class="modal-campo-grupo">
+          <label class="modal-campo-label">Descrição Krona</label>
+          <input
+            type="text"
+            id="campo-descricao-correta"
+            class="modal-campo-input"
+            placeholder="Descrição"
+            readonly>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-cancelar" onclick="fecharModalCorrecao()">
+          Cancelar
+        </button>
+        <button class="btn-modal-confirmar" onclick="confirmarCorrecao()">
+          Confirmar Correção
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let debounceTimer = null;
+
+    function debounceSearch(termo) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        buscarKrona(termo);
+      }, 300);
+    }
+
+    async function buscarKrona(termo) {
+      if (termo.length < 2) {
+        document.getElementById('krona-resultados').innerHTML =
+          '<div class="modal-msg-vazio">Digite pelo menos 2 caracteres...</div>';
+        return;
+      }
+
+      try {
+        const r = await fetch(`/api/revisao/buscar-krona?q=${encodeURIComponent(termo)}`);
+        const data = await r.json();
+
+        const div = document.getElementById('krona-resultados');
+
+        if (!data.ok || !data.resultados || data.resultados.length === 0) {
+          div.innerHTML = '<div class="modal-msg-vazio">Nenhum produto encontrado.</div>';
+          return;
+        }
+
+        div.innerHTML = data.resultados.map(r =>
+          `<div class="krona-result-item" onclick="selecionarKrona('${r.codigo_krona}', '${r.descricao_krona.replace(/'/g, "\\'")}')">
+              <span class="krona-codigo-resultado">${r.codigo_krona}</span>
+              <span class="krona-descricao-resultado">${r.descricao_krona}</span>
+          </div>`
+        ).join('');
+      } catch (err) {
+        document.getElementById('krona-resultados').innerHTML =
+          `<div class="modal-msg-vazio" style="color: var(--vt-red);">Erro na busca: ${err.message}</div>`;
+      }
+    }
+
+    function selecionarKrona(codigo, descricao) {
+      document.getElementById('campo-codigo-correto').value = codigo;
+      document.getElementById('campo-descricao-correta').value = descricao;
+
+      const div = document.getElementById('krona-resultados');
+      div.innerHTML = `<div class="krona-selecionado">${codigo} · ${descricao}</div>`;
+    }
+
+    function abrirModalCorrecao(itemId) {
+      const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+      if (!row) return;
+
+      const descricaoOc = row.dataset.descricaoOc;
+
+      document.getElementById('item-id-atual').value = itemId;
+      document.getElementById('descricao-oc-atual').value = descricaoOc;
+      document.getElementById('descricao-oc-display').textContent = descricaoOc;
+      document.getElementById('campo-busca-krona').value = '';
+      document.getElementById('campo-codigo-correto').value = '';
+      document.getElementById('campo-descricao-correta').value = '';
+      document.getElementById('krona-resultados').innerHTML =
+        '<div class="modal-msg-vazio">Digite para buscar...</div>';
+
+      document.getElementById('modal-backdrop').classList.add('ativo');
+    }
+
+    function fecharModalCorrecao() {
+      document.getElementById('modal-backdrop').classList.remove('ativo');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        fecharModalCorrecao();
+      }
+    });
+
+    async function confirmarCorrecao() {
+      const id = parseInt(document.getElementById('item-id-atual').value);
+      const codigo = document.getElementById('campo-codigo-correto').value.trim();
+      const descricao = document.getElementById('campo-descricao-correta').value.trim();
+      const descricao_oc = document.getElementById('descricao-oc-atual').value;
+
+      if (!codigo) {
+        alert('Selecione um produto Krona antes de confirmar.');
+        return;
+      }
+
+      try {
+        const r = await fetch('/api/revisao/resolver', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            id: id,
+            codigo_krona: codigo,
+            descricao_krona: descricao,
+            descricao_oc: descricao_oc
+          })
+        });
+
+        const data = await r.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert('Erro: ' + (data.mensagem || data.erro));
+        }
+      } catch (err) {
+        alert('Erro ao confirmar correção: ' + err.message);
+      }
+    }
+
+    async function reprocessarOC(arquivo) {
+      if (!confirm(`Reprocessar ${arquivo}?`)) return;
+      try {
+        const r = await fetch('/api/revisao/reprocessar', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({arquivo})
+        });
+        const data = await r.json();
+        if (data.ok) {
+          alert('OC movida para entrada_oc. Acesse o dashboard para processar.');
+        } else {
+          alert('Erro: ' + data.mensagem);
+        }
+      } catch (err) {
+        alert('Erro ao reprocessar: ' + err.message);
+      }
+    }
+
+    async function confirmarMatch(id) {
+      const row = document.querySelector(`tr[data-item-id="${id}"]`);
+      if (!row) return;
+
+      const codigo = row.dataset.codigoSugerido;
+      const descricao = row.dataset.descricaoSugerida;
+      const descricao_oc = row.dataset.descricaoOc;
+
+      if (!codigo) {
+        alert('Não há match sugerido para confirmar.');
+        return;
+      }
+
+      try {
+        const r = await fetch('/api/revisao/resolver', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            id: id,
+            codigo_krona: codigo,
+            descricao_krona: descricao,
+            descricao_oc: descricao_oc
+          })
+        });
+
+        const data = await r.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert('Erro: ' + (data.mensagem || data.erro));
+        }
+      } catch (err) {
+        alert('Erro ao confirmar: ' + err.message);
+      }
+    }
+  </script>
+
+</body>
+</html>

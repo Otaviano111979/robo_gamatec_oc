@@ -612,6 +612,35 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
 
+    # ── CONSULTAR CORRECOES APRENDIDAS ──
+    try:
+        import json
+        correcoes_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "dados", "correcoes_aprendidas.json"
+        )
+        if os.path.exists(correcoes_path):
+            with open(correcoes_path, encoding='utf-8') as f:
+                correcoes = json.load(f)
+            descricao_item = str(item.get('descricao_oc', '') or
+                                 item.get('descricao_reconstruida', '') or '').upper().strip()
+            for c in correcoes:
+                desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
+                if desc_correcao and desc_correcao == descricao_item:
+                    return {
+                        "match_encontrado": True,
+                        "codigo_krona": c.get('codigo_krona'),
+                        "descricao_krona": c.get('descricao_krona'),
+                        "score_estrutura": 0,
+                        "score_textual": 1.0,
+                        "score_total": 1.0,
+                        "tipo_match": "MATCH_CORRECAO_APRENDIDA",
+                        "revisao_manual": False,
+                        "motivo_match": "CORRECAO_HUMANA_APRENDIDA",
+                    }
+    except Exception:
+        pass  # nao bloqueia o fluxo principal
+
     # =========================================================
     # PRIORIDADE 1 — MRV
     # =========================================================

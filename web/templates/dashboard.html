@@ -100,6 +100,12 @@
         {% if session.get('tipo') in ('admin', 'supervisor') %}
         <a class="dash-nav-item" href="/painel"><span class="dash-ico">⬡</span><span>Painel</span></a>
         {% endif %}
+        <a class="dash-nav-item {% if total_revisao and total_revisao > 0 %}active-warning{% endif %}" href="/revisao">
+          <span class="dash-ico">⚠️</span><span>Revisão</span>
+          {% if total_revisao and total_revisao > 0 %}
+          <span class="nav-badge-warning">{{ total_revisao }}</span>
+          {% endif %}
+        </a>
         <a class="dash-nav-item" href="/catalogo/steck/"><span class="dash-ico">⌁</span><span>Catálogo Steck</span></a>
         <a class="dash-nav-item" href="/comparador/"><span class="dash-ico">⟐</span><span>Comparador</span></a>
         {% if session.get("tipo") == "admin" %}
@@ -610,6 +616,65 @@
 
     </div>
   </div>
+
+  <!-- TOAST REVISAO -->
+  <div id="toast-revisao">
+    <div class="toast-header">
+      <span class="toast-icon">⚠️</span>
+      <span class="toast-title" id="toast-titulo">Itens para revisão</span>
+      <button class="toast-close" onclick="fecharToast()">✕</button>
+    </div>
+    <div class="toast-items" id="toast-itens"></div>
+    <a href="/revisao" class="toast-btn">Revisar agora →</a>
+  </div>
+
+  <script>
+    // Verifica itens de revisão ao carregar a página
+    (async function verificarRevisaoPendente() {
+      try {
+        const r = await fetch('/api/revisao/pendentes');
+        const data = await r.json();
+        if (!data.ok || data.total === 0) return;
+
+        // monta itens no toast
+        const container = document.getElementById('toast-itens');
+        const titulo = document.getElementById('toast-titulo');
+        titulo.textContent = `${data.total} item${data.total > 1 ? 's' : ''} precisa${data.total > 1 ? 'm' : ''} de revisão`;
+
+        const itens = data.itens.slice(0, 3);
+        container.innerHTML = itens.map(item => {
+          const score = parseFloat(item.score_total || 0).toFixed(2);
+          const desc = (item.descricao_oc || '').substring(0, 45);
+          return `<div class="toast-item">
+            <strong>${desc}</strong> · score ${score}
+          </div>`;
+        }).join('');
+
+        if (data.total > 3) {
+          container.innerHTML += `<div class="toast-item" style="color:var(--vt-hint)">
+            + ${data.total - 3} item${data.total - 3 > 1 ? 's' : ''}...
+          </div>`;
+        }
+
+        // exibe o toast
+        const toast = document.getElementById('toast-revisao');
+        toast.style.display = 'block';
+
+        // fecha automaticamente apos 8 segundos
+        setTimeout(fecharToast, 8000);
+
+      } catch(e) {
+        console.log('Toast revisao indisponivel:', e);
+      }
+    })();
+
+    function fecharToast() {
+      const toast = document.getElementById('toast-revisao');
+      if (!toast) return;
+      toast.style.animation = 'toast-slide-out 0.3s ease forwards';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }
+  </script>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

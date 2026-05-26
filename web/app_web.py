@@ -916,6 +916,13 @@ def dashboard():
     total_entrada    = sum(1 for a in arquivos if a.get("em_entrada") and not a.get("processando"))
     total_processando = sum(1 for a in arquivos if a.get("processando"))
     total_concluidos = sum(1 for a in arquivos if a.get("tem_planilha") and a.get("em_processados"))
+    
+    # total de itens pendentes de revisão
+    try:
+        from dados.revisao_store import contar_pendentes
+        total_revisao = contar_pendentes()
+    except Exception:
+        total_revisao = 0
 
     return render_template(
         "dashboard.html",
@@ -923,6 +930,7 @@ def dashboard():
         total_entrada=total_entrada,
         total_processando=total_processando,
         total_concluidos=total_concluidos,
+        total_revisao=total_revisao,
     )
 
 
@@ -2296,9 +2304,154 @@ def api_agente_email_config_post():
         return jsonify({"ok": False, "mensagem": str(e)}), 500
 
 
+# =================================================================
+# REVISAO DE ITENS
+# =================================================================
+
+@app.route("/revisao")
+def pagina_revisao():
+    """Página de revisão humana de itens com score baixo."""
+    if not usuario_logado():
+        return redirect("/")
+    
+    from dados.revisao_store import listar_pendentes
+    itens = listar_pendentes()
+    
+    return render_template(
+        "revisao.html",
+        itens=itens,
+        total=len(itens),
+        usuario=session.get('user', 'admin')
+    )
+
+
+@app.route("/api/revisao/pendentes")
+def api_revisao_pendentes():
+    """API: retorna contagem e top 5 itens pendentes."""
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    
+    from dados.revisao_store import listar_pendentes, contar_pendentes
+    
+    return jsonify({
+        "ok": True,
+        "total": contar_pendentes(),
+        "itens": listar_pendentes(limite=5)
+    })
+
+
+@app.route("/api/revisao/resolver", methods=["POST"])
+def api_revisao_resolver():
+    """API: marca um item como resolvido com a correção do usuário."""
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    
+    try:
+        data = request.get_json(force=True)
+        item_id = data.get("id")
+        codigo = str(data.get("codigo_krona", "")).strip()
+        descricao = str(data.get("descricao_krona", "")).strip()
+        usuario = session.get('user', 'admin')
+        
+        if not item_id or not codigo:
+            return jsonify({
+                "ok": False,
+                "mensagem": "ID do item e código Krona são obrigatórios."
+            })
+        
+        from dados.revisao_store import resolver_item, salvar_correcao_aprendizado
+        
+        resolver_item(item_id, codigo, descricao, usuario)
+        
+        # salva para aprendizado se houver descrição
+        if descricao:
+            salvar_correcao_aprendizado(
+                data.get("descricao_oc", ""),
+                codigo,
+                descricao
+            )
+        
+        return jsonify({"ok": True, "mensagem": "Item resolvido com sucesso."})
+    
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "mensagem": f"Erro ao resolver item: {str(e)}"
+        })
+
+
+@app.route("/api/revisao/buscar-krona")
+def api_buscar_krona():
+    """API: busca produtos na base Krona para o operador selecionar."""
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    
+    termo = request.args.get("q", "").strip().upper()
+    
+    if len(termo) < 2:
+        return jsonify({"ok": True, "resultados": []})
+    
+    try:
+        import pandas as pd
+        
+        base_path = os.path.join(BASE_DIR, "saida", "base_krona_final.csv")
+        if not os.path.exists(base_path):
+            return jsonify({
+                "ok": False,
+                "erro": "Base de dados Krona não encontrada."
+            })
+        
+        df = pd.read_csv(
+            base_path,
+            sep=";",
+            encoding="utf-8-sig",
+            usecols=["codigo_krona", "descricao_krona"],
+            dtype={"codigo_krona": str, "descricao_krona": str}
+        )
+        
+        # busca por codigo OU descricao
+        mask = (
+            df["descricao_krona"].str.upper().str.contains(termo, na=False, regex=False) |
+            df["codigo_krona"].astype(str).str.contains(termo, na=False, regex=False)
+        )
+        
+        resultados = df[mask].drop_duplicates().head(10).to_dict(orient="records")
+        
+        return jsonify({
+            "ok": True,
+            "resultados": resultados
+        })
+    
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "erro": f"Erro na busca: {str(e)}"
+        })
+
+
+@app.route("/api/revisao/reprocessar", methods=["POST"])
+def api_revisao_reprocessar():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    data = request.get_json(force=True)
+    arquivo = data.get("arquivo", "").strip()
+    if not arquivo:
+        return jsonify({"ok": False, "mensagem": "Arquivo nao informado."})
+    try:
+        import shutil
+        origem = os.path.join(BASE_DIR, "processados_oc", arquivo)
+        destino = os.path.join(BASE_DIR, "entrada_oc", arquivo)
+        if not os.path.exists(origem):
+            return jsonify({"ok": False, "mensagem": "Arquivo nao encontrado em processados_oc."})
+        shutil.copy2(origem, destino)
+        return jsonify({"ok": True, "mensagem": f"{arquivo} movido para entrada_oc. Processe pelo dashboard."})
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": str(e)})
+
+
 # =========================
 # LOGOUT
-# =========================
+# ========================
 @app.route("/logout")
 def logout():
     session.clear()

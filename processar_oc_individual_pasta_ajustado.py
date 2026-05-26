@@ -446,6 +446,32 @@ def processar_oc(caminho_oc: str) -> dict:
         print(f"[CRM] Aviso: falha ao atualizar match no banco — {_crm_e2}")
     # ── fim CRM ──────────────────────────────────────────────
 
+    # ── REVISAO: registra itens com score baixo para revisão humana ─────
+    try:
+        from dados.revisao_store import salvar_item_revisao
+        THRESHOLD_REVISAO = 0.75
+        nome_arquivo = os.path.basename(caminho_oc)
+        if not df_final.empty:
+            for _, row in df_final.iterrows():
+                score = float(row.get('score_total', 0) or 0)
+                tipo = str(row.get('tipo_match', '') or '')
+                revisao = bool(row.get('revisao_manual', False))
+                if score < THRESHOLD_REVISAO or tipo == 'SEM_MATCH' or revisao:
+                    salvar_item_revisao(
+                        arquivo=nome_arquivo,
+                        num_item=str(row.get('idx_item', '') or ''),
+                        descricao_oc=str(row.get('descricao_oc', '') or
+                                        row.get('descricao_original', '') or ''),
+                        codigo_sugerido=str(row.get('codigo_krona', '') or ''),
+                        descricao_sugerida=str(row.get('descricao_krona', '') or ''),
+                        score=score,
+                        tipo_match=tipo
+                    )
+        print(f"[REVISAO] Itens registrados para revisao se necessario.")
+    except Exception as _rev_e:
+        print(f"[REVISAO] Aviso (nao critico): {_rev_e}")
+    # ── fim REVISAO ──────────────────────────────────────────────────
+
     print("\n[4/4] GERANDO SAÍDAS INDIVIDUAIS...")
     salvar_resultado_processado_individual(df_final, caminhos["resultado_processado"])
     df_planilha = gerar_planilha_enxuta_individual(

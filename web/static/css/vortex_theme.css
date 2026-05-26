@@ -532,3 +532,146 @@ select:focus {
 .list-card {
   overflow: visible !important;
 }
+
+/* ── BADGE WARNING NA NAVEGACAO ── */
+.nav-badge-warning {
+  margin-left: auto;
+  background: var(--vt-amber-bg) !important;
+  color: var(--vt-amber) !important;
+  font-size: 10px !important;
+  padding: 2px 8px !important;
+  border-radius: 99px !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+}
+
+.dash-nav-item.active-warning {
+  color: var(--vt-amber) !important;
+}
+
+.dash-nav-item.active-warning:hover {
+  background: var(--vt-amber-bg) !important;
+}
+
+/* ── CLASSE UTILITARIA PARA SCORES ── */
+.score-alto {
+  color: var(--vt-green) !important;
+  font-weight: 600 !important;
+}
+
+.score-medio {
+  color: var(--vt-amber) !important;
+  font-weight: 600 !important;
+}
+
+.score-baixo {
+  color: var(--vt-red) !important;
+  font-weight: 600 !important;
+}
+
+/* ── TOAST NOTIFICACAO REVISAO ── */
+#toast-revisao {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  background: var(--vt-surface);
+  border: 1px solid var(--vt-border);
+  border-left: 4px solid var(--vt-amber);
+  border-radius: 10px;
+  box-shadow: var(--vt-shadow-lg);
+  padding: 14px 16px;
+  min-width: 300px;
+  max-width: 380px;
+  display: none;
+  animation: toast-slide-in 0.3s ease;
+}
+
+@keyframes toast-slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes toast-slide-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.toast-icon { font-size: 16px; }
+
+.toast-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vt-amber);
+  flex: 1;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--vt-hint);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+}
+
+.toast-close:hover { color: var(--vt-text); }
+
+.toast-items {
+  margin-bottom: 10px;
+}
+
+.toast-item {
+  font-size: 11px;
+  color: var(--vt-muted);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--vt-border);
+}
+
+.toast-item:last-child { border-bottom: none; }
+
+.toast-item strong {
+  color: var(--vt-sub);
+}
+
+.toast-btn {
+  display: block;
+  width: 100%;
+  padding: 7px;
+  background: var(--vt-amber);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+.toast-btn:hover { opacity: 0.9; }
+
+/* ── BADGE PULSANTE ── */
+.nav-badge-warning {
+  margin-left: auto;
+  background: var(--vt-amber);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-weight: 600;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.1); }
+}
