@@ -435,6 +435,12 @@ async function consultarStatusProcessamento(nomeArquivo) {
     aplicarConclusaoNoPainel(nomeArquivo, data);
     limparOCEmProcessamento();
     pararPollingProcessamento();
+    
+    // apos concluir processamento, verifica se ha itens para revisao
+    if (typeof verificarRevisaoPendente === 'function') {
+      setTimeout(verificarRevisaoPendente, 2000);
+    }
+    
     window.location.reload();
   } catch (e) {
     console.warn("Falha ao consultar status automático da OC.", e);

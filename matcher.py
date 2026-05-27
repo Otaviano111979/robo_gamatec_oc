@@ -39,6 +39,14 @@ CODIGOS_EXCLUIDOS_MATCH = {
     # o sistema agora pode encontrar o código correto para linha normal
 }
 
+# ============================================================
+# THRESHOLD PARA CORREÇÕES APRENDIDAS
+# ============================================================
+# Valor em percentual (0-100) para aceitar uma correção aprendida
+# via correspondência aproximada. 85% é conservador, evita falsos positivos.
+# Ajustar conforme necessário: 80% para mais flexibilidade, 90% para mais rigor.
+THRESHOLD_CORRECAO_APRENDIDA = 85
+
 
 # ============================================================
 # BASES
@@ -612,7 +620,7 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
 
-    # ── CONSULTAR CORRECOES APRENDIDAS ──
+    # ── CONSULTAR CORRECOES APRENDIDAS (com correspondência aproximada) ──
     try:
         import json
         correcoes_path = os.path.join(
@@ -624,20 +632,50 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                 correcoes = json.load(f)
             descricao_item = str(item.get('descricao_oc', '') or
                                  item.get('descricao_reconstruida', '') or '').upper().strip()
-            for c in correcoes:
-                desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
-                if desc_correcao and desc_correcao == descricao_item:
+            
+            # usa rapidfuzz para correspondência aproximada (threshold configurável)
+            try:
+                melhor_correcao = None
+                melhor_score = 0
+                for c in correcoes:
+                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
+                    if not desc_correcao:
+                        continue
+                    # token_sort_ratio ignora ordem das palavras
+                    similaridade = rapidfuzz_fuzz.token_sort_ratio(descricao_item, desc_correcao)
+                    if similaridade > melhor_score:
+                        melhor_score = similaridade
+                        melhor_correcao = c
+                
+                # threshold para aceitar a correção
+                if melhor_correcao and melhor_score >= THRESHOLD_CORRECAO_APRENDIDA:
                     return {
                         "match_encontrado": True,
-                        "codigo_krona": c.get('codigo_krona'),
-                        "descricao_krona": c.get('descricao_krona'),
+                        "codigo_krona": melhor_correcao.get('codigo_krona'),
+                        "descricao_krona": melhor_correcao.get('descricao_krona'),
                         "score_estrutura": 0,
-                        "score_textual": 1.0,
-                        "score_total": 1.0,
+                        "score_textual": round(melhor_score / 100, 2),
+                        "score_total": round(melhor_score / 100, 2),
                         "tipo_match": "MATCH_CORRECAO_APRENDIDA",
                         "revisao_manual": False,
-                        "motivo_match": "CORRECAO_HUMANA_APRENDIDA",
+                        "motivo_match": f"CORRECAO_HUMANA_APRENDIDA(sim={melhor_score}%)",
                     }
+            except ImportError:
+                # fallback para igualdade exata se rapidfuzz nao disponível
+                for c in correcoes:
+                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
+                    if desc_correcao and desc_correcao == descricao_item:
+                        return {
+                            "match_encontrado": True,
+                            "codigo_krona": c.get('codigo_krona'),
+                            "descricao_krona": c.get('descricao_krona'),
+                            "score_estrutura": 0,
+                            "score_textual": 1.0,
+                            "score_total": 1.0,
+                            "tipo_match": "MATCH_CORRECAO_APRENDIDA",
+                            "revisao_manual": False,
+                            "motivo_match": "CORRECAO_HUMANA_APRENDIDA",
+                        }
     except Exception:
         pass  # nao bloqueia o fluxo principal
 

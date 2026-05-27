@@ -5,5 +5,35 @@
     "descricao_krona": "ELETRODUTO DE PVC FLEX CORRUGADO 32MM - 25 MT",
     "data": "2026-05-26",
     "data_atualizacao": "2026-05-26 13:18:51"
+  },
+  {
+    "descricao_oc": "Eletroduto corrugado flexivel 1\" - azul",
+    "codigo_krona": "1234",
+    "descricao_krona": "ELETROD PVC FLEX CORRUG REF AZUL 32MM x 25M",
+    "data": "2026-05-27"
+  },
+  {
+    "descricao_oc": "Eletroduto flexivel corrugado amarelo - 1\"",
+    "codigo_krona": "1232",
+    "descricao_krona": "ELETRODUTO DE PVC FLEX CORRUGADO 32MM - 25 MT",
+    "data": "2026-05-27"
+  },
+  {
+    "descricao_oc": "Eletroduto flexivel corrugado amarelo - 3/4\"",
+    "codigo_krona": "1231",
+    "descricao_krona": "ELETRODUTO DE PVC FLEX CORRUGADO 25MM - 50 MT",
+    "data": "2026-05-27"
+  },
+  {
+    "descricao_oc": "ELETRODUTO FLEXIVEL POLIETILENO CORRUGADO 1`AMARELO - NBR 15465",
+    "codigo_krona": "1232",
+    "descricao_krona": "ELETRODUTO DE PVC FLEX CORRUGADO 32MM - 25 MT",
+    "data": "2026-05-27"
+  },
+  {
+    "descricao_oc": "ELETRODUTO FLEXIVEL PVC CORRUGADO 32MMLARANJA - NBR 15465",
+    "codigo_krona": "1237",
+    "descricao_krona": "ELETROD PVC FLEX CORRUG REFORCADO 32MM 25 MT",
+    "data": "2026-05-27"
   }
 ]
