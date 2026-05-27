@@ -206,6 +206,20 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
                 item.descricao_reconstruida = desc
                 item.observacoes.append("formato_uau")
 
+                # ── VALIDACAO: quantidade suspeita (quebra de linha no PDF) ──
+                # Quando a quantidade é 0 mas os valores financeiros são coerentes,
+                # o "0" capturado é o final de um número que foi quebrado entre linhas
+                # (ex: "500,00000" → "500,0000" na linha anterior + "0" nesta).
+                # Recalcular: qtd = total / unitario
+                if (item.quantidade or 0) == 0 and item.valor_unitario and item.valor_total:
+                    try:
+                        qtd_calculada = round(item.valor_total / item.valor_unitario, 4)
+                        if qtd_calculada > 0:
+                            item.quantidade = qtd_calculada
+                            item.observacoes.append("quantidade_recalculada_por_total_unitario")
+                    except Exception:
+                        pass
+
             elif match_uau_q:
                 # linha com quantidade quebrada — precisa juntar com a proxima linha
                 item.idx_item = int(match_uau_q.group("idx"))
@@ -221,20 +235,53 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
                 # tenta reconstruir quantidade juntando com linhas de continuacao do bloco
                 # ex: linha principal tem "3.000,0000" e continuacao tem "00" → "3.000,000000"
                 qtd_parcial = match_uau_q.group("quantidade_parcial")
-                continuacoes = [
-                    l.texto_normalizado.strip()
-                    for l in bloco.linhas
-                    if l.classe == "DESCRICAO_ITEM"
-                    and re.match(r"^\d{1,4}$", l.texto_normalizado.strip())
-                ]
-                if continuacoes:
-                    qtd_texto = qtd_parcial + continuacoes[0]
-                    item.quantidade = numero_brasileiro_para_float(qtd_texto)
-                else:
-                    item.quantidade = numero_brasileiro_para_float(qtd_parcial)
 
-                item.observacoes.append("formato_uau_quebrado")
-                item.observacoes.append("quantidade_reconstruida_da_quebra")
+                # busca continuacao da quantidade em TODAS as linhas do bloco
+                # nao filtra por classe para nao perder a linha de continuacao
+                continuacoes = []
+                for l in bloco.linhas:
+                    texto = l.texto_normalizado.strip()
+                    # linha de continuacao pode ser so digitos (ex: "0", "00", "000")
+                    # ou comecar com digitos seguidos de espacos e mais numeros
+                    if re.match(r"^\d{1,6}[\s,.]", texto) or re.match(r"^\d{1,6}$", texto):
+                        continuacoes.append(texto)
+
+                if continuacoes:
+                    # pega o primeiro numero da continuacao (pode ser "0  1,533000  766,50")
+                    primeiro = continuacoes[0].split()[0] if ' ' in continuacoes[0] else continuacoes[0]
+                    qtd_texto = qtd_parcial + primeiro
+                    qtd = numero_brasileiro_para_float(qtd_texto)
+                    if qtd and qtd > 0:
+                        item.quantidade = qtd
+                        item.observacoes.append("formato_uau_quebrado")
+                        item.observacoes.append("quantidade_reconstruida_da_quebra")
+
+                        # tenta extrair valor_unitario e valor_total da linha de continuacao
+                        try:
+                            partes = continuacoes[0].split()
+                            if len(partes) >= 3:
+                                item.valor_unitario = numero_brasileiro_para_float(partes[1])
+                                item.valor_total    = numero_brasileiro_para_float(partes[2])
+                            elif len(partes) == 2:
+                                item.valor_unitario = numero_brasileiro_para_float(partes[1])
+                        except Exception:
+                            pass
+                    else:
+                        item.quantidade = numero_brasileiro_para_float(qtd_parcial) or 0.0
+                        item.observacoes.append("formato_uau_quebrado")
+                        item.observacoes.append("validacao:quantidade_ausente_ou_invalida")
+                else:
+                    item.quantidade = numero_brasileiro_para_float(qtd_parcial) or 0.0
+                    item.observacoes.append("formato_uau_quebrado")
+                    item.observacoes.append("validacao:quantidade_ausente_ou_invalida")
+
+                # score de extracao mais alto quando reconstruiu com sucesso
+                if item.quantidade and item.quantidade > 0:
+                    item.score_extracao = 0.85
+                    item.status_extracao = "ok"
+                else:
+                    item.score_extracao = 0.55
+                    item.status_extracao = "duvidoso"
 
             else:
                 # ultimo recurso: item quebrado entre paginas
