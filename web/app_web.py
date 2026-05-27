@@ -658,6 +658,40 @@ def inferir_progresso_oc(nome_arquivo, processando, tem_planilha, em_processados
     }
 
 
+def verificar_correcao_aplicada(nome_arquivo):
+    """
+    Verifica se algum item deste arquivo usou MATCH_CORRECAO_APRENDIDA.
+    
+    Args:
+        nome_arquivo: nome do arquivo da OC
+        
+    Returns:
+        True se o CSV de resultado contém pelo menos um MATCH_CORRECAO_APRENDIDA
+    """
+    try:
+        import pandas as pd
+        pasta_oc = pasta_saida_oc(nome_arquivo)
+        
+        # procura arquivo CSV de resultado
+        if not os.path.exists(pasta_oc):
+            return False
+            
+        for nome in os.listdir(pasta_oc):
+            if nome.endswith("_resultado.csv"):
+                caminho_csv = os.path.join(pasta_oc, nome)
+                df = pd.read_csv(
+                    caminho_csv,
+                    sep=';',
+                    encoding='utf-8-sig',
+                    usecols=['tipo_match'] if 'tipo_match' in pd.read_csv(caminho_csv, sep=';', nrows=0, encoding='utf-8-sig').columns else []
+                )
+                if 'tipo_match' in df.columns:
+                    return 'MATCH_CORRECAO_APRENDIDA' in df['tipo_match'].values
+        return False
+    except Exception:
+        return False
+
+
 def montar_status_oc(nome_arquivo):
     tem_planilha = oc_tem_saida(nome_arquivo)
     em_entrada = arquivo_em_entrada(nome_arquivo)
@@ -762,6 +796,9 @@ def montar_status_oc(nome_arquivo):
             except Exception:
                 pass
 
+    # verifica se algum item usou MATCH_CORRECAO_APRENDIDA
+    correcao_aplicada = verificar_correcao_aplicada(nome_arquivo) if tem_planilha else False
+
     return {
         "nome": nome_arquivo,
         "nome_base": nome_base_arquivo(nome_arquivo),
@@ -786,6 +823,7 @@ def montar_status_oc(nome_arquivo):
         "matches_encontrados": metricas["matches_encontrados"],
         "pendentes": metricas["pendentes"],
         "cliente_novo": cliente_novo,
+        "correcao_aplicada": correcao_aplicada,
     }
 
 
@@ -933,62 +971,6 @@ def dashboard():
         total_revisao=total_revisao,
     )
 
-
-# =========================
-# DASHBOARD V2 (redesign clean)
-# =========================
-@app.route("/dashboard_v2")
-def dashboard_v2():
-    if not usuario_logado():
-        return redirect("/")
-
-    arquivos = [montar_status_oc(nome) for nome in listar_todos_arquivos()]
-    arquivos.sort(key=lambda x: x.get("timestamp_ref", 0), reverse=True)
-
-    total_entrada     = sum(1 for a in arquivos if a.get("em_entrada") and not a.get("processando"))
-    total_processando = sum(1 for a in arquivos if a.get("processando"))
-    total_concluidos  = sum(1 for a in arquivos if a.get("tem_planilha") and a.get("em_processados"))
-
-    # itens de revisão: divergências do shadow mode com score abaixo de 0.80
-    itens_revisao = []
-    shadow_path = os.path.join(BASE_DIR, "saida", "shadow_mode.jsonl")
-    if os.path.exists(shadow_path):
-        try:
-            seen = set()
-            with open(shadow_path, "r", encoding="utf-8") as f:
-                for linha in f:
-                    linha = linha.strip()
-                    if not linha:
-                        continue
-                    try:
-                        reg = json.loads(linha)
-                    except Exception:
-                        continue
-                    if reg.get("concordam"):
-                        continue
-                    score = float(reg.get("motor_atual", {}).get("score") or 0)
-                    desc  = reg.get("descricao_oc", "")
-                    if not desc or desc in seen:
-                        continue
-                    seen.add(desc)
-                    itens_revisao.append({
-                        "descricao_oc": desc,
-                        "tipo_match":   reg.get("motor_atual", {}).get("tipo_match") or "—",
-                        "arquivo":      reg.get("ts", "")[:10],
-                        "score_total":  score,
-                    })
-            itens_revisao.sort(key=lambda x: x["score_total"])
-        except Exception:
-            itens_revisao = []
-
-    return render_template(
-        "dashboard_v2.html",
-        arquivos=arquivos,
-        total_entrada=total_entrada,
-        total_processando=total_processando,
-        total_concluidos=total_concluidos,
-        itens_revisao=itens_revisao,
-    )
 
 
 # =========================
@@ -2314,12 +2296,14 @@ def pagina_revisao():
     if not usuario_logado():
         return redirect("/")
     
-    from dados.revisao_store import listar_pendentes
+    from dados.revisao_store import listar_pendentes, listar_resolvidos
     itens = listar_pendentes()
+    historico = listar_resolvidos(limite=20)
     
     return render_template(
         "revisao.html",
         itens=itens,
+        historico=historico,
         total=len(itens),
         usuario=session.get('user', 'admin')
     )
