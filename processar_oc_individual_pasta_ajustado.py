@@ -144,6 +144,34 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
     except Exception:
         pass
 
+    # ── PRIORIDADE 0: PAULO OCTÁVIO / PO EMPREENDIMENTOS ──────────────────────
+    try:
+        import pdfplumber as _plumber
+        from extracao_oc.extrator_paulo_octavio import (
+            detectar_formato_paulo_octavio,
+            extrair_itens as _extrair_paulo_octavio,
+        )
+        _texto_po = ""
+        with _plumber.open(caminho_oc) as _pdf_po:
+            for _pg in _pdf_po.pages:
+                _texto_po += _pg.extract_text() or ""
+        if detectar_formato_paulo_octavio(_texto_po):
+            _itens_po = _extrair_paulo_octavio(caminho_oc)
+            if _itens_po:
+                print(f"[EXTRATOR] Formato: PAULO_OCTAVIO | Itens: {len(_itens_po)}")
+                df = pd.DataFrame(_itens_po)
+                if "descricao_reconstruida" in df.columns:
+                    df["descricao_oc"] = df["descricao_reconstruida"]
+                elif "descricao_oc" not in df.columns:
+                    df["descricao_oc"] = ""
+                if "quantidade" in df.columns and "quantidade_oc" not in df.columns:
+                    df["quantidade_oc"] = df["quantidade"]
+                elif "quantidade_oc" not in df.columns:
+                    df["quantidade_oc"] = 0.0
+                return df
+    except Exception as _e_po:
+        print(f"[PAULO_OCTAVIO] Erro na detecção/extração: {_e_po}")
+
     from extrator_oc import extrair_itens_oc
 
     resultado_extracao = extrair_itens_oc(caminho_oc, caminho_debug=caminho_debug)

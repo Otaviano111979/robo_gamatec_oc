@@ -620,6 +620,26 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
 
+    # ── PRIORIDADE MÁXIMA: código Krona já presente na OC ────────────────────
+    codigo_direto = str(item.get("codigo_krona_oc") or "").strip()
+    if codigo_direto:
+        cadastro = buscar_cadastro_krona_por_codigo(codigo_direto, base_krona)
+        if cadastro:
+            return {
+                "match_encontrado": True,
+                "codigo_krona": codigo_direto,
+                "descricao_krona": cadastro.get("descricao_krona", ""),
+                "descricao_krona_normalizada": cadastro.get("descricao_normalizada", ""),
+                "score_estrutura": 0,
+                "score_textual": 1.0,
+                "score_total": 1.0,
+                "tipo_match": "MATCH_CODIGO_DIRETO_OC",
+                "revisao_manual": False,
+                "motivo_match": "CODIGO_KRONA_PRESENTE_NA_OC",
+                "categoria_krona": cadastro.get("categoria_detectada"),
+                "eh_tubo_krona": cadastro.get("eh_tubo"),
+            }
+
     # ── CONSULTAR CORRECOES APRENDIDAS (com correspondência aproximada) ──
     try:
         import json
