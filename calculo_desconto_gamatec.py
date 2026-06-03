@@ -6,6 +6,7 @@ import pandas as pd
 
 PASTA_SAIDA = r"C:\robo_gamatec_oc\saida"
 CAMINHO_APROVADOS = os.path.join(PASTA_SAIDA, "itens_aprovados_automatico.csv")
+CAMINHO_REVISAO = os.path.join(PASTA_SAIDA, "itens_revisao_manual.csv")
 CAMINHO_DESCONTOS_GAMATEC = os.path.join(PASTA_SAIDA, "descontos_gamatec.csv")
 CAMINHO_DESCONTOS_GAMATEC_XLSX = os.path.join(PASTA_SAIDA, "descontos_gamatec.xlsx")
 
@@ -150,13 +151,35 @@ def estimar_preco_final(preco_sistema, desconto_percentual, preco_alvo=None):
 
 
 def preparar_descontos_gamatec():
-    if not os.path.exists(CAMINHO_APROVADOS):
-        raise FileNotFoundError(f"Arquivo não encontrado: {CAMINHO_APROVADOS}")
-
-    df = pd.read_csv(CAMINHO_APROVADOS, sep=";", encoding="utf-8-sig")
-
-    if df.empty:
-        raise ValueError("O arquivo itens_aprovados_automatico.csv está vazio.")
+    """
+    Carrega itens aprovados + itens para revisão e prepara dados para cálculo de desconto.
+    Nunca falha por arquivo vazio.
+    """
+    dfs_para_combinar = []
+    
+    # ─── Carrega itens aprovados ───
+    if os.path.exists(CAMINHO_APROVADOS):
+        df_aprovados = pd.read_csv(CAMINHO_APROVADOS, sep=";", encoding="utf-8-sig")
+        if not df_aprovados.empty:
+            dfs_para_combinar.append(df_aprovados)
+            print(f"Itens aprovados carregados: {len(df_aprovados)}")
+    
+    # ─── Carrega itens para revisão (sem match) ───
+    if os.path.exists(CAMINHO_REVISAO):
+        df_revisao = pd.read_csv(CAMINHO_REVISAO, sep=";", encoding="utf-8-sig")
+        if not df_revisao.empty:
+            dfs_para_combinar.append(df_revisao)
+            print(f"Itens para revisão carregados: {len(df_revisao)}")
+    
+    # ─── Combina ou retorna vazio ───
+    if not dfs_para_combinar:
+        print(f"\n[AVISO] Nenhum arquivo de itens encontrado.")
+        print(f"  Aprovados: {CAMINHO_APROVADOS}")
+        print(f"  Revisão:   {CAMINHO_REVISAO}")
+        df = pd.DataFrame()
+    else:
+        df = pd.concat(dfs_para_combinar, ignore_index=True)
+        print(f"\nTotal de itens para desconto: {len(df)}")
 
     col_codigo = localizar_coluna_codigo_krona(df)
     col_preco_alvo = localizar_coluna_preco_alvo(df)

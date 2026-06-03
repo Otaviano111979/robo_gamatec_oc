@@ -35,5 +35,29 @@
     "codigo_krona": "1237",
     "descricao_krona": "ELETROD PVC FLEX CORRUG REFORCADO 32MM 25 MT",
     "data": "2026-05-27"
+  },
+  {
+    "descricao_oc": "JOELHO PVC 45º SN DN 40mm Deverão ser enviados",
+    "codigo_krona": "611",
+    "descricao_krona": "JOELHO 45 ESGOTO SEC - DN 40",
+    "data": "2026-06-02"
+  },
+  {
+    "descricao_oc": "ANEL VEDAÇÃO P/ ESGOTO Ø75MM",
+    "codigo_krona": "672",
+    "descricao_krona": "ANEL DE VEDACAO P/ESG. DN 75",
+    "data": "2026-06-02"
+  },
+  {
+    "descricao_oc": "ANEL VEDAÇÃO P/ ESGOTO Ø50MM",
+    "codigo_krona": "671",
+    "descricao_krona": "ANEL DE VEDACAO P/ESG. DN 50",
+    "data": "2026-06-02"
+  },
+  {
+    "descricao_oc": "ANEL VEDAÇÃO P/ ESGOTO Ø100MM",
+    "codigo_krona": "673",
+    "descricao_krona": "ANEL DE VEDACAO P/ESG. DN 100",
+    "data": "2026-06-02"
   }
 ]

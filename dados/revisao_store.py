@@ -164,6 +164,22 @@ def resolver_item(item_id, codigo_correto, descricao_correta, usuario):
     conn.close()
 
 
+def descartar_item(item_id, usuario):
+    """Descarta item da fila de revisão sem gerar correção."""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        UPDATE itens_revisao
+        SET status='descartado',
+            corrigido_por=?,
+            resolvido_em=datetime('now')
+        WHERE id=?
+    """, (usuario, item_id))
+    conn.commit()
+    conn.close()
+
+
 def salvar_correcao_aprendizado(descricao_oc, codigo_krona, descricao_krona):
     """
     Salva correção em JSON para que o motor aprenda dessa resolução.
@@ -205,6 +221,22 @@ def salvar_correcao_aprendizado(descricao_oc, codigo_krona, descricao_krona):
         json.dump(correcoes, f, ensure_ascii=False, indent=2)
 
 
+def listar_resolvidos_por_arquivo(arquivo: str):
+    """Retorna todos os itens resolvidos para um arquivo específico."""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM itens_revisao
+        WHERE arquivo=? AND status='resolvido'
+        ORDER BY resolvido_em DESC
+    """, (arquivo,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
 def limpar_resolvidos():
     """Remove itens resolvidos mais antigos de 30 dias (limpeza)."""
     init_db()
@@ -235,7 +267,7 @@ def listar_resolvidos(limite=50):
     c = conn.cursor()
     c.execute("""
         SELECT * FROM itens_revisao
-        WHERE status='resolvido'
+        WHERE status IN ('resolvido', 'descartado')
         ORDER BY resolvido_em DESC
         LIMIT ?
     """, (limite,))

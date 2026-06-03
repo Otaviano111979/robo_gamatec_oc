@@ -2290,6 +2290,63 @@ def api_agente_email_config_post():
 # REVISAO DE ITENS
 # =================================================================
 
+def regenerar_planilha_com_correcoes(arquivo: str) -> bool:
+    """
+    Relê o resultado_processado.csv do arquivo, aplica correções já resolvidas
+    na revisão e regrava a planilha .xlsx/.csv com os códigos corrigidos.
+    Retorna True se conseguiu regenerar, False caso contrário.
+    """
+    try:
+        import pandas as pd
+        from dados.revisao_store import listar_resolvidos_por_arquivo
+        from processar_oc_individual_pasta_ajustado import gerar_planilha_enxuta_individual
+
+        nome_base = os.path.splitext(arquivo)[0]
+        pasta_oc = os.path.join(BASE_DIR, "saida", "ocs_individuais", nome_base)
+        caminho_resultado = os.path.join(pasta_oc, f"{nome_base}_resultado_processado.csv")
+        caminho_xlsx = os.path.join(pasta_oc, f"{nome_base}_planilha_digitacao_manual.xlsx")
+        caminho_csv  = os.path.join(pasta_oc, f"{nome_base}_planilha_digitacao_manual.csv")
+
+        if not os.path.exists(caminho_resultado):
+            print(f"[REVISAO] resultado_processado.csv não encontrado para {arquivo}")
+            return False
+
+        df = pd.read_csv(caminho_resultado, sep=";", encoding="utf-8-sig")
+
+        correcoes = listar_resolvidos_por_arquivo(arquivo)
+        aplicadas = 0
+        for corr in correcoes:
+            desc_oc      = str(corr.get("descricao_oc", "") or "").strip()
+            cod_correto  = str(corr.get("codigo_krona_correto", "") or "").strip()
+            desc_correta = str(corr.get("descricao_krona_correta", "") or "").strip()
+
+            if not cod_correto:
+                continue
+
+            # tenta casar pela coluna descricao_oc ou descricao_original
+            for col in ("descricao_oc", "descricao_original"):
+                if col not in df.columns:
+                    continue
+                mask = df[col].astype(str).str.strip() == desc_oc
+                if mask.any():
+                    df.loc[mask, "codigo_krona"]    = cod_correto
+                    df.loc[mask, "descricao_krona"] = desc_correta
+                    df.loc[mask, "match_encontrado"] = True
+                    df.loc[mask, "tipo_match"]      = "CORRECAO_MANUAL"
+                    df.loc[mask, "revisao_manual"]  = False
+                    aplicadas += int(mask.sum())
+                    break
+
+        df.to_csv(caminho_resultado, index=False, sep=";", encoding="utf-8-sig")
+        gerar_planilha_enxuta_individual(df, caminho_csv, caminho_xlsx)
+        print(f"[REVISAO] Planilha regenerada para {arquivo} — {aplicadas} correção(ões) aplicada(s).")
+        return True
+
+    except Exception as exc:
+        print(f"[REVISAO] Erro ao regenerar planilha para {arquivo}: {exc}")
+        return False
+
+
 @app.route("/revisao")
 def pagina_revisao():
     """Página de revisão humana de itens com score baixo."""
@@ -2343,10 +2400,14 @@ def api_revisao_resolver():
                 "mensagem": "ID do item e código Krona são obrigatórios."
             })
         
-        from dados.revisao_store import resolver_item, salvar_correcao_aprendizado
-        
+        from dados.revisao_store import resolver_item, salvar_correcao_aprendizado, obter_item_revisao
+
+        # obtém o arquivo antes de resolver (para poder regenerar depois)
+        item_atual = obter_item_revisao(item_id)
+        arquivo_da_oc = item_atual.get("arquivo", "") if item_atual else ""
+
         resolver_item(item_id, codigo, descricao, usuario)
-        
+
         # salva para aprendizado se houver descrição
         if descricao:
             salvar_correcao_aprendizado(
@@ -2354,8 +2415,17 @@ def api_revisao_resolver():
                 codigo,
                 descricao
             )
-        
-        return jsonify({"ok": True, "mensagem": "Item resolvido com sucesso."})
+
+        # regenera a planilha aplicando todas as correções acumuladas para este arquivo
+        planilha_ok = False
+        if arquivo_da_oc:
+            planilha_ok = regenerar_planilha_com_correcoes(arquivo_da_oc)
+
+        return jsonify({
+            "ok": True,
+            "mensagem": "Item resolvido com sucesso.",
+            "planilha_regenerada": planilha_ok,
+        })
     
     except Exception as e:
         return jsonify({
@@ -2429,6 +2499,23 @@ def api_revisao_reprocessar():
             return jsonify({"ok": False, "mensagem": "Arquivo nao encontrado em processados_oc."})
         shutil.copy2(origem, destino)
         return jsonify({"ok": True, "mensagem": f"{arquivo} movido para entrada_oc. Processe pelo dashboard."})
+    except Exception as e:
+        return jsonify({"ok": False, "mensagem": str(e)})
+
+
+@app.route("/api/revisao/descartar", methods=["POST"])
+def api_revisao_descartar():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    data = request.get_json(force=True)
+    item_id = data.get("id")
+    if not item_id:
+        return jsonify({"ok": False, "mensagem": "ID não informado."})
+    try:
+        from dados.revisao_store import descartar_item
+        usuario = session.get('user', 'admin')
+        descartar_item(item_id, usuario)
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "mensagem": str(e)})
 

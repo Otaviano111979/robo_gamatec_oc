@@ -229,17 +229,36 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
 
 
 def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho_xlsx: str) -> pd.DataFrame:
+    """
+    Gera planilha enxuta com TODOS os itens, marcando itens sem match com código vazio.
+    """
     registros = []
 
     for _, row in df.iterrows():
         item = row.to_dict()
+        
+        # Detecta se tem match ou não
+        match_encontrado = item.get("match_encontrado", False)
+        tipo_match = str(item.get("tipo_match", "")).strip().upper()
+        tem_codigo = item.get("codigo_krona") and str(item.get("codigo_krona")).strip()
 
-        descricao = (
-            item.get("descricao_krona")
-            or item.get("descricao_oc")
-            or item.get("descricao_reconstruida")
-            or ""
-        )
+        # ─── Para itens COM MATCH: preenche descricao e codigo ───
+        if match_encontrado and tem_codigo:
+            descricao = (
+                item.get("descricao_krona")
+                or item.get("descricao_oc")
+                or item.get("descricao_reconstruida")
+                or ""
+            )
+            codigo = normalizar_codigo(item.get("codigo_krona"))
+        # ─── Para itens SEM MATCH: deixa codigo vazio, mas preserva descricao da OC ───
+        else:
+            descricao = (
+                item.get("descricao_oc")
+                or item.get("descricao_reconstruida")
+                or ""
+            )
+            codigo = ""
 
         quantidade = item.get("quantidade_final")
         if quantidade is None or str(quantidade).strip() == "":
@@ -249,14 +268,41 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
 
         registros.append({
             "DESCRICAO": descricao,
-            "CODIGO": normalizar_codigo(item.get("codigo_krona")),
+            "CODIGO": codigo,
             "QUANTIDADE": quantidade,
+            "STATUS": "SEM_MATCH" if not codigo else "COM_MATCH",  # auxiliar para identificar visualmente
         })
 
-    df_saida = pd.DataFrame(registros, columns=["DESCRICAO", "CODIGO", "QUANTIDADE"])
-    df_saida.to_csv(caminho_csv, index=False, sep=";", encoding="utf-8-sig")
-    df_saida.to_excel(caminho_xlsx, index=False)
-    return df_saida
+    df_saida = pd.DataFrame(registros, columns=["DESCRICAO", "CODIGO", "QUANTIDADE", "STATUS"])
+    
+    # Salva sem a coluna STATUS (apenas DESCRICAO, CODIGO, QUANTIDADE)
+    df_saida_final = df_saida[["DESCRICAO", "CODIGO", "QUANTIDADE"]]
+    
+    df_saida_final.to_csv(caminho_csv, index=False, sep=";", encoding="utf-8-sig")
+    df_saida_final.to_excel(caminho_xlsx, index=False)
+
+    # destacar linhas SEM_MATCH em amarelo no XLSX
+    try:
+        from openpyxl import load_workbook
+        from openpyxl.styles import PatternFill
+        fill_amarelo = PatternFill(start_color="FFFF99", end_color="FFFF99", fill_type="solid")
+        wb = load_workbook(caminho_xlsx)
+        ws = wb.active
+        for i, status_val in enumerate(df_saida["STATUS"], start=2):
+            if status_val == "SEM_MATCH":
+                for cell in ws[i]:
+                    cell.fill = fill_amarelo
+        wb.save(caminho_xlsx)
+    except Exception as _e_xlsx:
+        print(f"  [PLANILHA] Aviso: destaque amarelo nao aplicado ({_e_xlsx})")
+
+    # Log informativo
+    sem_match_count = (df_saida["STATUS"] == "SEM_MATCH").sum()
+    com_match_count = (df_saida["STATUS"] == "COM_MATCH").sum()
+    if sem_match_count > 0:
+        print(f"  [PLANILHA] {com_match_count} item(ns) com match + {sem_match_count} item(ns) SEM MATCH")
+    
+    return df_saida_final
 
 
 

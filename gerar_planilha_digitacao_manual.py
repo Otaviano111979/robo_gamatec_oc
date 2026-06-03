@@ -9,6 +9,7 @@ except ImportError:
 
 PASTA_SAIDA = os.path.join(os.environ.get("GAMATEC_BASE_DIR", _BASE_DIR), "saida")
 CAMINHO_APROVADOS = os.path.join(PASTA_SAIDA, "itens_aprovados_automatico.csv")
+CAMINHO_REVISAO = os.path.join(PASTA_SAIDA, "itens_revisao_manual.csv")
 CAMINHO_DESCONTOS_GAMATEC = os.path.join(PASTA_SAIDA, "descontos_gamatec.csv")
 CAMINHO_PLANILHA_MANUAL_CSV = os.path.join(PASTA_SAIDA, "planilha_digitacao_manual.csv")
 CAMINHO_PLANILHA_MANUAL_XLSX = os.path.join(PASTA_SAIDA, "planilha_digitacao_manual.xlsx")
@@ -103,37 +104,79 @@ def resolver_desconto(item, mapa_descontos):
 
 
 def gerar_planilha_digitacao_manual():
-    if not os.path.exists(CAMINHO_APROVADOS):
-        raise FileNotFoundError(f"Arquivo não encontrado: {CAMINHO_APROVADOS}")
-
-    df = pd.read_csv(CAMINHO_APROVADOS, sep=";", encoding="utf-8-sig")
-
-    if df.empty:
-        raise ValueError("O arquivo itens_aprovados_automatico.csv está vazio.")
-
+    """
+    Gera planilha de digitação manual combinando:
+    1. Itens aprovados automaticamente (com match encontrado)
+    2. Itens para revisão manual (sem match) — deixa código/descrição vazios
+    
+    Nunca falha por arquivo vazio — sempre gera saída mesmo sem matches.
+    """
     os.makedirs(PASTA_SAIDA, exist_ok=True)
+    
+    # ─── Carrega itens aprovados ───
+    dfs_para_combinar = []
+    
+    if os.path.exists(CAMINHO_APROVADOS):
+        df_aprovados = pd.read_csv(CAMINHO_APROVADOS, sep=";", encoding="utf-8-sig")
+        if not df_aprovados.empty:
+            df_aprovados["_tipo_item"] = "APROVADO"
+            dfs_para_combinar.append(df_aprovados)
+            print(f"Itens aprovados carregados: {len(df_aprovados)}")
+    
+    # ─── Carrega itens para revisão (sem match) ───
+    if os.path.exists(CAMINHO_REVISAO):
+        df_revisao = pd.read_csv(CAMINHO_REVISAO, sep=";", encoding="utf-8-sig")
+        if not df_revisao.empty:
+            df_revisao["_tipo_item"] = "SEM_MATCH"
+            dfs_para_combinar.append(df_revisao)
+            print(f"Itens para revisão carregados: {len(df_revisao)}")
+    
+    # ─── Combina os DataFrames ───
+    if not dfs_para_combinar:
+        print("\n[AVISO] Nenhum arquivo de itens encontrado (aprovados ou revisão).")
+        print(f"  Aprovados: {CAMINHO_APROVADOS}")
+        print(f"  Revisão:   {CAMINHO_REVISAO}")
+        # Retorna planilha vazia em vez de falhar
+        df = pd.DataFrame(columns=["DESCRICAO", "CODIGO", "QUANTIDADE", "DESCONTO"])
+    else:
+        df = pd.concat(dfs_para_combinar, ignore_index=True)
+        print(f"\nTotal de itens para planilha: {len(df)}")
+    
     mapa_descontos = carregar_mapa_descontos()
     registros = []
 
     for _, row in df.iterrows():
         item = row.to_dict()
+        tipo_item = item.get("_tipo_item", "APROVADO")
 
-        descricao = (
-            item.get("descricao_krona")
-            or item.get("descricao_oc")
-            or item.get("descricao_reconstruida")
-            or ""
-        )
+        # ─── Para APROVADOS: tenta preencher descrição e código ───
+        if tipo_item == "APROVADO":
+            descricao = (
+                item.get("descricao_krona")
+                or item.get("descricao_oc")
+                or item.get("descricao_reconstruida")
+                or ""
+            )
+            codigo = normalizar_codigo(item.get("codigo_krona"))
+        # ─── Para SEM_MATCH: deixa vazio (o usuário digitará) ───
+        else:
+            descricao = ""
+            codigo = ""
 
         quantidade = item.get("quantidade_final")
         if quantidade is None or str(quantidade).strip() == "":
             quantidade = item.get("quantidade_convertida")
 
+        # ─── Resolve desconto (só para aprovados) ───
+        desconto = None
+        if tipo_item == "APROVADO":
+            desconto = resolver_desconto(item, mapa_descontos)
+
         registros.append({
             "DESCRICAO": descricao,
-            "CODIGO": normalizar_codigo(item.get("codigo_krona")),
+            "CODIGO": codigo,
             "QUANTIDADE": quantidade,
-            "DESCONTO": resolver_desconto(item, mapa_descontos),
+            "DESCONTO": desconto,
         })
 
     df_saida = pd.DataFrame(registros, columns=[
@@ -159,6 +202,9 @@ def gerar_planilha_digitacao_manual():
     print(f"Arquivo CSV: {CAMINHO_PLANILHA_MANUAL_CSV}")
     print(f"Arquivo XLSX: {CAMINHO_PLANILHA_MANUAL_XLSX}")
     print(f"Total de itens: {len(df_saida)}")
+    itens_com_codigo = int(df_saida['CODIGO'].notna().sum() - int((df_saida['CODIGO'] == "").sum()))
+    print(f"Itens com código preenchido: {itens_com_codigo}")
+    print(f"Itens sem match (para revisão manual): {int((df_saida['CODIGO'] == "").sum())}")
     print(f"Itens com desconto preenchido: {int(df_saida['DESCONTO'].notna().sum())}")
 
     return df_saida
