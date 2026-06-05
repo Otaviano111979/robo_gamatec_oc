@@ -13,7 +13,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "revisoes.db")
 
 
 def init_db():
-    """Inicializa a tabela de revisões se não existir."""
+    """Inicializa a tabela de revisões e aplica migrações necessárias."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -31,19 +31,28 @@ def init_db():
             descricao_krona_correta TEXT,
             corrigido_por TEXT,
             criado_em TEXT DEFAULT (datetime('now')),
-            resolvido_em TEXT
+            resolvido_em TEXT,
+            confianca_ia TEXT,
+            justificativa_ia TEXT
         )
     """)
+    # migração: adiciona colunas IA em bases existentes sem elas
+    colunas_existentes = {row[1] for row in c.execute("PRAGMA table_info(itens_revisao)")}
+    if "confianca_ia" not in colunas_existentes:
+        c.execute("ALTER TABLE itens_revisao ADD COLUMN confianca_ia TEXT")
+    if "justificativa_ia" not in colunas_existentes:
+        c.execute("ALTER TABLE itens_revisao ADD COLUMN justificativa_ia TEXT")
     conn.commit()
     conn.close()
 
 
 def salvar_item_revisao(arquivo, num_item, descricao_oc,
                         codigo_sugerido, descricao_sugerida,
-                        score, tipo_match):
+                        score, tipo_match,
+                        confianca_ia=None, justificativa_ia=None):
     """
     Salva um item para revisão, evitando duplicatas.
-    
+
     Args:
         arquivo: nome do arquivo OC
         num_item: número do item
@@ -51,30 +60,34 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         codigo_sugerido: código Krona sugerido
         descricao_sugerida: descrição Krona sugerida
         score: score total do match
-        tipo_match: tipo de match (EXATO, SEMANTICO, SEM_MATCH, etc)
+        tipo_match: tipo de match (EXATO, SEMANTICO, SEM_MATCH, MATCH_IA, etc)
+        confianca_ia: nível de confiança da IA ("alta", "media", "baixa") ou None
+        justificativa_ia: justificativa textual retornada pela IA ou None
     """
     init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    
+
     # evita duplicatas do mesmo arquivo+item com status pendente
     c.execute("""
         SELECT id FROM itens_revisao
         WHERE arquivo=? AND descricao_oc=? AND status='pendente'
     """, (arquivo, descricao_oc))
-    
+
     if c.fetchone():
         conn.close()
         return
-    
+
     c.execute("""
         INSERT INTO itens_revisao
         (arquivo, num_item, descricao_oc, codigo_krona_sugerido,
-         descricao_krona_sugerida, score_total, tipo_match)
-        VALUES (?,?,?,?,?,?,?)
+         descricao_krona_sugerida, score_total, tipo_match,
+         confianca_ia, justificativa_ia)
+        VALUES (?,?,?,?,?,?,?,?,?)
     """, (arquivo, num_item, descricao_oc, codigo_sugerido,
-          descricao_sugerida, score, tipo_match))
-    
+          descricao_sugerida, score, tipo_match,
+          confianca_ia or None, justificativa_ia or None))
+
     conn.commit()
     conn.close()
 

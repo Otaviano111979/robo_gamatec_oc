@@ -539,7 +539,9 @@ def processar_oc(caminho_oc: str) -> dict:
                         codigo_sugerido=str(row.get('codigo_krona', '') or ''),
                         descricao_sugerida=str(row.get('descricao_krona', '') or ''),
                         score=score,
-                        tipo_match=tipo
+                        tipo_match=tipo,
+                        confianca_ia=str(row.get('confianca_ia') or '') or None,
+                        justificativa_ia=str(row.get('justificativa_ia') or '') or None,
                     )
         print(f"[REVISAO] Itens registrados para revisao se necessario.")
     except Exception as _rev_e:

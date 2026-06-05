@@ -813,9 +813,14 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
             sugestao_ia = ia_sugerir_match(descricao_busca, candidatos_ia)
 
             if sugestao_ia:
-                cod_ia   = sugestao_ia["codigo_krona"]
-                cadastro = buscar_cadastro_krona_por_codigo(cod_ia, base_krona)
-                if cadastro:
+                cod_ia    = sugestao_ia.get("codigo_krona")
+                confianca = sugestao_ia.get("confianca", "media")
+                cadastro  = buscar_cadastro_krona_por_codigo(cod_ia, base_krona) if cod_ia else None
+
+                # confiança "nenhuma" → não há sugestão válida, cai no SEM_MATCH
+                if confianca == "nenhuma" or not cadastro:
+                    pass  # continua para o bloco SEM_MATCH abaixo
+                else:
                     return {
                         "match_encontrado": True,
                         "codigo_krona": cadastro.get("codigo_krona"),
@@ -829,8 +834,10 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                         "score_textual": score_melhor,
                         "score_total": score_melhor,
                         "tipo_match": "MATCH_IA",
-                        "revisao_manual": True,  # sempre revisar match por IA
+                        "revisao_manual": True,  # operador SEMPRE confirma
                         "motivo_match": sugestao_ia.get("justificativa", "MATCH_IA"),
+                        "confianca_ia": confianca,
+                        "justificativa_ia": sugestao_ia.get("justificativa", ""),
                         "categoria_krona": cadastro.get("categoria_detectada"),
                         "eh_tubo_krona": cadastro.get("eh_tubo"),
                         "diametro_krona_mm": obter_diametro_krona(cadastro),

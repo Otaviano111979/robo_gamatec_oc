@@ -161,19 +161,27 @@ def sugerir_match(descricao_oc, candidatos_krona):
     """
     Tenta sugerir um match via Claude API para itens que o fuzzy não resolveu.
 
+    Delega para matcher_ia.chamar_anthropic() que retorna resposta estruturada
+    com confiança, código, descrição e justificativa.
+
     Parâmetros:
         descricao_oc      — descrição original do item da OC
         candidatos_krona  — lista de dicts com codigo_krona e descricao_krona
 
     Retorna:
-        dict com {codigo_krona, justificativa, tipo_match} ou None se falhar
+        dict com {confianca, codigo_krona, descricao_krona, justificativa} ou None
     """
+    try:
+        from matcher_ia import chamar_anthropic
+        return chamar_anthropic(descricao_oc, candidatos_krona)
+    except ImportError:
+        pass
+
+    # fallback legado: sem matcher_ia disponível
     if not descricao_oc or not candidatos_krona:
         return None
 
     chave = _carregar_chave()
-
-    # sem chave — modo simulado, não quebra o fluxo
     if not chave:
         print(f"[IA] Chave não configurada — item '{descricao_oc[:40]}' vai para revisão manual")
         return None
@@ -185,20 +193,19 @@ def sugerir_match(descricao_oc, candidatos_krona):
         if not resposta or resposta.upper() == "NENHUM":
             return None
 
-        # extrair código da resposta (só números)
         codigo = re.sub(r"[^\d]", "", resposta).lstrip("0") or resposta.strip()
 
-        # validar se o código existe nos candidatos
         codigos_validos = {str(c["codigo_krona"]) for c in candidatos_krona}
         if codigo not in codigos_validos:
             print(f"[IA] Código {codigo} retornado não está nos candidatos — ignorando")
             return None
 
-        print(f"[IA] Match sugerido: '{descricao_oc[:40]}' → {codigo}")
+        print(f"[IA] Match sugerido (legado): '{descricao_oc[:40]}' → {codigo}")
         return {
-            "codigo_krona":  codigo,
-            "justificativa": f"Claude API ({MODELO_PADRAO})",
-            "tipo_match":    "MATCH_IA",
+            "confianca":       "media",
+            "codigo_krona":    codigo,
+            "descricao_krona": None,
+            "justificativa":   f"Claude API ({MODELO_PADRAO})",
         }
 
     except urllib.error.URLError as e:

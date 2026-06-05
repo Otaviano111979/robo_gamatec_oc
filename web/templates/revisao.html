@@ -130,6 +130,44 @@
     .score-medio { color: var(--vt-amber); font-weight: 600; }
     .score-baixo { color: var(--vt-red);   font-weight: 600; }
 
+    /* ── BADGE IA ── */
+    .badge-ia {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+    .badge-ia-alta {
+      background: var(--vt-green-bg);
+      color: var(--vt-green);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .badge-ia-media {
+      background: var(--vt-amber-bg);
+      color: var(--vt-amber);
+      border: 1px solid rgba(234, 179, 8, 0.25);
+    }
+    .badge-ia-baixa {
+      background: var(--vt-overlay);
+      color: var(--vt-muted);
+      border: 1px solid var(--vt-border);
+    }
+    .badge-ia-justificativa {
+      font-size: 9px;
+      color: var(--vt-hint);
+      margin-top: 3px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-style: italic;
+    }
+
     .revisao-acoes {
       display: flex;
       gap: 8px;
@@ -475,6 +513,20 @@
                 <div class="revisao-descr-krona" title="{{ item.descricao_krona_sugerida or '' }}">
                   {{ item.descricao_krona_sugerida or '—' }}
                 </div>
+                {% if item.tipo_match == 'MATCH_IA' %}
+                  {% set conf = item.confianca_ia or 'baixa' %}
+                  <div class="badge-ia badge-ia-{{ conf }}">
+                    🤖
+                    {% if conf == 'alta' %}ALTA CONFIANÇA
+                    {% elif conf == 'media' %}BAIXA CONFIANÇA
+                    {% else %}SEM CONFIANÇA FORTE{% endif %}
+                  </div>
+                  {% if item.justificativa_ia %}
+                  <div class="badge-ia-justificativa" title="{{ item.justificativa_ia }}">
+                    {{ item.justificativa_ia }}
+                  </div>
+                  {% endif %}
+                {% endif %}
               </div>
             </td>
             <td>

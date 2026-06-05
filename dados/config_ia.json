@@ -1,0 +1,7 @@
+{
+  "ia_ativa": true,
+  "modelo": "claude-sonnet-4-20250514",
+  "max_chamadas_por_oc": 10,
+  "max_tokens": 500,
+  "salvar_aprendizado_automatico": false
+}
