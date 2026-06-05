@@ -446,6 +446,18 @@ def processar_oc(caminho_oc: str) -> dict:
 
     print("\n[1/4] EXTRAINDO ITENS DA OC...")
     df_extraido = extrair_individual(caminho_oc, caminhos["debug_extracao"])
+
+    # auto-detector: ativa se extrator retornou < 3 itens (incluindo vazio)
+    if len(df_extraido) < 3:
+        try:
+            from extracao_oc.auto_detector import auto_detectar
+            df_auto = auto_detectar(caminho_oc)
+            if df_auto is not None and len(df_auto) > len(df_extraido):
+                df_extraido = df_auto
+                print(f"[AUTO-DETECTOR] {len(df_auto)} itens detectados pela IA")
+        except Exception as _ad_e:
+            print(f"[AUTO-DETECTOR] Falha: {_ad_e} — usando extração anterior")
+
     if df_extraido.empty:
         raise ValueError("Nenhum item encontrado na extração desta OC.")
     print(f"Itens extraídos: {len(df_extraido)}")
