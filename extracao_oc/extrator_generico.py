@@ -98,7 +98,7 @@ def _extrair_de_texto(texto: str) -> list:
         if len(linha) < 10:
             continue
         m = re.match(
-            r"^\s*(\d{1,3})\s+(\w+)\s+(.{10,}?)\s+(PC|UN|BR|KG|MT|M|CX)\s+([\d.,]+)",
+            r"^\s*(\d{1,3})\s+(\w+)\s+(.{10,}?)\s+(PC|UN|UND|UNID|BR|KG|MT|M2?|CX|RL|PCT|GL|LT|FD)\s+([\d.,]+)",
             linha, re.IGNORECASE
         )
         if m:
