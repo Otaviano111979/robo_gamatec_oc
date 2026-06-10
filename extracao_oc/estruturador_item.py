@@ -4,15 +4,16 @@ from typing import List, Optional
 from extracao_oc.modelos import BlocoItem, ItemExtraido, LinhaDocumento
 
 
-# Formato MRV:  idx codigo NCM qtd un frete ipi unit total
+# Formato MRV:  idx codigo NCM qtd un [frete] ipi unit total
+# O campo frete pode estar ausente (PDF imprime frete+IPI combinados como "0,00%")
 PADRAO_INICIO_ITEM = re.compile(
     r"^(?P<idx>\d{3,6})\s+"
     r"(?P<codigo>\d+)\s+"
     r"(?P<ncm>\d{4}\.\d{2}\.\d{2})\s+"
     r"(?P<quantidade>\d[\d.,]*)\s+"
     r"(?P<unidade>[A-Z]{1,5})\s+"
-    r"(?P<frete>\d[\d.,]*)\s+"
-    r"(?P<ipi>\d[\d.,%]*)\s+"
+    r"(?:(?P<frete>\d[\d.,]*)\s+)??"
+    r"(?P<ipi>[\d.,]+%?)\s+"
     r"(?P<valor_unitario>\d[\d.,]*)\s+"
     r"(?P<valor_total>\d[\d.,]*)$",
     re.IGNORECASE

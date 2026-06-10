@@ -14,7 +14,11 @@ def match_por_codigo_mrv(
     Retorna estrutura padronizada de match OU None.
     """
 
-    codigo_oc = item_oc.get("codigo_interno_oc")
+    codigo_oc = (
+        item_oc.get("codigo_interno_oc")
+        or item_oc.get("codigo_oc")
+        or item_oc.get("codigo_cliente")
+    )
 
     if not codigo_oc:
         return None

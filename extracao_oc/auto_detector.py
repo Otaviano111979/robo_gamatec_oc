@@ -281,7 +281,7 @@ def _itens_para_dataframe(itens_ia: list) -> pd.DataFrame:
         
         registros.append({
             "num_item": item.get("idx_item", ""),
-            "codigo_cliente": item.get("codigo_interno_oc", ""),
+            "codigo_interno_oc": item.get("codigo_interno_oc", ""),
             "descricao_oc": item.get("descricao_original", ""),
             "unidade": item.get("unidade_original", "PC"),
             "quantidade": item.get("quantidade"),

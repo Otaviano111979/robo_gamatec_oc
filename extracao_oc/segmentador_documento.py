@@ -6,12 +6,14 @@ from extracao_oc.modelos import LinhaDocumento
 
 # ================================================================
 # FORMATO MRV
-# Exemplo:
-#   10 1101027 4016.99.90 1300 UN 0,00 0,00 0,58 754,00
+# Exemplo clássico:  10 1101027 4016.99.90 1300 UN 0,00 0,00 0,58 754,00
 #   (idx) (codigo) (NCM) (qtd) (un) (frete) (ipi) (unit) (total)
+# Exemplo novo PDF:  00010 1101571 3917.40.90 15 UN 0,00% 8,440 126,60
+#   (idx) (codigo) (NCM) (qtd) (un) (frete+ipi combinados "0,00%") (unit) (total)
+# O frete pode estar ausente — frete e IPI aparecem combinados como "0,00%"
 # ================================================================
 PADRAO_INICIO_ITEM_MRV = re.compile(
-    r"^\d{1,6}\s+\d+\s+\d{4}\.\d{2}\.\d{2}\s+\d[\d.,]*\s+[A-Z]{1,5}\s+[\d.,]+\s+[\d.,%]+\s+[\d.,]+\s+[\d.,]+$",
+    r"^\d{1,6}\s+\d+\s+\d{4}\.\d{2}\.\d{2}\s+\d[\d.,]*\s+[A-Z]{1,5}\s+(?:[\d.,]+\s+)?[\d.,%]+\s+[\d.,]+\s+[\d.,]+$",
     re.IGNORECASE
 )
 
