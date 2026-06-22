@@ -532,6 +532,12 @@ function abrirModalProcessamento(nomeArquivo, isCotacao) {
     if (el) el.textContent = "0";
   });
 
+  // resetar estado de animação ao abrir novo processamento
+  window._vprocTotalItens = 0;
+  Object.keys(_vprocTimers).forEach(function(id) {
+    if (_vprocTimers[id]) { clearInterval(_vprocTimers[id]); _vprocTimers[id] = null; }
+  });
+
   if (dot) {
     dot.style.background = "var(--primary)";
     dot.style.boxShadow = "0 0 6px var(--primary)";
@@ -587,41 +593,79 @@ function mapearEtapaProcessamento(data) {
     return { etapa: "extracao", progresso: 5, mensagem: "Iniciando monitoramento…" };
   }
 
+  // mensagem_progresso é 1 frase curta do backend; resumo pode ter 30+ linhas de log
+  var _msg = data.mensagem_progresso;
+
   if (texto.includes("erro") || texto.includes("falha")) {
-    return { etapa: "erro", progresso: 100, mensagem: data.resumo || "Processamento finalizado com alerta." };
+    return { etapa: "erro", progresso: 100, mensagem: _msg || "Processamento finalizado com alerta." };
   }
 
   if (data.processando !== true) {
-    return { etapa: "concluido", progresso: 100, mensagem: data.resumo || "Processamento concluído!" };
+    return { etapa: "concluido", progresso: 100, mensagem: _msg || "Processamento concluído!" };
   }
 
   if (texto.includes("planilha") || texto.includes("excel") || texto.includes("xlsx") || texto.includes("gerando")) {
-    return { etapa: "planilha", progresso: 88, mensagem: data.resumo || "Gerando planilha Excel…" };
+    return { etapa: "planilha", progresso: 88, mensagem: _msg || "Gerando planilha Excel…" };
   }
 
   if (texto.includes("match") || texto.includes("comparando") || texto.includes("compat") || texto.includes("descri") || texto.includes("base de dados")) {
-    return { etapa: "match", progresso: 62, mensagem: data.resumo || "Comparando itens com a base de dados…" };
+    return { etapa: "match", progresso: 62, mensagem: _msg || "Comparando itens com a base de dados…" };
   }
 
-  return { etapa: "extracao", progresso: 24, mensagem: data.resumo || "Extraindo itens do documento…" };
+  return { etapa: "extracao", progresso: 24, mensagem: _msg || "Extraindo itens do documento…" };
 }
 
-function atualizarContadoresModal(metricas) {
-  var totalEl = document.getElementById("vproc-total");
-  var matchEl = document.getElementById("vproc-matches");
-  var pendEl = document.getElementById("vproc-pendentes");
+// ── contadores animados ───────────────────────────────────────
+var _vprocTimers = {};
 
-  if (totalEl && metricas.itens != null) totalEl.textContent = String(metricas.itens);
-  if (matchEl && metricas.matches != null) matchEl.textContent = String(metricas.matches);
-  if (pendEl && metricas.pendentes != null) pendEl.textContent = String(metricas.pendentes);
+function animarContador(elementoId, valorAlvo, duracao) {
+  var el = document.getElementById(elementoId);
+  if (!el) return;
+  // cancela animação anterior do mesmo elemento
+  if (_vprocTimers[elementoId]) {
+    clearInterval(_vprocTimers[elementoId]);
+    _vprocTimers[elementoId] = null;
+  }
+  var inicio = parseInt(el.textContent) || 0;
+  if (inicio === valorAlvo) return;
+  var diff = valorAlvo - inicio;
+  var passos = Math.max(10, Math.abs(diff));
+  var intervalo = Math.max(16, Math.round(duracao / passos));
+  var atual = inicio;
+  _vprocTimers[elementoId] = setInterval(function() {
+    atual += diff > 0 ? 1 : -1;
+    el.textContent = String(atual);
+    if (atual === valorAlvo) {
+      clearInterval(_vprocTimers[elementoId]);
+      _vprocTimers[elementoId] = null;
+    }
+  }, intervalo);
+}
+
+function atualizarContadoresModal(metricas, progresso) {
+  if (metricas.itens != null && metricas.itens > 0) {
+    // valores reais do backend: animar suavemente para eles
+    window._vprocTotalItens = metricas.itens;
+    animarContador('vproc-total',     metricas.itens,                                    600);
+    animarContador('vproc-matches',   metricas.matches   != null ? metricas.matches   : 0, 800);
+    animarContador('vproc-pendentes', metricas.pendentes != null ? metricas.pendentes : 0, 1000);
+  }
 }
 
 function atualizarModalProcessamentoComData(data) {
   var estado = mapearEtapaProcessamento(data);
-  var metricas = extrairMetricasResumo(data && data.resumo);
+
+  // prefere campos estruturados do backend; regex no resumo como fallback
+  var _parsed = extrairMetricasResumo(data && data.resumo);
+  var metricas = {
+    itens:     (data && data.itens_lidos         != null) ? data.itens_lidos         : _parsed.itens,
+    matches:   (data && data.matches_encontrados  != null) ? data.matches_encontrados  : _parsed.matches,
+    pendentes: (data && data.pendentes            != null) ? data.pendentes            : _parsed.pendentes
+  };
+
   var dot = document.getElementById("vproc-dot");
 
-  atualizarContadoresModal(metricas);
+  atualizarContadoresModal(metricas, estado.progresso);
 
   if (estado.etapa === "erro") {
     vprocSetEtapa("extracao", "done");
