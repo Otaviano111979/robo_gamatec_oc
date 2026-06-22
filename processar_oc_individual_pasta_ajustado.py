@@ -266,14 +266,27 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
         if quantidade is None or str(quantidade).strip() == "":
             quantidade = item.get("quantidade_oc")
 
+        # detecta preço não confirmado: match via MRV/CODIGO mas sem valor unitário
+        if match_encontrado and tem_codigo:
+            valor_unit = item.get("valor_unitario") or item.get("preco_unit")
+            sem_preco = (
+                valor_unit is None or
+                str(valor_unit).strip() in ('', '0', '0.0', 'nan')
+            )
+            via_mrv = 'MRV' in tipo_match or 'CODIGO' in tipo_match
+            preco_nao_confirmado = via_mrv and sem_preco
+        else:
+            preco_nao_confirmado = False
+
         registros.append({
             "DESCRICAO": descricao,
             "CODIGO": codigo,
             "QUANTIDADE": quantidade,
             "STATUS": "SEM_MATCH" if not codigo else "COM_MATCH",  # auxiliar para identificar visualmente
+            "PRECO_NAO_CONFIRMADO": preco_nao_confirmado,
         })
 
-    df_saida = pd.DataFrame(registros, columns=["DESCRICAO", "CODIGO", "QUANTIDADE", "STATUS"])
+    df_saida = pd.DataFrame(registros, columns=["DESCRICAO", "CODIGO", "QUANTIDADE", "STATUS", "PRECO_NAO_CONFIRMADO"])
     
     # Salva sem a coluna STATUS (apenas DESCRICAO, CODIGO, QUANTIDADE)
     df_saida_final = df_saida[["DESCRICAO", "CODIGO", "QUANTIDADE"]]
@@ -295,6 +308,30 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
         wb.save(caminho_xlsx)
     except Exception as _e_xlsx:
         print(f"  [PLANILHA] Aviso: destaque amarelo nao aplicado ({_e_xlsx})")
+
+    # ── DESTAQUE LARANJA para precos nao confirmados ──
+    try:
+        from openpyxl.styles import PatternFill, Font
+        fill_laranja = PatternFill(start_color="FFB347", end_color="FFB347", fill_type="solid")
+        font_bold = Font(bold=True)
+        wb2 = load_workbook(caminho_xlsx)
+        ws2 = wb2.active
+        for i, (status_val, sem_preco_val) in enumerate(
+            zip(df_saida["STATUS"], df_saida["PRECO_NAO_CONFIRMADO"]), start=2
+        ):
+            if status_val != "SEM_MATCH" and sem_preco_val:
+                for cell in ws2[i]:
+                    cell.fill = fill_laranja
+                # col 1 = DESCRICAO: anexa aviso visual (xlsx apenas, CSV já salvo)
+                desc_cell = ws2.cell(row=i, column=1)
+                desc_cell.value = str(desc_cell.value or '') + "  ⚠️ Verificar preço"
+                desc_cell.font = font_bold
+        wb2.save(caminho_xlsx)
+        laranja_count = df_saida[(df_saida["STATUS"] != "SEM_MATCH") & df_saida["PRECO_NAO_CONFIRMADO"]].shape[0]
+        if laranja_count > 0:
+            print(f"  [PLANILHA] {laranja_count} item(ns) com destaque laranja (preco nao confirmado)")
+    except Exception as _e_laranja:
+        print(f"  [PLANILHA] Aviso: destaque laranja nao aplicado ({_e_laranja})")
 
     # Log informativo
     sem_match_count = (df_saida["STATUS"] == "SEM_MATCH").sum()
