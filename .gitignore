@@ -85,3 +85,8 @@ dados/crm.db
 dados/faiss_krona*
 *.pyc
 *.bak_*
+
+# =========================
+# ARQUIVOS ARQUIVADOS (código morto/temporário)
+# =========================
+_arquivado/
