@@ -5,6 +5,7 @@
 dados/usuarios.json
 dados/clientes.json
 dados/ocs_removidas_dashboard.json
+dados/config_ia.json
 
 # =========================
 # DADOS DE CLIENTES — nunca versionar
