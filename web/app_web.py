@@ -61,8 +61,10 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 # limite maximo de upload: 20MB (protege contra arquivos gigantes)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
+BASE_DIR_WEB = os.path.join(BASE_DIR, "web")
 PASTA_ENTRADA = os.path.join(BASE_DIR, "entrada_oc")
-PASTA_LOGS = os.path.join(BASE_DIR, "web", "logs")
+PASTA_LOGS = os.path.join(BASE_DIR_WEB, "logs")
+PASTA_TMP_SESSION = os.path.join(BASE_DIR_WEB, "tmp_session")
 PASTA_PROCESSADOS = os.path.join(BASE_DIR, "processados_oc")
 PASTA_SAIDA_OCS = os.path.join(BASE_DIR, "saida", "ocs_individuais")
 PASTA_DADOS = os.path.join(BASE_DIR, "dados")
@@ -130,6 +132,25 @@ def verificar_estado_ao_iniciar():
 
     except Exception as e:
         print(f"[INIT] Aviso: falha na verificacao de estado inicial: {e}")
+
+
+def limpar_arquivos_antigos():
+    """Remove logs e sessoes com mais de 30 dias. Roda ao iniciar o servidor."""
+    limite = time.time() - (30 * 24 * 3600)
+    for pasta in [PASTA_LOGS, PASTA_TMP_SESSION]:
+        if not os.path.isdir(pasta):
+            continue
+        removidos = 0
+        for nome in os.listdir(pasta):
+            caminho = os.path.join(pasta, nome)
+            try:
+                if os.path.isfile(caminho) and os.path.getmtime(caminho) < limite:
+                    os.remove(caminho)
+                    removidos += 1
+            except Exception:
+                pass
+        if removidos:
+            print(f"[LIMPEZA] {removidos} arquivo(s) antigos removidos de {os.path.basename(pasta)}/")
 
 # =========================
 # PROTEÇÃO FORÇA BRUTA
@@ -2534,6 +2555,7 @@ def logout():
 # =========================
 if __name__ == "__main__":
     verificar_estado_ao_iniciar()
+    limpar_arquivos_antigos()
 
     # inicia agente de email automaticamente se token existir
     token_path = os.path.join(BASE_DIR, "agente_email", "token.pickle")
