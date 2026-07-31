@@ -26,6 +26,9 @@ import pdfplumber
 from config import BASE_DIR
 
 _CAMINHO_CONFIG = os.path.join(BASE_DIR, "dados", "config_ia.json")
+# config_ia.json = só segredo (chave API, ignorado no git).
+# config_matching.json = só comportamento (flags versionadas, sem segredo).
+_CAMINHO_CONFIG_MATCHING = os.path.join(BASE_DIR, "dados", "config_matching.json")
 _CAMINHO_FORMATOS = os.path.join(BASE_DIR, "dados", "formatos_aprendidos.json")
 _TIMEOUT_SEGUNDOS = 30
 _MODELO_PADRAO = "claude-sonnet-4-20250514"
@@ -41,6 +44,17 @@ def _carregar_config():
     if os.path.exists(_CAMINHO_CONFIG):
         try:
             with open(_CAMINHO_CONFIG, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _carregar_config_matching():
+    """Flags de comportamento versionadas (sem segredo) — separado de config_ia.json."""
+    if os.path.exists(_CAMINHO_CONFIG_MATCHING):
+        try:
+            with open(_CAMINHO_CONFIG_MATCHING, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -71,6 +85,31 @@ def _salvar_formatos_aprendidos(formatos):
     os.makedirs(os.path.dirname(_CAMINHO_FORMATOS), exist_ok=True)
     with open(_CAMINHO_FORMATOS, "w", encoding="utf-8") as f:
         json.dump(formatos, f, indent=2, ensure_ascii=False)
+
+
+def _identificar_formato_conhecido(texto_pdf: str, formatos_aprendidos: list) -> dict:
+    """
+    Verifica se o texto do PDF atual corresponde a um formato já aprendido
+    anteriormente, comparando os "identificadores" salvos (cliente/nome do
+    formato) contra o texto do PDF por substring (case-insensitive).
+
+    Não tenta reconstruir o parser posicional — só decide se o formato já é
+    conhecido, para permitir logar/pular a chamada de IA (Parte 2a).
+    """
+    if not texto_pdf or not formatos_aprendidos:
+        return None
+
+    texto_upper = texto_pdf.upper()
+
+    for fmt in formatos_aprendidos:
+        identificadores = fmt.get("identificadores") or []
+        for ident in identificadores:
+            ident = str(ident or "").strip()
+            # identificadores muito curtos geram falso positivo facilmente
+            if len(ident) >= 4 and ident.upper() in texto_upper:
+                return fmt
+
+    return None
 
 
 # ============================================================
@@ -336,7 +375,27 @@ def auto_detectar(caminho_oc: str) -> pd.DataFrame:
         if not texto_pdf or not linhas:
             print("[AUTO-DETECTOR] Não foi possível extrair texto do PDF")
             return None
-        
+
+        # ── PARTE 2a: reuso de formato já aprendido (log ou skip conforme flag) ──
+        # Aditivo e isolado — qualquer falha aqui cai no fluxo normal (chama a IA).
+        try:
+            formatos_aprendidos = _carregar_formatos_aprendidos()
+            formato_conhecido = _identificar_formato_conhecido(texto_pdf, formatos_aprendidos)
+            if formato_conhecido:
+                print(
+                    f"[AUTO-DETECTOR] Formato '{formato_conhecido.get('formato')}' já conhecido "
+                    f"(visto {formato_conhecido.get('total_ocs_processadas', 1)}x) — reuso possível"
+                )
+                if _carregar_config_matching().get("reusar_formato_aprendido", False):
+                    print(
+                        "[AUTO-DETECTOR] reusar_formato_aprendido=true — "
+                        "pulando chamada de IA para este formato (extrator anterior prevalece)"
+                    )
+                    return None
+        except Exception as _e_reuso:
+            print(f"[AUTO-DETECTOR] Aviso: checagem de reuso falhou ({_e_reuso}) — seguindo fluxo normal")
+        # ── fim PARTE 2a ──────────────────────────────────────────────────────
+
         # Monta e envia prompt
         modelo = cfg.get("modelo", _MODELO_PADRAO)
         max_tokens = _MAX_TOKENS_DETECTOR  # fixo: extração de OC precisa de muito mais tokens que o matcher
