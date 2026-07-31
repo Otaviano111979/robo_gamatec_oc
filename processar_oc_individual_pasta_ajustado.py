@@ -501,8 +501,10 @@ def processar_oc(caminho_oc: str) -> dict:
     print(f"Debug extração: {caminhos['debug_extracao']}")
 
     # ── CRM: captura dados do cabeçalho e salva no banco ─────
+    _is_mrv = False
     try:
         cabecalho = extrair_cabecalho(caminho_oc)
+        _is_mrv = (cabecalho.get("formato") == "MRV")
         crm_result = registrar_documento_completo(
             resultado_cabecalho = cabecalho,
             arquivo_pdf         = caminho_oc,
@@ -596,6 +598,43 @@ def processar_oc(caminho_oc: str) -> dict:
     except Exception as _rev_e:
         print(f"[REVISAO] Aviso (nao critico): {_rev_e}")
     # ── fim REVISAO ──────────────────────────────────────────────────
+
+    # ── ALERTA MRV: equivalência de adesivo (1116962 azul ↔ 1123161 extra forte) ─
+    # Regra pontual: os dois códigos MRV mapeiam para o mesmo código Krona (523),
+    # então o operador precisa confirmar com o cliente qual adesivo enviar.
+    # Aditivo — não altera match nem planilha; falha aqui nunca interrompe o processamento.
+    try:
+        if _is_mrv and not df_final.empty:
+            from dados.revisao_store import salvar_item_revisao
+            CODIGOS_ADESIVO_EQUIVALENTE = {"1116962", "1123161"}
+            MSG_ALERTA_ADESIVO = (
+                "⚠️ EQUIVALÊNCIA DE ADESIVO — VERIFICAR\n"
+                "1116962 (azul) ↔ 1123161 (extra forte/vermelho)\n"
+                "Confirme com o cliente qual adesivo enviar.\n"
+                "A partir do próximo mês: adesivo azul disponível."
+            )
+            nome_arquivo = os.path.basename(caminho_oc)
+            alertas_gerados = 0
+            for _, row in df_final.iterrows():
+                codigo_oc_item = normalizar_codigo(row.get('codigo_oc') or row.get('codigo_interno_oc'))
+                if codigo_oc_item in CODIGOS_ADESIVO_EQUIVALENTE:
+                    salvar_item_revisao(
+                        arquivo=nome_arquivo,
+                        num_item=str(row.get('idx_item', '') or ''),
+                        descricao_oc=str(row.get('descricao_oc', '') or
+                                        row.get('descricao_original', '') or ''),
+                        codigo_sugerido=str(row.get('codigo_krona', '') or ''),
+                        descricao_sugerida=str(row.get('descricao_krona', '') or ''),
+                        score=float(row.get('score_total', 0) or 0),
+                        tipo_match=str(row.get('tipo_match', '') or ''),
+                        alerta_equivalencia=MSG_ALERTA_ADESIVO,
+                    )
+                    alertas_gerados += 1
+            if alertas_gerados:
+                print(f"[ALERTA MRV] {alertas_gerados} item(ns) com alerta de equivalencia de adesivo.")
+    except Exception as _alerta_e:
+        print(f"[ALERTA MRV] Aviso (nao critico): {_alerta_e}")
+    # ── fim ALERTA MRV ─────────────────────────────────────────────────
 
     print("\n[4/4] GERANDO SAÍDAS INDIVIDUAIS...")
     salvar_resultado_processado_individual(df_final, caminhos["resultado_processado"])

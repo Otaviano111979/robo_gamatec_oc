@@ -42,6 +42,8 @@ def init_db():
         c.execute("ALTER TABLE itens_revisao ADD COLUMN confianca_ia TEXT")
     if "justificativa_ia" not in colunas_existentes:
         c.execute("ALTER TABLE itens_revisao ADD COLUMN justificativa_ia TEXT")
+    if "alerta_equivalencia" not in colunas_existentes:
+        c.execute("ALTER TABLE itens_revisao ADD COLUMN alerta_equivalencia TEXT")
     conn.commit()
     conn.close()
 
@@ -49,7 +51,8 @@ def init_db():
 def salvar_item_revisao(arquivo, num_item, descricao_oc,
                         codigo_sugerido, descricao_sugerida,
                         score, tipo_match,
-                        confianca_ia=None, justificativa_ia=None):
+                        confianca_ia=None, justificativa_ia=None,
+                        alerta_equivalencia=None):
     """
     Salva um item para revisão, evitando duplicatas.
 
@@ -63,6 +66,10 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         tipo_match: tipo de match (EXATO, SEMANTICO, SEM_MATCH, MATCH_IA, etc)
         confianca_ia: nível de confiança da IA ("alta", "media", "baixa") ou None
         justificativa_ia: justificativa textual retornada pela IA ou None
+        alerta_equivalencia: mensagem de alerta de regra de negócio (ex: equivalência
+            de adesivo MRV) ou None. Se o item já estiver pendente na fila (por outro
+            motivo, ex: score baixo), o alerta é adicionado à linha existente via UPDATE
+            em vez de ser descartado pela deduplicação.
     """
     init_db()
     conn = sqlite3.connect(DB_PATH)
@@ -74,7 +81,17 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         WHERE arquivo=? AND descricao_oc=? AND status='pendente'
     """, (arquivo, descricao_oc))
 
-    if c.fetchone():
+    existente = c.fetchone()
+
+    if existente:
+        # item já pendente — se houver alerta novo, anexa à linha existente
+        if alerta_equivalencia:
+            c.execute("""
+                UPDATE itens_revisao
+                SET alerta_equivalencia=?
+                WHERE id=?
+            """, (alerta_equivalencia, existente[0]))
+            conn.commit()
         conn.close()
         return
 
@@ -82,11 +99,12 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         INSERT INTO itens_revisao
         (arquivo, num_item, descricao_oc, codigo_krona_sugerido,
          descricao_krona_sugerida, score_total, tipo_match,
-         confianca_ia, justificativa_ia)
-        VALUES (?,?,?,?,?,?,?,?,?)
+         confianca_ia, justificativa_ia, alerta_equivalencia)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
     """, (arquivo, num_item, descricao_oc, codigo_sugerido,
           descricao_sugerida, score, tipo_match,
-          confianca_ia or None, justificativa_ia or None))
+          confianca_ia or None, justificativa_ia or None,
+          alerta_equivalencia or None))
 
     conn.commit()
     conn.close()

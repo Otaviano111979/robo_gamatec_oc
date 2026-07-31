@@ -168,6 +168,21 @@
       font-style: italic;
     }
 
+    /* ── ALERTA DE EQUIVALENCIA (regra pontual MRV) ── */
+    .alerta-equivalencia {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: var(--vt-amber-bg);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      color: var(--vt-amber);
+      font-size: 10px;
+      font-weight: 600;
+      white-space: pre-line;
+      max-width: 260px;
+      line-height: 1.4;
+    }
+
     .revisao-acoes {
       display: flex;
       gap: 8px;
@@ -526,6 +541,9 @@
                     {{ item.justificativa_ia }}
                   </div>
                   {% endif %}
+                {% endif %}
+                {% if item.alerta_equivalencia %}
+                  <div class="alerta-equivalencia">{{ item.alerta_equivalencia }}</div>
                 {% endif %}
               </div>
             </td>
