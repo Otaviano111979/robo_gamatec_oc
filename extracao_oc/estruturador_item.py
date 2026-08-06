@@ -4,6 +4,50 @@ from typing import List, Optional
 from extracao_oc.modelos import BlocoItem, ItemExtraido, LinhaDocumento
 
 
+# ============================================================
+# BOILERPLATE ADMINISTRATIVO GRUDADO NA DESCRIÇÃO
+# Alguns PDFs (ex: UAU/Vila Brasil) colam uma nota padrão de
+# certificação/PSQ logo após a descrição do produto, na mesma
+# linha capturada pelo regex de início de item. Isso infla a
+# similaridade textual entre itens diferentes no matcher.
+# Adicione aqui novos padrões conforme forem identificados em
+# outras OCs — não é específico de nenhum cliente.
+# ============================================================
+PADROES_BOILERPLATE_DESCRICAO = [
+    r"DEVER[AÃ]O\s*SER\s*ENVIAD",
+    r"CERTIFICAD[OI]\s*DE\s*QUALIDADE",
+    r"PROGRAMA\s*SETORIAL\s*DA\s*QUALIDADE",
+]
+_REGEX_BOILERPLATE_DESCRICAO = re.compile(
+    "|".join(PADROES_BOILERPLATE_DESCRICAO), re.IGNORECASE
+)
+_TAMANHO_MINIMO_APOS_CORTE = 8
+
+
+def _cortar_boilerplate_descricao(texto: str) -> tuple[str, Optional[str]]:
+    """
+    Corta a descrição no primeiro marcador de boilerplate encontrado.
+
+    Retorna (texto_final, trecho_removido). Se nenhum marcador for
+    encontrado, ou se o corte deixasse a descrição vazia/curta demais
+    (< _TAMANHO_MINIMO_APOS_CORTE chars — provável boilerplate no INÍCIO
+    da descrição, não no fim), retorna o texto original sem cortar e
+    trecho_removido=None.
+    """
+    if not texto:
+        return texto, None
+
+    match = _REGEX_BOILERPLATE_DESCRICAO.search(texto)
+    if not match:
+        return texto, None
+
+    limpo = texto[:match.start()].strip()
+    if len(limpo) < _TAMANHO_MINIMO_APOS_CORTE:
+        return texto, None
+
+    return limpo, texto[match.start():match.start() + 80]
+
+
 # Formato MRV:  idx codigo NCM qtd un [frete] ipi unit total
 # O campo frete pode estar ausente (PDF imprime frete+IPI combinados como "0,00%")
 PADRAO_INICIO_ITEM = re.compile(
@@ -340,6 +384,20 @@ def estruturar_bloco_item(bloco: BlocoItem) -> ItemExtraido:
     if any("bloco_interrompido_por_bloco_administrativo" in obs for obs in bloco.observacoes):
         item.status_extracao = "ok_com_ressalvas"
         item.observacoes.append("item_interrompido_por_bloco_administrativo")
+
+    # ── LIMPEZA DE BOILERPLATE — só na versão usada para match/planilha ──
+    # descricao_original fica intacta (registro bruto); descricao_reconstruida
+    # (que vira descricao_oc no pipeline) é a versão cortada, se aplicável.
+    try:
+        limpo, removido = _cortar_boilerplate_descricao(item.descricao_reconstruida)
+        if removido:
+            item.descricao_reconstruida = limpo
+            item.observacoes.append("boilerplate_removido=" + removido)
+        elif item.descricao_reconstruida and _REGEX_BOILERPLATE_DESCRICAO.search(item.descricao_reconstruida):
+            # marcador encontrado, mas o corte deixaria a descricao curta/vazia demais
+            item.observacoes.append("boilerplate_corte_ignorado_descricao_curta")
+    except Exception:
+        pass  # falha na limpeza nao interrompe a extracao — descricao segue como estava
 
     return item
 
