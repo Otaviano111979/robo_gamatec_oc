@@ -109,7 +109,7 @@ def comparar(rotulo_a: str, rotulo_b: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "comparar":
+    if len(sys.argv) == 4 and sys.argv[1] == "comparar":
         comparar(sys.argv[2], sys.argv[3])
     elif len(sys.argv) >= 2:
         rodar(sys.argv[1])

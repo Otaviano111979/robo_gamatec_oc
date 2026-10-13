@@ -182,8 +182,10 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
     else:
         itens, formato = resultado_extracao, "DEDICADO"
 
+    # nao aborta aqui quando vazio — deixa o pipeline seguir para as
+    # tentativas de resgate; a falha so e declarada apos todas elas
     if not itens:
-        raise ValueError("Nenhum item encontrado na extração desta OC.")
+        print("[EXTRATOR] Nenhum item extraido no caminho dedicado — tentando resgates")
 
     # converte para DataFrame independente do formato
     if isinstance(itens, list) and len(itens) > 0 and isinstance(itens[0], dict):

@@ -328,10 +328,43 @@ def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List
                     pass
             return itens
 
-    # ── PRIORIDADE 4: UAU / MRV / KRONA (fluxo original) ────
+    # ── PRIORIDADE 4: UAU / MRV / KRONA (parser de linhas) ────
     linhas_probe = extrair_linhas_pdf(caminho_pdf)
     linhas_probe = normalizar_linhas(linhas_probe)
     formato      = detectar_formato_documento(linhas_probe)
+
+    generico_ja_tentado = False
+
+    def _tentar_generico():
+        try:
+            from extracao_oc.extrator_generico import extrair_itens_generico_com_meta
+            itens_g, meta = extrair_itens_generico_com_meta(caminho_pdf)
+            if itens_g:
+                for it in itens_g:
+                    it["formato_oc"]          = "GENERICO"
+                    it["estrategia_extracao"] = meta.get("estrategia", "")
+                return itens_g, meta
+        except Exception as e:
+            print(f"[EXTRATOR] Erro no extrator generico: {e}")
+        return None, None
+
+    # Cliente DESCONHECIDO: extrator generico deterministico primeiro.
+    # O parser de linhas do MRV nao e mais forçado como melhor esforço —
+    # fica apenas como ultimo recurso se o generico nao extrair nada.
+    if formato == "DESCONHECIDO":
+        itens_g, _meta = _tentar_generico()
+        generico_ja_tentado = True
+        if itens_g:
+            if caminho_debug:
+                try:
+                    with open(caminho_debug, "w", encoding="utf-8") as f:
+                        f.write(f"FORMATO: DESCONHECIDO → GENERICO ({_meta.get('estrategia')})\n")
+                        f.write(f"Total de itens: {len(itens_g)}\n\n")
+                        for it in itens_g:
+                            f.write(f"{it.get('descricao_oc','')} | qtd={it.get('quantidade')} {it.get('unidade','')}\n")
+                except Exception:
+                    pass
+            return itens_g, "GENERICO"
 
     if formato == "UAU":
         linhas = extrair_linhas_pdf_uau(caminho_pdf)
@@ -365,17 +398,16 @@ def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List
             "score_extracao":          item.score_extracao,
             "status_extracao":         item.status_extracao,
             "observacoes":             item.observacoes,
+            "formato_oc":              formato,
         })
 
-    # fallback generico — clientes nao cadastrados
-    if not resultado:
-        try:
-            from extracao_oc.extrator_generico import detectar_generico, extrair_itens_generico
-            if detectar_generico(caminho_pdf):
-                itens = extrair_itens_generico(caminho_pdf)
-                if itens:
-                    return itens, "GENERICO"
-        except Exception as e:
-            print(f"[EXTRATOR] Erro no extrator generico: {e}")
+    # Porta de qualidade: se o parser de linhas só produziu itens duvidosos
+    # (ou nada), o generico determinístico prevalece.
+    validos = sum(1 for it in resultado
+                  if it["status_extracao"] in ("ok", "ok_com_ressalvas"))
+    if (not resultado or validos == 0) and not generico_ja_tentado:
+        itens_g, _meta = _tentar_generico()
+        if itens_g:
+            return itens_g, "GENERICO"
 
     return resultado

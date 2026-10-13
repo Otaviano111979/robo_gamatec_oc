@@ -33,16 +33,39 @@ def etapa_extracao(caminho_oc):
 
     itens = extrair_itens_oc(caminho_oc, caminho_debug=caminho_debug)
 
+    # extrator generico devolve tuple (itens, formato)
+    if isinstance(itens, tuple):
+        itens = itens[0]
+
     if not itens:
         print("Nenhum item encontrado na extração.")
         return pd.DataFrame()
 
     df = pd.DataFrame(itens)
 
-    df["descricao_oc"] = df["descricao_reconstruida"]
-    df["quantidade_oc"] = df["quantidade"]
-    df["unidade_oc"] = df["unidade_normalizada"]
-    df["codigo_oc"] = df["codigo_interno_oc"]
+    if "descricao_reconstruida" in df.columns:
+        df["descricao_oc"] = df["descricao_reconstruida"]
+    elif "descricao_oc" not in df.columns:
+        df["descricao_oc"] = df.get("descricao_original", "")
+
+    if "quantidade" in df.columns:
+        df["quantidade_oc"] = df["quantidade"]
+    elif "quantidade_oc" not in df.columns:
+        df["quantidade_oc"] = None
+
+    if "unidade_normalizada" in df.columns:
+        df["unidade_oc"] = df["unidade_normalizada"]
+    elif "unidade" in df.columns:
+        df["unidade_oc"] = df["unidade"]
+    elif "unidade_oc" not in df.columns:
+        df["unidade_oc"] = "PC"
+
+    if "codigo_interno_oc" in df.columns:
+        df["codigo_oc"] = df["codigo_interno_oc"]
+    elif "codigo_cliente" in df.columns:
+        df["codigo_oc"] = df["codigo_cliente"]
+    elif "codigo_oc" not in df.columns:
+        df["codigo_oc"] = ""
 
     print(f"Itens extraídos: {len(df)}")
     print(f"Debug da extração salvo em: {caminho_debug}")
