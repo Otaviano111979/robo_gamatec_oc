@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from rapidfuzz import fuzz as rapidfuzz_fuzz
 
-from config import CAMINHO_BASE_KRONA_FINAL, BASE_DIR
+from config import CAMINHO_BASE_KRONA_FINAL, BASE_DIR, USAR_IA
 from base_mrv_loader import carregar_base_mrv
 from matcher_mrv import match_por_codigo_mrv
 from base_brasal_loader import carregar_base_brasal
@@ -640,67 +640,10 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                 "eh_tubo_krona": cadastro.get("eh_tubo"),
             }
 
-    # ── CONSULTAR CORRECOES APRENDIDAS (com correspondência aproximada) ──
-    try:
-        import json
-        correcoes_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "dados", "correcoes_aprendidas.json"
-        )
-        if os.path.exists(correcoes_path):
-            with open(correcoes_path, encoding='utf-8') as f:
-                correcoes = json.load(f)
-            descricao_item = str(item.get('descricao_oc', '') or
-                                 item.get('descricao_reconstruida', '') or '').upper().strip()
-            
-            # usa rapidfuzz para correspondência aproximada (threshold configurável)
-            try:
-                melhor_correcao = None
-                melhor_score = 0
-                for c in correcoes:
-                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
-                    if not desc_correcao:
-                        continue
-                    # token_sort_ratio ignora ordem das palavras
-                    similaridade = rapidfuzz_fuzz.token_sort_ratio(descricao_item, desc_correcao)
-                    if similaridade > melhor_score:
-                        melhor_score = similaridade
-                        melhor_correcao = c
-                
-                # threshold para aceitar a correção
-                if melhor_correcao and melhor_score >= THRESHOLD_CORRECAO_APRENDIDA:
-                    return {
-                        "match_encontrado": True,
-                        "codigo_krona": melhor_correcao.get('codigo_krona'),
-                        "descricao_krona": melhor_correcao.get('descricao_krona'),
-                        "score_estrutura": 0,
-                        "score_textual": round(melhor_score / 100, 2),
-                        "score_total": round(melhor_score / 100, 2),
-                        "tipo_match": "MATCH_CORRECAO_APRENDIDA",
-                        "revisao_manual": False,
-                        "motivo_match": f"CORRECAO_HUMANA_APRENDIDA(sim={melhor_score}%)",
-                    }
-            except ImportError:
-                # fallback para igualdade exata se rapidfuzz nao disponível
-                for c in correcoes:
-                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
-                    if desc_correcao and desc_correcao == descricao_item:
-                        return {
-                            "match_encontrado": True,
-                            "codigo_krona": c.get('codigo_krona'),
-                            "descricao_krona": c.get('descricao_krona'),
-                            "score_estrutura": 0,
-                            "score_textual": 1.0,
-                            "score_total": 1.0,
-                            "tipo_match": "MATCH_CORRECAO_APRENDIDA",
-                            "revisao_manual": False,
-                            "motivo_match": "CORRECAO_HUMANA_APRENDIDA",
-                        }
-    except Exception:
-        pass  # nao bloqueia o fluxo principal
-
     # =========================================================
     # PRIORIDADE 1 — MRV
+    # Match por código interno da OC via tabela DE/PARA.
+    # Independente de score — lookup determinístico.
     # =========================================================
     if indice_mrv:
         match_mrv = match_por_codigo_mrv(item, indice_mrv)
@@ -732,13 +675,73 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 
     # =========================================================
     # PRIORIDADE 1.5 — BRASAL
-    # Match direto por código Brasal usando tabela DE/PARA
-    # Equivalente ao MRV mas para OCs da Brasal/Closer
+    # Match direto por código Brasal usando tabela DE/PARA.
+    # Independente de score — lookup determinístico.
     # =========================================================
     if indice_brasal:
         match_brasal = match_por_codigo_brasal(item, indice_brasal)
         if match_brasal:
             return match_brasal
+
+    # ── CONSULTAR CORRECOES APRENDIDAS (com correspondência aproximada) ──
+    # Só chega aqui para clientes sem tabela DE/PARA (ex: UAU, SIENGE, genérico)
+    try:
+        import json
+        correcoes_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "dados", "correcoes_aprendidas.json"
+        )
+        if os.path.exists(correcoes_path):
+            with open(correcoes_path, encoding='utf-8') as f:
+                correcoes = json.load(f)
+            descricao_item = str(item.get('descricao_oc', '') or
+                                 item.get('descricao_reconstruida', '') or '').upper().strip()
+
+            # usa rapidfuzz para correspondência aproximada (threshold configurável)
+            try:
+                melhor_correcao = None
+                melhor_score = 0
+                for c in correcoes:
+                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
+                    if not desc_correcao:
+                        continue
+                    # token_sort_ratio ignora ordem das palavras
+                    similaridade = rapidfuzz_fuzz.token_sort_ratio(descricao_item, desc_correcao)
+                    if similaridade > melhor_score:
+                        melhor_score = similaridade
+                        melhor_correcao = c
+
+                # threshold para aceitar a correção
+                if melhor_correcao and melhor_score >= THRESHOLD_CORRECAO_APRENDIDA:
+                    return {
+                        "match_encontrado": True,
+                        "codigo_krona": melhor_correcao.get('codigo_krona'),
+                        "descricao_krona": melhor_correcao.get('descricao_krona'),
+                        "score_estrutura": 0,
+                        "score_textual": round(melhor_score / 100, 2),
+                        "score_total": round(melhor_score / 100, 2),
+                        "tipo_match": "MATCH_CORRECAO_APRENDIDA",
+                        "revisao_manual": False,
+                        "motivo_match": f"CORRECAO_HUMANA_APRENDIDA(sim={melhor_score}%)",
+                    }
+            except ImportError:
+                # fallback para igualdade exata se rapidfuzz nao disponível
+                for c in correcoes:
+                    desc_correcao = str(c.get('descricao_oc', '')).upper().strip()
+                    if desc_correcao and desc_correcao == descricao_item:
+                        return {
+                            "match_encontrado": True,
+                            "codigo_krona": c.get('codigo_krona'),
+                            "descricao_krona": c.get('descricao_krona'),
+                            "score_estrutura": 0,
+                            "score_textual": 1.0,
+                            "score_total": 1.0,
+                            "tipo_match": "MATCH_CORRECAO_APRENDIDA",
+                            "revisao_manual": False,
+                            "motivo_match": "CORRECAO_HUMANA_APRENDIDA",
+                        }
+    except Exception:
+        pass  # nao bloqueia o fluxo principal
 
     # =========================================================
     # PRIORIDADE 2 — MATCH POR DESCRICAO
@@ -795,8 +798,8 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 
     # se o melhor resultado nao atinge o minimo, nao força o match
     if score_melhor < SCORE_MINIMO:
-        # PRIORIDADE IA — tentar Claude API antes de desistir
-        if IA_DISPONIVEL and ia_disponivel():
+        # PRIORIDADE IA — opcional; desligada por padrao (GAMATEC_USAR_IA=0)
+        if USAR_IA and IA_DISPONIVEL and ia_disponivel():
             descricao_busca = (
                 item.get("descricao_oc")
                 or item.get("descricao_reconstruida")

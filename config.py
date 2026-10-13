@@ -83,6 +83,9 @@ CAMINHO_CATALOGO_PDF = os.path.join(
 USAR_CATALOGO_PDF_NO_MATCHER = False
 
 CAMINHO_OC_EXEMPLO           = os.path.join(PASTA_OC, "teste.pdf")
+# Flag unica para desligar IA no fluxo de OC (matcher + auto-detector).
+# Default OFF — pipeline 100% deterministico. Ligar: GAMATEC_USAR_IA=1
+USAR_IA = os.environ.get("GAMATEC_USAR_IA", "0").strip() == "1"
 CAMINHO_RESULTADO_PROCESSADO = os.path.join(PASTA_SAIDA, "resultado_processado.csv")
 CAMINHO_RESULTADO_VALIDADO   = os.path.join(PASTA_SAIDA, "resultado_validado.csv")
 CAMINHO_APROVADOS            = os.path.join(PASTA_SAIDA, "itens_aprovados_automatico.csv")

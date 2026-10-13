@@ -485,7 +485,9 @@ def processar_oc(caminho_oc: str) -> dict:
     df_extraido = extrair_individual(caminho_oc, caminhos["debug_extracao"])
 
     # auto-detector: ativa se extrator retornou < 3 itens (incluindo vazio)
-    if len(df_extraido) < 3:
+    # exige GAMATEC_USAR_IA=1 — fora do fluxo deterministico por padrao
+    from config import USAR_IA
+    if USAR_IA and len(df_extraido) < 3:
         try:
             from extracao_oc.auto_detector import auto_detectar
             df_auto = auto_detectar(caminho_oc)
