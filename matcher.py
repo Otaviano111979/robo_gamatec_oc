@@ -640,12 +640,26 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                 "eh_tubo_krona": cadastro.get("eh_tubo"),
             }
 
+    # ── GATE DE CLIENTE ─────────────────────────────────────────────
+    # Cliente desconhecido (GENERICO/CLIENTE_NOVO) nao toca nas tabelas
+    # de/para MRV nem Brasal — codigos de clientes diferentes nao sao
+    # comparaveis. Desconhecido usa: regra aprendida -> lookup -> fuzzy -> SEM_MATCH.
+    _fmt_item = str(item.get("formato_oc") or "").strip().upper()
+    _obs = item.get("observacoes") or []
+    _obs_str = " ".join(str(o) for o in _obs).upper() if isinstance(_obs, (list, tuple)) else str(_obs).upper()
+    cliente_desconhecido = (
+        _fmt_item in ("GENERICO", "DESCONHECIDO")
+        or "CLIENTE_NOVO" in _obs_str
+        or "EXTRATOR_GENERICO" in _obs_str
+    )
+
     # =========================================================
     # PRIORIDADE 1 — MRV
     # Match por código interno da OC via tabela DE/PARA.
     # Independente de score — lookup determinístico.
+    # So para itens de fluxo conhecido (gate acima).
     # =========================================================
-    if indice_mrv:
+    if indice_mrv and not cliente_desconhecido:
         match_mrv = match_por_codigo_mrv(item, indice_mrv)
 
         if match_mrv:
@@ -677,8 +691,9 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     # PRIORIDADE 1.5 — BRASAL
     # Match direto por código Brasal usando tabela DE/PARA.
     # Independente de score — lookup determinístico.
+    # So para itens de fluxo conhecido (gate acima).
     # =========================================================
-    if indice_brasal:
+    if indice_brasal and not cliente_desconhecido:
         match_brasal = match_por_codigo_brasal(item, indice_brasal)
         if match_brasal:
             return match_brasal
