@@ -610,6 +610,83 @@ def score_total(item, cand):
 # MATCH PRINCIPAL
 # ============================================================
 
+# ============================================================
+# RESTRICOES DUREAS deterministas (sem IA):
+# material e diametro nao sao negociaveis — descricao do catalogo
+# que CONTRADIZ a OC nunca pode virar match automatico.
+# ============================================================
+_RX_CPVC  = re.compile(r"\bCPVC\b")
+_RX_PPR   = re.compile(r"\bPP[\-\s]?R\b")
+_RX_PVC   = re.compile(r"(?<!C)PVC")
+_RX_BRAS  = re.compile(r"\bBRASO\b|\bLAT[AÃ]O\b")
+# linhas do catalogo Krona que sao PVC por definicao (material nao escrito na descricao)
+_RX_LINHA_PVC = re.compile(r"ROSC[ÃA]?VEL|ROSQUE[ÁA]?VEL|SOLDAVEL|\bSOLD\b|ESGOTO|\bESG\b|INCENDIO|\bFVM\b|\bPSM\b")
+
+_RX_DIAM_MM  = re.compile(r"\b(\d{1,3})\s*MM\b")
+_RX_DIAM_PAR = re.compile(r"\b(\d{1,3})\s*(?:X|×)\s*(\d{1,3})\b")
+_RX_DN       = re.compile(r"\bD\.?N\.?\s*(\d{2,3})\b")
+
+
+def _materiais_de(texto) -> set:
+    t = str(texto or "").upper()
+    mats = set()
+    if _RX_CPVC.search(t):  mats.add("CPVC")
+    if _RX_PPR.search(t):   mats.add("PPR")
+    if _RX_PVC.search(t):   mats.add("PVC")
+    if _RX_BRAS.search(t):  mats.add("BRASO")
+    return mats
+
+
+def _diametros_de(texto) -> set:
+    t = str(texto or "").upper()
+    ds = set()
+    for m in _RX_DIAM_MM.finditer(t):
+        ds.add(int(m.group(1)))
+    for m in _RX_DIAM_PAR.finditer(t):
+        ds.add(int(m.group(1)))
+        ds.add(int(m.group(2)))
+    for m in _RX_DN.finditer(t):
+        ds.add(int(m.group(1)))
+    return ds
+
+
+def _conflito_hard(item, res) -> bool:
+    """True se a descricao Krona do resultado contradiz material ou diametro da OC."""
+    desc_oc = str(
+        item.get("descricao_oc")
+        or item.get("descricao_reconstruida")
+        or item.get("descricao_original")
+        or ""
+    )
+    desc_cand = str(res.get("descricao_krona") or "")
+    if not desc_oc or not desc_cand:
+        return False
+
+    mo, mc = _materiais_de(desc_oc), _materiais_de(desc_cand)
+    if not mc and _RX_LINHA_PVC.search(desc_cand.upper()):
+        mc = {"PVC"}  # linha ROSCAVEL/SOLDAVEL/ESGOTO do catalogo e PVC por definicao
+    if mo and mc and not (mo & mc):
+        return True
+
+    do, dc = _diametros_de(desc_oc), _diametros_de(desc_cand)
+    if do and dc and not (do & dc):
+        return True
+
+    # diametro numerico do catalogo (mm) vs conjuntos de diametros da OC
+    diam_cand_num = res.get("diametro_krona_mm")
+    if do and diam_cand_num not in (None, "", "nan"):
+        try:
+            dc_val = float(diam_cand_num)
+            if dc_val > 0 and not any(
+                abs(dc_val - float(x)) <= max(1.0, 0.05 * float(x)) for x in do
+            ):
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
 def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     if base_krona is None:
         base_krona = carregar_base_krona()
@@ -764,7 +841,7 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     # Usa limpeza de descricao + filtro por categoria e diametro
     # =========================================================
     match_desc = match_por_descricao(item, base_krona)
-    if match_desc.get("match_encontrado"):
+    if match_desc.get("match_encontrado") and not _conflito_hard(item, match_desc):
         score_desc = match_desc.get("score_total", 0)
         # se score alto, retorna direto
         if score_desc >= 0.80:
@@ -781,7 +858,8 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
                 resultado_semantico = motor.match(descricao)
                 score_sem = resultado_semantico.get("score_total", 0)
                 # usa semantico se for melhor que o fuzzy
-                if resultado_semantico.get("match_encontrado") and score_sem > score_desc:
+                if (resultado_semantico.get("match_encontrado") and score_sem > score_desc
+                        and not _conflito_hard(item, resultado_semantico)):
                     resultado_semantico["via_motor_semantico"] = True
                     return resultado_semantico
         except Exception as e:
@@ -811,8 +889,9 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
     melhor = df.iloc[0].to_dict()
     score_melhor = melhor.get("score_total", 0)
 
-    # se o melhor resultado nao atinge o minimo, nao força o match
-    if score_melhor < SCORE_MINIMO:
+    # se o melhor resultado nao atinge o minimo, ou CONTRADIZ a OC
+    # (material/diametro), nao força o match
+    if score_melhor < SCORE_MINIMO or _conflito_hard(item, melhor):
         # PRIORIDADE IA — opcional; desligada por padrao (GAMATEC_USAR_IA=0)
         if USAR_IA and IA_DISPONIVEL and ia_disponivel():
             descricao_busca = (
@@ -893,7 +972,8 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
             descricao = str(descricao).replace("\n", " ").strip()
             if descricao:
                 resultado_semantico = motor.match(descricao)
-                if resultado_semantico.get("match_encontrado"):
+                if (resultado_semantico.get("match_encontrado")
+                        and not _conflito_hard(item, resultado_semantico)):
                     resultado_semantico["via_motor_semantico"] = True
                     return resultado_semantico
         except Exception as e:
@@ -939,11 +1019,23 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
             descricao = str(descricao).replace("\n", " ").strip()
             if descricao:
                 resultado_semantico = motor.match(descricao)
-                if resultado_semantico.get("match_encontrado"):
+                if (resultado_semantico.get("match_encontrado")
+                        and not _conflito_hard(item, resultado_semantico)):
                     resultado_semantico["via_motor_semantico"] = True
                     return resultado_semantico
         except Exception as e:
             print(f"[MATCHER] Motor semantico indisponivel: {e}")
+
+    # ultima porta: TRADICIONAL que contradiz material/diametro da OC vira SEM_MATCH
+    if _conflito_hard(item, _resultado_tradicional):
+        _resultado_tradicional.update({
+            "match_encontrado": False,
+            "codigo_krona": None,
+            "descricao_krona": None,
+            "tipo_match": "SEM_MATCH",
+            "revisao_manual": True,
+            "motivo_match": "CONFLITO_MATERIAL_OU_DIAMETRO",
+        })
 
     return _resultado_tradicional
 
