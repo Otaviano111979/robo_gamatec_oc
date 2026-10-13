@@ -217,6 +217,10 @@ def limpar_descricao_para_match(descricao, formato=None):
     for padrao, substituto in _ABREV_EXPANSAO:
         texto = re.sub(padrao, substituto, texto)
 
+    # sinonimo de catalogo: CPVC na OC = linha ULTRATERM na Krona
+    if re.search(r"\bCPVC\b", texto) and "ULTRATERM" not in texto:
+        texto = texto.replace("CPVC", "ULTRATERM")
+
     # grau como separador
     texto = texto.replace("°", " ")
 
@@ -274,6 +278,8 @@ def extrair_material_da_descricao(descricao):
     texto = str(descricao or "").upper()
     if re.search(r"\bPPR\b", texto):        return "PPR"
     if re.search(r"\bCPVC\b", texto):       return "CPVC"
+    # linha ULTRATERM do catalogo Krona = CPVC
+    if re.search(r"ULTRA[\s\-]?TERM", texto): return "CPVC"
     if re.search(r"\bPEAD\b", texto):       return "PEAD"
     if re.search(r"\bPOLIETILENO\b", texto): return "PEAD"
     # PVC nao e suficiente para diferenciar — nao filtra por material PVC
@@ -616,6 +622,7 @@ def score_total(item, cand):
 # que CONTRADIZ a OC nunca pode virar match automatico.
 # ============================================================
 _RX_CPVC  = re.compile(r"\bCPVC\b")
+_RX_ULTRATERM = re.compile(r"ULTRA[\s\-]?TERM")
 _RX_PPR   = re.compile(r"\bPP[\-\s]?R\b")
 _RX_PVC   = re.compile(r"(?<!C)PVC")
 _RX_BRAS  = re.compile(r"\bBRASO\b|\bLAT[AÃ]O\b")
@@ -631,6 +638,7 @@ def _materiais_de(texto) -> set:
     t = str(texto or "").upper()
     mats = set()
     if _RX_CPVC.search(t):  mats.add("CPVC")
+    if _RX_ULTRATERM.search(t): mats.add("CPVC")  # ULTRATERM = linha CPVC da Krona
     if _RX_PPR.search(t):   mats.add("PPR")
     if _RX_PVC.search(t):   mats.add("PVC")
     if _RX_BRAS.search(t):  mats.add("BRASO")
