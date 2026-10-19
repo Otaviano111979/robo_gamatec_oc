@@ -71,7 +71,8 @@ PASTA_DADOS = os.path.join(BASE_DIR, "dados")
 
 USUARIOS_FILE = os.path.join(PASTA_DADOS, "usuarios.json")
 CLIENTES_FILE = os.path.join(PASTA_DADOS, "clientes.json")
-OCS_REMOVIDAS_FILE = os.path.join(PASTA_DADOS, "ocs_removidas_dashboard.json")
+OCS_REMOVIDAS_FILE = os.path.join(PASTA_DADOS, "ocs_removidas.json")
+OCS_REMOVIDAS_FILE_LEGADO = os.path.join(PASTA_DADOS, "ocs_removidas_dashboard.json")
 
 os.makedirs(PASTA_LOGS, exist_ok=True)
 os.makedirs(PASTA_ENTRADA, exist_ok=True)
@@ -296,7 +297,12 @@ def salvar_clientes(clientes):
 
 
 def carregar_ocs_removidas():
-    dados = carregar_json(OCS_REMOVIDAS_FILE, [])
+    dados = carregar_json(OCS_REMOVIDAS_FILE, None)
+    if dados is None:
+        # migração: primeiro acesso após renomeacao — herdar o ficheiro legado
+        dados = carregar_json(OCS_REMOVIDAS_FILE_LEGADO, [])
+        if isinstance(dados, list) and dados:
+            salvar_json(OCS_REMOVIDAS_FILE, dados)
     if not isinstance(dados, list):
         return []
     return dados
@@ -859,7 +865,7 @@ def desabilitar_cache(response):
 @app.errorhandler(413)
 def arquivo_muito_grande(e):
     # disparado quando o upload ultrapassa MAX_CONTENT_LENGTH
-    return redirect("/dashboard?erro=arquivo_grande")
+    return redirect("/ocs?erro=arquivo_grande")
 
 
 # =========================
@@ -961,10 +967,10 @@ def launcher():
 
 
 # =========================
-# DASHBOARD
+# OCs — PAGINA PRINCIPAL
 # =========================
-@app.route("/dashboard")
-def dashboard():
+@app.route("/ocs")
+def ocs():
     if not usuario_logado():
         return redirect("/")
 
@@ -984,13 +990,19 @@ def dashboard():
         total_revisao = 0
 
     return render_template(
-        "dashboard.html",
+        "ocs.html",
         arquivos=arquivos,
         total_entrada=total_entrada,
         total_processando=total_processando,
         total_concluidos=total_concluidos,
         total_revisao=total_revisao,
     )
+
+
+@app.route("/dashboard")
+def dashboard_compatibilidade():
+    # rota antiga — manter bookmarks/atalhos vivos
+    return redirect("/ocs", code=302)
 
 
 
@@ -1004,7 +1016,7 @@ def processar(arquivo):
 
     ok, mensagem = iniciar_processamento(arquivo)
     escrever_log(arquivo, f"[AÇÃO PROCESSAR] {mensagem}")
-    return redirect("/dashboard")
+    return redirect("/ocs")
 
 
 @app.route("/api/processar-oc/<path:arquivo>", methods=["POST"])
@@ -1049,11 +1061,11 @@ def api_remover_da_lista(arquivo):
         removidas.append(arquivo)
         salvar_ocs_removidas(removidas)
 
-    escrever_log(arquivo, "[AÇÃO WEB] OC removida da lista do dashboard.")
+    escrever_log(arquivo, "[AÇÃO WEB] OC removida da lista.")
 
     return jsonify({
         "ok": True,
-        "mensagem": "OC removida da lista do dashboard.",
+        "mensagem": "OC removida da lista.",
         "arquivo": arquivo
     })
 
@@ -1176,7 +1188,7 @@ def baixar_planilha(arquivo):
 
     planilha = localizar_planilha_xlsx(arquivo)
     if not planilha or not os.path.exists(planilha):
-        return redirect("/dashboard")
+        return redirect("/ocs")
 
     return send_file(planilha, as_attachment=True)
 
@@ -1215,7 +1227,7 @@ def upload():
 
         if extensao != ".pdf":
             flash("error:Apenas arquivos PDF são aceitos.")
-            return redirect("/dashboard")
+            return redirect("/ocs")
 
         # seguranca: limpa o nome para evitar path traversal
         from werkzeug.utils import secure_filename
@@ -1223,7 +1235,7 @@ def upload():
 
         if not nome_seguro:
             flash("error:Nome de arquivo inválido.")
-            return redirect("/dashboard")
+            return redirect("/ocs")
 
         caminho = os.path.join(PASTA_ENTRADA, nome_seguro)
         file.save(caminho)
@@ -1231,7 +1243,7 @@ def upload():
     else:
         flash("error:Nenhum arquivo selecionado.")
 
-    return redirect("/dashboard")
+    return redirect("/ocs")
 
 
 # =========================
@@ -1246,7 +1258,7 @@ def mover_processado(arquivo):
     ok, mensagem = tentar_mover_para_processados(arquivo)
     escrever_log(arquivo, f"[RESULTADO] {mensagem}")
 
-    return redirect("/dashboard")
+    return redirect("/ocs")
 
 
 # =========================
@@ -1258,7 +1270,7 @@ def admin_clientes():
         return redirect("/")
 
     if not usuario_admin():
-        return redirect("/dashboard")
+        return redirect("/ocs")
 
     clientes = carregar_clientes()
 
@@ -1290,7 +1302,7 @@ def admin_usuarios():
         return redirect("/")
 
     if not usuario_admin():
-        return redirect("/dashboard")
+        return redirect("/ocs")
 
     usuarios = carregar_usuarios()
 
@@ -1334,7 +1346,7 @@ def excluir_usuario(user_alvo):
         return redirect("/")
 
     if not usuario_admin():
-        return redirect("/dashboard")
+        return redirect("/ocs")
 
     # protecao: admin nao pode excluir a si mesmo
     if user_alvo == session.get("user"):
@@ -1358,7 +1370,7 @@ def alterar_senha_usuario(user_alvo):
         return redirect("/")
 
     if not usuario_admin():
-        return redirect("/dashboard")
+        return redirect("/ocs")
 
     nova_senha = request.form.get("nova_senha", "").strip()
 
@@ -1885,7 +1897,7 @@ def painel():
     if not usuario_logado():
         return redirect("/")
     if not usuario_supervisor():
-        return redirect("/dashboard")
+        return redirect("/ocs")
     return render_template("painel.html", nivel=nivel_acesso())
 
 
@@ -2519,7 +2531,7 @@ def api_revisao_reprocessar():
         if not os.path.exists(origem):
             return jsonify({"ok": False, "mensagem": "Arquivo nao encontrado em processados_oc."})
         shutil.copy2(origem, destino)
-        return jsonify({"ok": True, "mensagem": f"{arquivo} movido para entrada_oc. Processe pelo dashboard."})
+        return jsonify({"ok": True, "mensagem": f"{arquivo} movido para entrada_oc. Processe na pagina de OCs."})
     except Exception as e:
         return jsonify({"ok": False, "mensagem": str(e)})
 

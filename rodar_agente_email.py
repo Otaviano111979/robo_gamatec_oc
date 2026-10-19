@@ -183,7 +183,7 @@ def verificar_emails(servico, modo_teste: bool = False):
                 "motivo":    motivo,
                 "anexos":    [a["nome"] for a in anexos],
             })
-            log(f"  -> Enviado para revisao manual no dashboard.")
+            log(f"  -> Enviado para revisao manual na pagina de OCs.")
             continue
 
         # OC ou cotacao confirmada — aplica label do tipo + Krona

@@ -5,7 +5,7 @@ calibrar_gamatec.py
 Roda UMA VEZ no terminal para calibrar as coordenadas da tela do GAMATEC.
 Salva o resultado em calibracao_gamatec.json na pasta saida/.
 
-Depois disso, a automacao pelo dashboard usa esse JSON diretamente
+Depois disso, a automacao pela pagina de OCs usa esse JSON diretamente
 sem precisar de nenhuma intervencao manual.
 
 Como usar:
@@ -159,7 +159,7 @@ def calibrar():
     log("=== CALIBRAÇÃO CONCLUÍDA ===")
     print(f"Arquivo salvo em: {ARQUIVO_CALIBRACAO}", flush=True)
     print(f"Passo de linha detectado: {passo_linha}px", flush=True)
-    print("\nAgora voce pode usar a automacao pelo dashboard normalmente.", flush=True)
+    print("\nAgora voce pode usar a automacao pela pagina de OCs normalmente.", flush=True)
 
     log("Dados calibrados:")
     pprint(calibracao)

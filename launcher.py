@@ -175,7 +175,7 @@ def iniciar_empresa(empresa_id, porta=None, abrir_browser=True):
         import threading
         def _abrir():
             import time; time.sleep(2)
-            webbrowser.open(f"http://localhost:{porta}/dashboard")
+            webbrowser.open(f"http://localhost:{porta}/ocs")
         threading.Thread(target=_abrir, daemon=True).start()
 
     subprocess.run(

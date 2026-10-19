@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vortex | Painel Operacional</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260505_1901">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vortex_theme.css') }}">
+  <style>
+    .vortex-loading-overlay { display:none;position:fixed;inset:0;background:rgba(8,8,16,0.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:24px;backdrop-filter:blur(8px); }
+    .vortex-loading-overlay.ativo { display:flex; }
+    .vlo-spinner { width:80px;height:80px;position:relative; }
+    .vlo-ring { position:absolute;border-radius:50%;border:2px solid transparent; }
+    .vlo-ring:nth-child(1) { inset:0;border-top-color:var(--vortex-cyan);border-right-color:var(--vortex-cyan-dim);animation:vs-spin 2s linear infinite; }
+    .vlo-ring:nth-child(2) { inset:11px;border-top-color:var(--vortex-blue);border-left-color:#0077ff33;animation:vs-spin 1.5s linear infinite reverse; }
+    .vlo-ring:nth-child(3) { inset:22px;border-top-color:#00d4ff55;animation:vs-spin 1s linear infinite; }
+    .vlo-dot { position:absolute;inset:32px;background:var(--vortex-cyan);border-radius:50%;box-shadow:0 0 20px var(--vortex-cyan);animation:vlo-pulse 1.5s ease-in-out infinite; }
+    @keyframes vlo-pulse { 0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(0.6);opacity:0.5;} }
+    .vlo-title { font-family:'Syncopate',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.15em;color:#fff; }
+    .vlo-msg { font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--vortex-cyan-dim);animation:vlo-blink 1.5s ease-in-out infinite; }
+    @keyframes vlo-blink { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+    .vlo-progress { width:240px;height:2px;background:#ffffff11;border-radius:99px;overflow:hidden; }
+    .vlo-progress-fill { height:100%;background:linear-gradient(90deg,var(--vortex-blue),var(--vortex-cyan));border-radius:99px;width:0%;transition:width 0.3s ease;box-shadow:0 0 8px var(--vortex-cyan-dim); }
+    @keyframes pulse-orange { 0%,100%{box-shadow:0 0 0 0 rgba(251,146,60,0);border-color:transparent;}50%{box-shadow:0 0 0 3px rgba(251,146,60,0.25);border-color:rgba(251,146,60,0.5);} }
+    .email-row td:first-child { border-left:3px solid #f97316 !important; }
+    .email-row { animation:pulse-orange 2.5s ease-in-out infinite;border:1px solid transparent;border-radius:8px; }
+    .badge-dot-orange { width:6px;height:6px;background:#f97316;border-radius:50%;display:inline-block;animation:pulse-orange 1.2s ease-in-out infinite; }
+
+    /* ── MODAL PROCESSAMENTO — DOCUMENT FLOW ── */
+    #modal-processamento {
+      position:fixed;inset:0;background:rgba(0,0,0,.70);z-index:9000;
+      display:none;align-items:center;justify-content:center;padding:20px;
+      backdrop-filter:blur(6px);
+    }
+    #modal-processamento.ativo { display:flex; }
+
+    .vproc-modal-inner {
+      width:100%;max-width:680px;
+      background:rgba(14,14,26,0.97);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:18px;
+      padding:28px 30px;
+      box-shadow:0 24px 60px rgba(0,0,0,.7),0 0 0 1px rgba(66,133,244,.05);
+      display:flex;flex-direction:column;gap:0;
+      position:relative;overflow:hidden;
+    }
+    .vproc-modal-inner::before {
+      content:'';position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(circle at 65% 15%, rgba(66,133,244,.06), transparent 55%);
+    }
+
+    /* ── Pipeline flow ── */
+    .vproc-pipeline-flow {
+      display:flex;align-items:flex-start;justify-content:center;
+      padding:16px 0 8px;
+    }
+    .vproc-flow-step {
+      display:flex;flex-direction:column;align-items:center;gap:7px;
+    }
+
+    /* ── Document Cards ── */
+    .vproc-etapa-icon {
+      width:72px;height:88px;
+      border-radius:8px 2px 8px 8px;
+      display:flex;align-items:center;justify-content:center;
+      position:relative;
+      transition:background .35s, border-color .35s, box-shadow .35s;
+    }
+    .vproc-doc-fold {
+      position:absolute;top:0;right:0;
+      width:14px;height:14px;
+      background:rgba(0,0,0,.22);
+      border-bottom-left-radius:4px;
+      pointer-events:none;
+    }
+    .vproc-doc-done-badge {
+      position:absolute;top:-9px;right:-9px;
+      width:20px;height:20px;border-radius:50%;
+      background:#34A853;color:#fff;
+      font-size:11px;font-weight:700;line-height:1;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity .3s;
+      box-shadow:0 2px 6px rgba(52,168,83,.45);
+      border:2px solid rgba(14,14,26,.97);
+      z-index:2;pointer-events:none;
+    }
+
+    /* OC card — always complete */
+    .vproc-doc-card--oc {
+      background:rgba(66,133,244,.12);
+      border:1.5px solid rgba(66,133,244,.45);
+    }
+    .vproc-doc-card--oc .vproc-doc-done-badge { opacity:1; }
+
+    /* WAITING */
+    .vproc-etapa-icon.waiting {
+      background:rgba(255,255,255,.03);
+      border:1.5px solid rgba(255,255,255,.07);
+    }
+
+    /* ACTIVE — each card has its color */
+    .vproc-doc-card--extracao.active {
+      background:rgba(52,168,83,.12);
+      border:1.5px solid #34A853;
+      animation:vproc-float 2s ease-in-out infinite, vproc-ring-green 2.2s ease-out infinite;
+    }
+    .vproc-doc-card--match.active {
+      background:rgba(251,188,4,.12);
+      border:1.5px solid #FBBC04;
+      animation:vproc-float 2s ease-in-out infinite, vproc-ring-yellow 2.2s ease-out infinite;
+    }
+    .vproc-doc-card--planilha.active {
+      background:rgba(154,160,166,.10);
+      border:1.5px solid #9aa0a6;
+      animation:vproc-float 2s ease-in-out infinite, vproc-ring-gray 2.2s ease-out infinite;
+    }
+
+    /* DONE */
+    .vproc-etapa-icon.done {
+      background:rgba(52,168,83,.07);
+      border:1.5px solid rgba(52,168,83,.38);
+      animation:none;
+    }
+    .vproc-etapa-icon.done .vproc-doc-done-badge { opacity:1; }
+
+    .vproc-flow-label {
+      font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;
+      color:rgba(255,255,255,.8);
+    }
+    .vproc-flow-status {
+      font-size:10px;text-align:center;color:var(--subtext);
+      line-height:1.3;min-height:14px;max-width:80px;
+    }
+
+    /* ── Static connector OC→Extração ── */
+    .vproc-connector-oc {
+      width:36px;height:2px;flex-shrink:0;
+      background:rgba(52,168,83,.55);
+      position:relative;margin-top:43px;
+    }
+    .vproc-connector-oc::after {
+      content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);
+      border-top:4px solid transparent;border-bottom:4px solid transparent;
+      border-left:6px solid rgba(52,168,83,.55);
+    }
+
+    /* ── JS-controlled connectors ── */
+    .vproc-linha {
+      width:36px;height:2px;flex-shrink:0;
+      position:relative;margin-top:43px;
+      transition:background .4s;
+    }
+    .vproc-linha::after {
+      content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);
+      border-top:4px solid transparent;border-bottom:4px solid transparent;
+      border-left:6px solid rgba(255,255,255,.1);
+      transition:border-left-color .4s;
+    }
+    .vproc-linha.waiting  { background:rgba(255,255,255,.1); }
+    .vproc-linha.active   { background:linear-gradient(90deg,rgba(255,255,255,.15),rgba(255,255,255,.35)); }
+    .vproc-linha.active::after { border-left-color:rgba(255,255,255,.35); }
+    .vproc-linha.done     { background:#34A853; }
+    .vproc-linha.done::after { border-left-color:#34A853; }
+
+    @keyframes vproc-float  { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+    @keyframes vproc-ring-green  { 0%{box-shadow:0 0 0 0 rgba(52,168,83,.55);}70%{box-shadow:0 0 0 12px rgba(52,168,83,0);}100%{box-shadow:0 0 0 0 rgba(52,168,83,0);} }
+    @keyframes vproc-ring-yellow { 0%{box-shadow:0 0 0 0 rgba(251,188,4,.55);}70%{box-shadow:0 0 0 12px rgba(251,188,4,0);}100%{box-shadow:0 0 0 0 rgba(251,188,4,0);} }
+    @keyframes vproc-ring-gray   { 0%{box-shadow:0 0 0 0 rgba(154,160,166,.45);}70%{box-shadow:0 0 0 12px rgba(154,160,166,0);}100%{box-shadow:0 0 0 0 rgba(154,160,166,0);} }
+    @keyframes vproc-shimmer { 0%,100%{left:-60%;opacity:0;}30%{opacity:1;}to{left:140%;} }
+    @keyframes vproc-blink   { 0%,100%{opacity:1;}50%{opacity:.3;} }
+
+  </style>
+<body class="ios-body dashboard-page">
+
+  <!-- LOADING OVERLAY VORTEX -->
+  <div class="vortex-loading-overlay" id="vortex-loading">
+    <div class="vlo-spinner">
+      <div class="vlo-ring"></div><div class="vlo-ring"></div><div class="vlo-ring"></div>
+      <div class="vlo-dot"></div>
+    </div>
+    <div class="vlo-title">VORTEX</div>
+    <div class="vlo-progress"><div class="vlo-progress-fill" id="vlo-bar"></div></div>
+    <div class="vlo-msg" id="vlo-msg">PROCESSANDO...</div>
+  </div>
+
+  <div class="dash-layout">
+    <aside class="dash-sidebar">
+      <a class="dash-brand" href="/ocs" aria-label="Vortex Sync">
+        <div class="dash-brand-text">
+          <div class="dash-brand-title">Vortex <span>Sync</span></div>
+          <div class="dash-brand-sub">Motor operacional ativo</div>
+        </div>
+      </a>
+      <nav class="dash-nav" aria-label="Navegação">
+        <a class="dash-nav-item" href="/launcher"><span class="dash-ico">◈</span><span>Launcher</span></a>
+        <a class="dash-nav-item is-active" href="/ocs"><span class="dash-ico">▦</span><span>OCs</span></a>
+        {% if session.get('tipo') in ('admin', 'supervisor') %}
+        <a class="dash-nav-item" href="/painel"><span class="dash-ico">⬡</span><span>Painel</span></a>
+        {% endif %}
+        <a class="dash-nav-item {% if total_revisao and total_revisao > 0 %}active-warning{% endif %}" href="/revisao">
+          <span class="dash-ico">⚠️</span><span>Revisão</span>
+          {% if total_revisao and total_revisao > 0 %}
+          <span class="nav-badge-warning">{{ total_revisao }}</span>
+          {% endif %}
+        </a>
+        <a class="dash-nav-item" href="/catalogo/steck/"><span class="dash-ico">⌁</span><span>Catálogo Steck</span></a>
+        <a class="dash-nav-item" href="/comparador/"><span class="dash-ico">⟐</span><span>Comparador</span></a>
+        {% if session.get("tipo") == "admin" %}
+        <a class="dash-nav-item" href="/admin/clientes"><span class="dash-ico">◎</span><span>Clientes</span></a>
+        <a class="dash-nav-item" href="/admin/usuarios"><span class="dash-ico">⧉</span><span>Usuários</span></a>
+        {% endif %}
+      </nav>
+      <div class="dash-sidebar-footer">
+        <span class="dash-user">👤 {{ session.get('user') }}</span>
+        <a href="/logout" class="dash-logout" onclick="return confirm('Deseja realmente sair?')">Sair</a>
+      </div>
+    </aside>
+
+    <main class="dash-main">
+      <header class="topbar-vortex">
+        <div class="vortex-header">
+          <div class="vortex-spinner" aria-hidden="true">
+            <div class="vs-ring"></div><div class="vs-ring"></div><div class="vs-ring"></div>
+            <div class="vs-dot"></div>
+          </div>
+          <div>
+            <div class="vortex-wordmark">Vortex <span>Sync</span></div>
+            <div class="vortex-sub">Process · Automate · Deliver</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+        </div>
+      </header>
+
+  {% with mensagens = get_flashed_messages() %}
+    {% if mensagens %}
+      <div class="flash-wrap">
+        {% for msg in mensagens %}
+          {% if msg.startswith('ok:') %}
+            <div class="flash-msg flash-ok">✅ {{ msg[3:] }}</div>
+          {% else %}
+            <div class="flash-msg flash-erro">⚠️ {{ msg[5:] if msg.startswith('error:') else msg }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div id="painel-agente-email-bar" class="aep-bar">
+    <div class="aep-bar-inner">
+      <div class="aep-bar-left">
+        <div class="aep-indicador-bar" id="aep-ind-bar"></div>
+        <span class="aep-bar-label">Agente Email</span>
+        <span class="aep-bar-status" id="aep-bar-status">Verificando...</span>
+        <span class="aep-bar-stats" id="aep-bar-stats"></span>
+      </div>
+      <div class="aep-bar-right">
+        <button class="ios-button small primary" id="aep-btn-bar-iniciar" onclick="aepIniciar()" style="display:none;">▶ Iniciar</button>
+        <button class="ios-button small danger ghost" id="aep-btn-bar-parar" onclick="aepParar()" style="display:none;">⏹ Parar</button>
+        <button class="ios-button small secondary" onclick="aepVerLog()">Log</button>
+      </div>
+    </div>
+    <div id="aep-bar-alerta" class="aep-bar-alerta" style="display:none;"></div>
+  </div>
+
+  <section class="resumo-cards">
+    <div class="resumo-card resumo-card-entrada">
+      <span class="resumo-card-numero">{{ total_entrada }}</span>
+      <span class="resumo-card-label">Na entrada</span>
+    </div>
+    <div class="resumo-card resumo-card-processando">
+      <span class="resumo-card-numero">{{ total_processando }}</span>
+      <span class="resumo-card-label">Processando</span>
+    </div>
+    <div class="resumo-card resumo-card-concluido">
+      <span class="resumo-card-numero">{{ total_concluidos }}</span>
+      <span class="resumo-card-label">Concluídas</span>
+    </div>
+  </section>
+
+  <section class="ios-card erros-card" id="erros-card" style="display:none;">
+    <div class="card-header">
+      <div>
+        <h2>⚠️ OCs com erro</h2>
+        <p>Arquivos que falharam no processamento. Reenvie para tentar novamente.</p>
+      </div>
+      <span class="badge" id="erros-count">0</span>
+    </div>
+    <div class="table-wrap ios-table-wrap">
+      <table class="ios-table">
+        <thead><tr><th>Arquivo</th><th>Data</th><th>Ações</th></tr></thead>
+        <tbody id="erros-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="dashboard-shell">
+    <aside class="dashboard-left">
+      <section class="ios-card compact-card">
+        <div class="card-header">
+          <div><h2>Importar OC</h2><p>Envie o PDF para a pasta de entrada pelo navegador.</p></div>
+          <span class="badge">Entrada</span>
+        </div>
+        <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+          <label class="upload-box" for="file" id="upload-label">
+            <input id="file" type="file" name="file" accept=".pdf" required onchange="mostrarArquivoSelecionado(this)">
+            <span id="upload-texto">📎 Selecionar PDF da OC</span>
+          </label>
+          <div id="upload-preview" style="display:none;" class="upload-preview">
+            <span id="upload-nome-arquivo"></span>
+            <button type="button" class="ios-button small danger ghost" onclick="limparUpload()">✕</button>
+          </div>
+          <button class="ios-button primary" type="submit" id="btn-enviar-pdf" disabled>Enviar PDF</button>
+        </form>
+      </section>
+
+      <section class="ios-card list-card">
+        <div class="card-header">
+          <div><h2>Fila de OCs</h2><p>Filtros rápidos e exibição das 10 mais recentes.</p></div>
+          <span class="badge" id="fila-count">{{ arquivos|length }} arquivo(s)</span>
+        </div>
+        <div id="fila-info" class="page-subtitle">Carregando informações da fila...</div>
+        <div class="status-panel status-panel-compact">
+          <div class="status-card">
+            <span class="status-title">Número da OC</span>
+            <input id="filtro-oc" type="text" class="ios-field-input" placeholder="Digite o número da OC">
+          </div>
+          <div class="status-card">
+            <span class="status-title">Data</span>
+            <input id="filtro-data" type="date" class="ios-field-input">
+          </div>
+        </div>
+        <div class="actions-wrap">
+          <button class="ios-button small secondary" type="button" id="ordenar-recente">Mais recentes</button>
+          <button class="ios-button small secondary" type="button" id="ordenar-antigo">Mais antigos</button>
+          <button class="ios-button small secondary" type="button" id="btn-ver-todas">Ver todas</button>
+          <button class="ios-button small secondary" type="button" id="btn-voltar-10" style="display:none;">Voltar para 10</button>
+          <button class="ios-button small secondary" type="button" id="limpar-filtros">Limpar filtros</button>
+        </div>
+        <div class="table-wrap oc-table-wrap">
+          <table class="ios-table">
+            <thead><tr><th>Arquivo</th><th>Status</th><th>Local</th><th>Ações</th></tr></thead>
+            <tbody id="oc-table-body">
+              {% if arquivos %}
+                {% for item in arquivos %}
+                <tr
+                  data-oc-row="{{ item.nome }}"
+                  data-nome="{{ item.nome|lower }}"
+                  data-numero-oc="{{ item.numero_oc }}"
+                  data-data-ref="{{ item.data_ref_iso }}"
+                  data-timestamp-ref="{{ item.timestamp_ref }}"
+                  data-tem-planilha="{{ 'true' if item.tem_planilha else 'false' }}"
+                  data-em-entrada="{{ 'true' if item.em_entrada else 'false' }}"
+                  data-em-processados="{{ 'true' if item.em_processados else 'false' }}"
+                  data-processando="{{ 'true' if item.processando else 'false' }}"
+                  {% if item.nome.startswith('EMAIL_') %}class="email-row"{% endif %}>
+                  <td class="arquivo-col">
+                    <div class="arquivo-cell">
+                      <strong class="arquivo-nome">{{ item.nome }}</strong>
+                      <div class="row-badges">
+                        {% if item.nome.startswith('EMAIL_') %}
+                          <span class="badge-email"><span class="badge-dot-orange"></span>VIA EMAIL</span>
+                        {% endif %}
+                        {% if item.cliente_novo %}
+                          <span class="badge-email" style="background:rgba(249,115,22,0.14);border-color:rgba(249,115,22,0.40);color:#f97316;" title="Cliente não cadastrado — verifique o matching">🆕 CLIENTE NOVO</span>
+                        {% endif %}
+                        {% if item.correcao_aplicada %}
+                          <span class="mini-badge" style="background:#f0fdf4;color:#16a34a;border-radius:99px;font-size:10px;padding:2px 8px;font-weight:500">✓ Aprendizado</span>
+                        {% endif %}
+                        {% if item.numero_oc %}
+                          <span class="mini-badge mini-badge-primary">OC {{ item.numero_oc }}</span>
+                        {% endif %}
+                        {% if item.data_ref %}
+                          <span class="mini-badge mini-badge-neutral">{{ item.data_ref }}</span>
+                        {% endif %}
+                        {% if item.tem_planilha %}
+                          <span class="mini-badge mini-badge-success">Planilha pronta</span>
+                        {% endif %}
+                        {% if item.em_processados %}
+                          <span class="mini-badge mini-badge-neutral">Movido</span>
+                        {% endif %}
+                        {% if item.processando %}
+                          <span class="mini-badge mini-badge-primary">Ativo</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-pill {{ item.status_classe }}">{{ item.status_label }}</span></td>
+                  <td>
+                    {% if item.processando %}Processando
+                    {% elif item.em_entrada %}Entrada
+                    {% elif item.em_processados %}Processados
+                    {% else %}Indefinido{% endif %}
+                  </td>
+                  <td class="actions-cell">
+                    <div class="acoes-grupo">
+                      {% if item.em_entrada and not item.processando %}
+                        <button class="ios-button small primary" type="button"
+                          data-processar-arquivo="{{ item.nome }}" data-bloqueado="false">Processar</button>
+                      {% elif item.processando %}
+                        <button class="ios-button small disabled is-loading" type="button" disabled
+                          data-processar-arquivo="{{ item.nome }}" data-bloqueado="true">Processando...</button>
+                      {% endif %}
+                      {% if item.tem_planilha %}
+                        <a class="ios-button small success ready-button" href="/baixar-planilha/{{ item.nome }}">⬇ Planilha</a>
+                        <a href="/comparador/{{ item.nome_base }}" 
+                           class="ios-button small secondary btn-comparar" 
+                           title="Comparar com orçamento e calcular descontos">
+                          📊 Comparar
+                        </a>
+                      {% endif %}
+                      <div class="acoes-menu-wrap">
+                        <button class="ios-button small secondary acoes-menu-btn" type="button" onclick="toggleMenu(this)">•••</button>
+                        <div class="acoes-menu">
+                          <button class="acoes-menu-item" type="button" onclick="verStatus('{{ item.nome }}'); fecharMenus()">Ver status</button>
+                          <button class="acoes-menu-item" type="button" onclick="verLogTecnico('{{ item.nome }}'); fecharMenus()">Log técnico</button>
+                          {% if item.em_entrada and item.tem_planilha and not item.processando %}
+                            <a class="acoes-menu-item move-button" href="/mover-processado/{{ item.nome }}"
+                              data-mover-arquivo="{{ item.nome }}" data-bloqueado="false">Mover p/ Processados</a>
+                          {% elif item.em_processados %}
+                            <span class="acoes-menu-item acoes-menu-item-info">✔ Já em Processados</span>
+                          {% endif %}
+                          {% if item.tem_planilha %}
+                            <button class="acoes-menu-item acoes-menu-item-automacao" type="button"
+                              onclick="abrirModalAutomacao('{{ item.nome }}'); fecharMenus()">🤖 Automação ERP</button>
+                          {% endif %}
+                          {% if not item.processando %}
+                            <button class="acoes-menu-item acoes-menu-item-danger" type="button"
+                              data-remover-arquivo="{{ item.nome }}" data-bloqueado="false">Remover da lista</button>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="4" class="empty-cell">Nenhuma OC localizada.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </aside>
+
+    <section class="dashboard-right">
+      <section class="ios-card inspector-card">
+        <div class="card-header">
+          <div><h2>Painel da OC</h2><p>Leitura operacional da OC selecionada.</p></div>
+          <span class="badge badge-soft" id="monitor-badge">Monitoramento</span>
+        </div>
+        <div class="completion-banner hidden-banner" id="completion-banner">Concluído agora</div>
+        <div class="status-panel status-panel-compact">
+          <div class="status-card emphasis" id="panel-card-arquivo">
+            <span class="status-title">Arquivo selecionado</span>
+            <strong id="status-arquivo">Nenhum arquivo selecionado</strong>
+          </div>
+          <div class="status-card" id="panel-card-status">
+            <span class="status-title">Status atual</span>
+            <strong id="status-geral">Aguardando seleção</strong>
+          </div>
+          <div class="status-card" id="panel-card-planilha">
+            <span class="status-title">Planilha XLSX</span>
+            <strong id="status-planilha">Não verificado</strong>
+          </div>
+          <div class="status-card" id="panel-card-movimento">
+            <span class="status-title">Movimentação do PDF</span>
+            <strong id="status-movimento">Não verificado</strong>
+          </div>
+        </div>
+        <div class="status-output-wrap status-output-layout">
+          <section class="summary-card">
+            <div class="status-output-header"><h3>Resumo da execução</h3></div>
+            <pre id="status-output" class="status-output-box compact-output">Selecione "Ver status" em uma OC para visualizar o andamento.</pre>
+          </section>
+          <section class="log-card">
+            <div class="status-output-header status-output-header-log">
+              <h3>Log técnico</h3>
+              <button class="ios-button small secondary" type="button" onclick="alternarLogTecnico()">Mostrar/Ocultar</button>
+            </div>
+            <pre id="terminal" class="terminal-box terminal-compact hidden-log">Selecione "Log técnico" para visualizar a saída detalhada.</pre>
+          </section>
+        </div>
+      </section>
+    </section>
+  </section>
+    </main>
+  </div>
+
+  <!-- PAINEL AGENTE EMAIL -->
+  <div id="painel-agente-email" class="agente-email-painel" style="display:none;">
+    <div class="aep-header">
+      <div class="aep-titulo">
+        <div class="aep-indicador" id="aep-indicador"></div>
+        <span class="aep-label">Agente Email</span>
+        <span class="aep-status-text" id="aep-status-text">Verificando...</span>
+      </div>
+      <div class="aep-acoes">
+        <button class="ios-button small primary" id="btn-aep-iniciar" onclick="aepIniciar()" style="display:none;">▶ Iniciar</button>
+        <button class="ios-button small danger ghost" id="btn-aep-parar" onclick="aepParar()" style="display:none;">⏹ Parar</button>
+        <button class="ios-button small secondary" onclick="aepVerLog()">Log</button>
+      </div>
+    </div>
+    <div class="aep-stats" id="aep-stats"></div>
+    <div id="aep-alerta" class="aep-alerta" style="display:none;"></div>
+  </div>
+
+  <!-- MODAL LOG EMAIL -->
+  <div id="modal-log-email" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:700px;">
+      <div class="modal-header">
+        <h2>📋 Log — Agente Email</h2>
+        <button class="modal-fechar" onclick="document.getElementById('modal-log-email').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre id="modal-log-email-content" class="automacao-log-box" style="max-height:400px;">Carregando...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CALIBRAÇÃO -->
+  <div id="modal-calibracao" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🎯 Calibração do ERP</h2>
+        <button class="modal-fechar" onclick="fecharModalCalibracao()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="calib-intro">
+          <p class="automacao-instrucao" style="margin-bottom:14px;">
+            A calibração captura as coordenadas dos campos na tela do ERP.<br>
+            Você posiciona o mouse em cada ponto indicado e clica em <strong>Capturar</strong>.<br>
+            <strong>Precisa ser feita apenas uma vez</strong> — fica salva para uso futuro.
+          </p>
+          <div class="flash-msg flash-ok" style="margin-bottom:14px;">
+            ✅ Antes de começar: abra o ERP na tela <strong>Itens com Mix</strong> e deixe a grade visível.
+          </div>
+          <button class="ios-button primary" onclick="iniciarCalibracao()">▶ Iniciar Calibração</button>
+          <button class="ios-button secondary" onclick="fecharModalCalibracao()" style="margin-left:8px;">Cancelar</button>
+        </div>
+        <div id="calib-passo" style="display:none;">
+          <div class="calib-progresso">
+            <span id="calib-progresso-label">Ponto 1 de 7</span>
+            <div class="calib-barra-wrap"><div class="calib-barra" id="calib-barra"></div></div>
+          </div>
+          <div class="calib-instrucao-box" id="calib-instrucao-box">
+            <p class="calib-numero" id="calib-numero">Ponto 1</p>
+            <p class="calib-descricao" id="calib-descricao">—</p>
+            <p class="calib-dica">
+              Posicione o mouse no ponto indicado na tela do ERP.<br>
+              Quando estiver posicionado, clique em <strong>Capturar</strong>.<br>
+              Você terá <strong>3 segundos</strong> após clicar para posicionar o mouse.
+            </p>
+          </div>
+          <div id="calib-feedback" class="calib-feedback" style="display:none;"></div>
+          <div class="calib-acoes">
+            <button class="ios-button primary" id="btn-capturar" onclick="capturarPonto()">🎯 Capturar</button>
+            <button class="ios-button secondary" onclick="fecharModalCalibracao()">Cancelar</button>
+          </div>
+        </div>
+        <div id="calib-concluido" style="display:none;">
+          <div class="flash-msg flash-ok" style="margin-bottom:16px;">
+            ✅ Calibração concluída com sucesso! O sistema está pronto para automação.
+          </div>
+          <div id="calib-resumo-pontos" class="calib-resumo"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="ios-button primary" onclick="fecharCalibracaoEAbrirAutomacao()">▶ Iniciar Automação agora</button>
+            <button class="ios-button secondary" onclick="fecharModalCalibracao()">Fechar</button>
+            <button class="ios-button danger ghost" onclick="resetarCalibracao()">Recalibrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÓDULO DE AUTOMAÇÃO ERP -->
+  <div id="modal-automacao" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🤖 Automação ERP</h2>
+        <button class="modal-fechar" onclick="fecharModalAutomacao()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="automacao-info-box" id="automacao-info-box">
+          <p>OC selecionada: <strong id="automacao-nome-oc">—</strong></p>
+          <p class="automacao-instrucao">
+            Antes de iniciar, certifique-se de que:<br>
+            1. A planilha desta OC já foi processada<br>
+            2. O ERP está aberto na tela <strong>Recálculo de Mix</strong><br>
+            3. Os itens estão visíveis na tela
+          </p>
+        </div>
+        <div class="automacao-status-wrap" id="automacao-status-wrap" style="display:none;">
+          <div class="automacao-progresso">
+            <span id="automacao-status-label" class="automacao-status-label">Aguardando...</span>
+          </div>
+          <pre id="automacao-log" class="automacao-log-box">Aguardando início...</pre>
+        </div>
+        <div class="automacao-resultado-wrap" id="automacao-resultado-wrap" style="display:none;">
+          <div id="automacao-resumo-itens" class="automacao-resumo-itens"></div>
+          <p class="automacao-instrucao">Revise os itens acima e confirme se os descontos foram aplicados corretamente.</p>
+          <div class="automacao-acoes-finais">
+            <button class="ios-button primary" onclick="confirmarAutomacao()">✅ Confirmar e Fechar</button>
+            <button class="ios-button secondary" onclick="fecharModalAutomacao()">Fechar</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="automacao-footer">
+        <button class="ios-button primary" id="btn-iniciar-automacao" onclick="iniciarAutomacao()">▶ Iniciar Automação</button>
+        <button class="ios-button secondary" onclick="fecharModalAutomacao()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       MODAL VORTEX — PROGRESSO DE PROCESSAMENTO
+       ═══════════════════════════════════════ -->
+  <div id="modal-processamento">
+    <div class="vproc-modal-inner">
+
+      <!-- header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div>
+          <div style="font-family:'Syncopate',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);margin-bottom:6px;opacity:.8;" id="vproc-eyebrow">Plataforma Vortex Sync · OC em processamento</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;" id="vproc-titulo">Processando...</div>
+          <div style="font-size:12px;color:var(--subtext);margin-top:3px;font-family:'Space Mono',monospace;" id="vproc-filename">—</div>
+        </div>
+        <button onclick="cancelarProcessamentoModal()" style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid rgba(255,69,58,.30);background:rgba(255,69,58,.08);color:#ff6961;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ff6961" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          Minimizar
+        </button>
+      </div>
+
+      <!-- pipeline: OC → Extração → Match → Planilha -->
+      <div class="vproc-pipeline-flow">
+
+        <!-- OC card (sempre concluído) -->
+        <div class="vproc-flow-step">
+          <div class="vproc-etapa-icon vproc-doc-card--oc">
+            <div class="vproc-doc-fold"></div>
+            <div class="vproc-doc-done-badge">✓</div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+            </svg>
+          </div>
+          <div class="vproc-flow-label">OC</div>
+          <div class="vproc-flow-status" style="color:var(--success);">Recebida</div>
+        </div>
+
+        <!-- conector estático OC→Extração -->
+        <div class="vproc-connector-oc"></div>
+
+        <!-- Extração card -->
+        <div class="vproc-flow-step">
+          <div id="vproc-icon-extracao" class="vproc-etapa-icon vproc-doc-card--extracao waiting">
+            <div class="vproc-doc-fold"></div>
+            <div class="vproc-doc-done-badge">✓</div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <polyline points="9,15 11,17 15,13"/>
+            </svg>
+          </div>
+          <div class="vproc-flow-label">Extração</div>
+          <div id="vproc-label-extracao" class="vproc-flow-status">Aguardando</div>
+        </div>
+
+        <!-- conector JS: Extração→Match -->
+        <div id="vproc-linha-1" class="vproc-linha waiting"></div>
+
+        <!-- Match card -->
+        <div class="vproc-flow-step">
+          <div id="vproc-icon-match" class="vproc-etapa-icon vproc-doc-card--match waiting">
+            <div class="vproc-doc-fold"></div>
+            <div class="vproc-doc-done-badge">✓</div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <div class="vproc-flow-label">Matching</div>
+          <div id="vproc-label-match" class="vproc-flow-status">Aguardando</div>
+        </div>
+
+        <!-- conector JS: Match→Planilha -->
+        <div id="vproc-linha-2" class="vproc-linha waiting"></div>
+
+        <!-- Planilha card -->
+        <div class="vproc-flow-step">
+          <div id="vproc-icon-planilha" class="vproc-etapa-icon vproc-doc-card--planilha waiting">
+            <div class="vproc-doc-fold"></div>
+            <div class="vproc-doc-done-badge">✓</div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M3 9h18M9 21V9"/>
+            </svg>
+          </div>
+          <div class="vproc-flow-label">Planilha</div>
+          <div id="vproc-label-planilha" class="vproc-flow-status">Aguardando</div>
+        </div>
+
+      </div>
+
+      <!-- barra de progresso -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:11px;font-weight:600;color:var(--subtext);text-transform:uppercase;letter-spacing:.06em;">Progresso geral</span>
+          <span style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--primary);text-shadow:0 0 16px rgba(0,212,255,.4);" id="vproc-pct">0%</span>
+        </div>
+        <div style="height:6px;border-radius:99px;background:rgba(255,255,255,.05);overflow:hidden;position:relative;">
+          <div id="vproc-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#0077ff,#00d4ff);box-shadow:0 0 12px rgba(0,212,255,.5);width:0%;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:-60%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);animation:vproc-shimmer 2s ease-in-out infinite;"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--primary);font-weight:500;">
+          <span id="vproc-dot" style="width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 6px var(--primary);display:inline-block;animation:vproc-blink 1.2s ease-in-out infinite;"></span>
+          <span id="vproc-status-msg">Iniciando processamento…</span>
+        </div>
+      </div>
+
+      <!-- stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(66,133,244,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Itens lidos</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#4285F4;line-height:1;" id="vproc-total">—</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(52,168,83,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34A853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Matches</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#34A853;line-height:1;" id="vproc-matches">—</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(251,188,4,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBBC04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--subtext);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Pendentes</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#FBBC04;line-height:1;" id="vproc-pendentes">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- rodapé -->
+      <div style="background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.08);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--subtext);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;opacity:.5;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        Você pode minimizar este painel. O monitoramento continua ativo e o card será atualizado pelo status real da OC.
+        <button onclick="fecharModalProcessamento()" style="margin-left:auto;background:none;border:none;color:var(--subtext);font-size:11px;cursor:pointer;text-decoration:underline;">Minimizar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST REVISAO -->
+  <div id="toast-revisao">
+    <div class="toast-header">
+      <span class="toast-icon">⚠️</span>
+      <span class="toast-title" id="toast-titulo">Itens para revisão</span>
+      <button class="toast-close" onclick="fecharToast()">✕</button>
+    </div>
+    <div class="toast-items" id="toast-itens"></div>
+    <a href="/revisao" class="toast-btn">Revisar agora →</a>
+  </div>
+
+  <script>
+    // Verifica itens de revisão ao carregar a página
+    (async function verificarRevisaoPendente() {
+      try {
+        const r = await fetch('/api/revisao/pendentes');
+        const data = await r.json();
+        if (!data.ok || data.total === 0) return;
+
+        // monta itens no toast
+        const container = document.getElementById('toast-itens');
+        const titulo = document.getElementById('toast-titulo');
+        titulo.textContent = `${data.total} item${data.total > 1 ? 's' : ''} precisa${data.total > 1 ? 'm' : ''} de revisão`;
+
+        const itens = data.itens.slice(0, 3);
+        container.innerHTML = itens.map(item => {
+          const score = parseFloat(item.score_total || 0).toFixed(2);
+          const desc = (item.descricao_oc || '').substring(0, 45);
+          return `<div class="toast-item">
+            <strong>${desc}</strong> · score ${score}
+          </div>`;
+        }).join('');
+
+        if (data.total > 3) {
+          container.innerHTML += `<div class="toast-item" style="color:var(--vt-hint)">
+            + ${data.total - 3} item${data.total - 3 > 1 ? 's' : ''}...
+          </div>`;
+        }
+
+        // exibe o toast
+        const toast = document.getElementById('toast-revisao');
+        toast.style.display = 'block';
+
+        // fecha automaticamente apos 8 segundos
+        setTimeout(fecharToast, 8000);
+
+      } catch(e) {
+        console.log('Toast revisao indisponivel:', e);
+      }
+    })();
+
+    function fecharToast() {
+      const toast = document.getElementById('toast-revisao');
+      if (!toast) return;
+      toast.style.animation = 'toast-slide-out 0.3s ease forwards';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }
+  </script>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

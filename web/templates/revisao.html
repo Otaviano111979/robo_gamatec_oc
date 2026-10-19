@@ -485,14 +485,14 @@
     <!-- HEADER -->
     <div class="revisao-header">
       <div>
-        <a href="/dashboard"
+        <a href="/ocs"
            style="display:inline-flex;align-items:center;gap:6px;
                   padding:6px 14px;border-radius:8px;font-size:12px;
                   font-weight:500;background:transparent;
                   border:1px solid var(--vt-borderstr);
                   color:var(--vt-muted);text-decoration:none;
                   margin-bottom:12px;">
-          ← Voltar ao Dashboard
+          ← Voltar às OCs
         </a>
         <div class="revisao-title">⚠️ Revisão de Itens</div>
       </div>
@@ -859,7 +859,7 @@
         });
         const data = await r.json();
         if (data.ok) {
-          alert('OC movida para entrada_oc. Acesse o dashboard para processar.');
+          alert('OC movida para entrada_oc. Processe na pagina de OCs.');
         } else {
           alert('Erro: ' + data.mensagem);
         }

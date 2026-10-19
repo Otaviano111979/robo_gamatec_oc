@@ -137,7 +137,7 @@ Deve aparecer:
  * Running on http://0.0.0.0:5000
 ```
 
-### Acessar o dashboard
+### Acessar a pagina de OCs
 
 - **Nesta máquina:** http://localhost:5000
 - **De outra máquina na rede:** http://IP_DESTA_MAQUINA:5000
@@ -162,7 +162,7 @@ Senha: admin123
 A calibração é feita uma única vez para ensinar o robô onde estão os campos na tela do GAMATEC.
 
 1. Abra o GAMATEC na tela **Itens com Mix**
-2. Acesse o dashboard no navegador
+2. Acesse a pagina de OCs no navegador
 3. Clique em **•••** em qualquer OC processada
 4. Clique em **🤖 Automação GAMATEC**
 5. Clique em **🎯 Calibrar agora**

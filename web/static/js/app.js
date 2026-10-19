@@ -272,7 +272,7 @@ function aplicarConclusaoNoPainel(nomeArquivo, data) {
 
   // restaura o titulo original apos 30 segundos
   setTimeout(() => {
-    document.title = "Dashboard | AGENTE EXTRACT";
+    document.title = "OCs | AGENTE EXTRACT";
   }, 30000);
 
   if (cardPlanilha) {

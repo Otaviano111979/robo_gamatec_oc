@@ -2,17 +2,17 @@
 """
 rodar_agente_gamatec_web.py
 
-Versao NAO INTERATIVA da automacao — chamada pelo dashboard via subprocess.
+Versao NAO INTERATIVA da automacao — chamada pela pagina de OCs via subprocess.
 Nao pede nenhum input do usuario. Carrega calibracao do JSON salvo previamente.
 
 Prerequisito:
     Executar calibrar_gamatec.py uma vez antes de usar este script.
 
-Uso pelo dashboard:
+Uso pela pagina de OCs:
     python rodar_agente_gamatec_web.py --planilha <caminho_planilha> --oc <nome_oc>
 
 Saidas:
-    - Log em tempo real via stdout (capturado pelo dashboard)
+    - Log em tempo real via stdout (capturado pela pagina de OCs)
     - JSON de status em saida/ocs_individuais/<nome_oc>/automacao_status.json
 """
 

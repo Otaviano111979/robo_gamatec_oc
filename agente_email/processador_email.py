@@ -156,7 +156,7 @@ def processar_anexo_email(
 
     # copia para pasta de entrada do processador de OC (apenas PDFs)
     if anexo["extensao"] == ".pdf":
-        # adiciona prefixo EMAIL_ para identificar origem no dashboard
+        # adiciona prefixo EMAIL_ para identificar origem na pagina de OCs
         nome_com_prefixo = nome_arquivo
         if not nome_arquivo.startswith("EMAIL_"):
             nome_com_prefixo = f"EMAIL_{nome_arquivo}"

@@ -15,7 +15,7 @@ Match com catálogo Krona  →  prioridade: regra aprendida → histórico → l
         ↓
 Geração de planilha XLSX
         ↓
-Dashboard web de controle
+Página web de OCs para controle
         ↓
 Automação RPA na tela "Recálculo de Mix" do GAMATEC
 ```
@@ -26,7 +26,7 @@ Automação RPA na tela "Recálculo de Mix" do GAMATEC
 
 | Módulo | Status | URL |
 |---|---|---|
-| Pedidos / OC | ✅ ativo | `/dashboard` |
+| Pedidos / OC | ✅ ativo | `/ocs` |
 | Agente de Email | ✅ ativo | `/painel` |
 | Catálogo Elétrico (Steck/Schneider) | ✅ ativo | `/catalogo/steck/` |
 | CRM | 🔜 em breve | — |
@@ -72,7 +72,7 @@ C:\robo_gamatec_oc\
 │   ├── importar_steck.py           ← importa xlsx do catálogo Steck
 │   ├── templates\
 │   │   ├── launcher.html
-│   │   ├── dashboard.html
+│   │   ├── ocs.html
 │   │   └── steck\                  ← templates do catálogo elétrico
 │   └── static\
 │       └── steck\                  ← CSS tema Vortex (steck.css)
@@ -108,7 +108,7 @@ python calibrar_gamatec.py
 ```
 
 **Uso diário:**
-1. Processe a OC pelo dashboard
+1. Processe a OC na pagina de OCs
 2. Abra o GAMATEC na tela **Recálculo de Mix**
 3. Clique **•••** → **🤖 Automação GAMATEC** → **▶ Iniciar**
 
