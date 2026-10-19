@@ -3,477 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortex | Config Agente Email</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
-  <style>
-    .cfg-wrap {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 24px 20px 80px 20px;
-    }
-
-    .cfg-secao {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    .cfg-titulo {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.25em;
-      color: var(--subtext);
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .cfg-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .cfg-row label {
-      font-size: 12px;
-      color: var(--subtext);
-      min-width: 180px;
-      flex-shrink: 0;
-    }
-
-    .cfg-row input[type="number"] {
-      width: 100px;
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-    }
-
-    /* toggle switch */
-    .toggle-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .toggle-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .toggle-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      flex-shrink: 0;
-    }
-
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-
-    .toggle-slider {
-      position: absolute;
-      inset: 0;
-      background: var(--border);
-      border-radius: 24px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .toggle-slider::before {
-      content: "";
-      position: absolute;
-      width: 18px; height: 18px;
-      left: 3px; top: 3px;
-      background: #fff;
-      border-radius: 50%;
-      transition: transform 0.2s;
-    }
-
-    .toggle-switch input:checked + .toggle-slider { background: var(--vortex-cyan, #00d4ff); }
-    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
-
-    .badge-ativo   { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: #10b981; }
-    .badge-inativo { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--subtext); }
-
-    /* textarea de corpo */
-    .cfg-textarea {
-      width: 100%;
-      min-height: 120px;
-      resize: vertical;
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-      line-height: 1.6;
-      box-sizing: border-box;
-      margin-top: 10px;
-    }
-
-    .cfg-textarea:focus {
-      outline: none;
-      border-color: var(--vortex-cyan, #00d4ff);
-    }
-
-    /* tags de clientes sem resposta */
-    .tags-wrap {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .tag-cliente {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: var(--text);
-      text-transform: uppercase;
-    }
-
-    .tag-remove {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--subtext);
-      font-size: 14px;
-      line-height: 1;
-      padding: 0;
-      transition: color 0.15s;
-    }
-
-    .tag-remove:hover { color: #ff453a; }
-
-    .add-cliente-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .add-cliente-row input[type="text"] {
-      width: 160px;
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-      text-transform: lowercase;
-    }
-
-    /* variaveis hint */
-    .vars-hint {
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: var(--subtext);
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .vars-hint code {
-      color: var(--vortex-cyan, #00d4ff);
-      background: none;
-      font-size: 11px;
-    }
-
-    /* rodapé */
-    .cfg-footer {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .cfg-msg {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      display: none;
-    }
-
-    .cfg-msg.ok    { background: #10b98122; color: #10b981; border: 1px solid #10b98144; }
-    .cfg-msg.erro  { background: #ff453a22; color: #ff453a; border: 1px solid #ff453a44; }
-
-    /* modal preview */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      display: none;
-    }
-
-    .modal-overlay.aberto { display: flex; }
-
-    .modal-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px;
-      max-width: 540px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .modal-titulo {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.25em;
-      color: var(--subtext);
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-
-    .preview-select {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .preview-select button {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 6px 14px;
-      border: 1px solid var(--border);
-      background: var(--surface, var(--bg-secondary));
-      color: var(--subtext);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .preview-select button.ativo,
-    .preview-select button:hover {
-      border-color: var(--vortex-cyan, #00d4ff);
-      color: var(--vortex-cyan, #00d4ff);
-    }
-
-    .preview-corpo {
-      white-space: pre-wrap;
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-      line-height: 1.7;
-      color: var(--text);
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 100px;
-    }
-  </style>
+  <title>Agente de email | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_config_email.css') }}">
 </head>
-<body class="ios-body">
+<body class="page-config-email">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
 
-  <header class="topbar-vortex">
-    <div class="vortex-header">
-      <div class="vortex-spinner">
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
-        <div class="vs-dot"></div>
-      </div>
-      <div>
-        <div class="vortex-wordmark">Vortex <span>Sync</span></div>
-        <div class="vortex-sub">Agente de Email — Configurações</div>
-      </div>
-    </div>
-    <div class="topbar-actions">
-      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-      <a href="/painel" class="ios-button secondary">Painel</a>
-      <a href="/ocs" class="ios-button secondary">OCs</a>
-      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
-      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
-    </div>
-  </header>
+    <main class="main page-narrow">
+      <header class="page-head">
+        <div>
+          <h1>Agente de email</h1>
+          <p>Configurações do ciclo de leitura e das respostas automáticas.</p>
+        </div>
+        <div class="page-actions">
+          <a href="/ocs" class="btn btn-ghost">
+            <svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar às OCs
+          </a>
+        </div>
+      </header>
 
-  <div class="cfg-wrap">
+      <div class="cfg-grid">
 
-    <!-- GERAL -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">⚙ Geral</div>
-      <div class="cfg-row">
-        <label>Intervalo entre ciclos (minutos)</label>
-        <input type="number" id="intervalo_minutos" min="1" max="60"
-               value="{{ config.geral.intervalo_minutos }}">
-      </div>
-      <div class="cfg-row">
-        <label>Máx. emails por ciclo</label>
-        <input type="number" id="max_emails_por_ciclo" min="1" max="100"
-               value="{{ config.geral.max_emails_por_ciclo }}">
-      </div>
-    </div>
+        <!-- coluna principal: respostas -->
+        <div class="cfg-col">
 
-    <!-- RESPOSTA OC -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">✉ Resposta — Ordem de Compra</div>
-      <div class="toggle-wrap">
-        <label class="toggle-switch">
-          <input type="checkbox" id="oc_ativo"
-                 {% if config.respostas.oc.ativo %}checked{% endif %}>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-label">Resposta automática</span>
-        <span id="oc_badge" class="{{ 'badge-ativo' if config.respostas.oc.ativo else 'badge-inativo' }}">
-          {{ 'ATIVO' if config.respostas.oc.ativo else 'INATIVO' }}
-        </span>
-      </div>
-      <div class="vars-hint" style="margin-bottom:8px;">
-        Variáveis: <code>{nome}</code> — nome do remetente &nbsp;·&nbsp; <code>{assinatura}</code> — assinatura configurada abaixo
-      </div>
-      <textarea class="cfg-textarea" id="oc_corpo"
-                placeholder="Corpo do email de resposta para OC...">{{ config.respostas.oc.corpo }}</textarea>
-    </div>
+          <!-- RESPOSTA OC -->
+          <section class="panel cfg-secao">
+            <div class="panel-head">
+              <div>
+                <h2>Resposta: ordem de compra</h2>
+                <p>Enviada ao remetente quando uma OC é recebida.</p>
+              </div>
+              <div class="toggle-wrap">
+                <span id="oc_badge" class="{{ 'badge-ativo' if config.respostas.oc.ativo else 'badge-inativo' }}">
+                  {{ 'Ativo' if config.respostas.oc.ativo else 'Inativo' }}
+                </span>
+                <label class="toggle-switch" title="Resposta automática">
+                  <input type="checkbox" id="oc_ativo" aria-label="Resposta automática para OC"
+                         {% if config.respostas.oc.ativo %}checked{% endif %}>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="panel-body">
+              <label class="field-label" for="oc_corpo">Corpo do email</label>
+              <textarea class="input cfg-textarea" id="oc_corpo"
+                        placeholder="Corpo do email de resposta para OC...">{{ config.respostas.oc.corpo }}</textarea>
+              <div class="vars-hint">
+                Variáveis: <code>{nome}</code> nome do remetente · <code>{assinatura}</code> assinatura configurada ao lado
+              </div>
+            </div>
+          </section>
 
-    <!-- RESPOSTA COTAÇÃO -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">✉ Resposta — Cotação de Preços</div>
-      <div class="toggle-wrap">
-        <label class="toggle-switch">
-          <input type="checkbox" id="cotacao_ativo"
-                 {% if config.respostas.cotacao.ativo %}checked{% endif %}>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-label">Resposta automática</span>
-        <span id="cotacao_badge" class="{{ 'badge-ativo' if config.respostas.cotacao.ativo else 'badge-inativo' }}">
-          {{ 'ATIVO' if config.respostas.cotacao.ativo else 'INATIVO' }}
-        </span>
-      </div>
-      <div class="vars-hint" style="margin-bottom:8px;">
-        Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
-      </div>
-      <textarea class="cfg-textarea" id="cotacao_corpo"
-                placeholder="Corpo do email de resposta para cotação...">{{ config.respostas.cotacao.corpo }}</textarea>
-    </div>
+          <!-- RESPOSTA COTAÇÃO -->
+          <section class="panel cfg-secao">
+            <div class="panel-head">
+              <div>
+                <h2>Resposta: cotação de preços</h2>
+                <p>Enviada ao remetente quando um pedido de cotação é recebido.</p>
+              </div>
+              <div class="toggle-wrap">
+                <span id="cotacao_badge" class="{{ 'badge-ativo' if config.respostas.cotacao.ativo else 'badge-inativo' }}">
+                  {{ 'Ativo' if config.respostas.cotacao.ativo else 'Inativo' }}
+                </span>
+                <label class="toggle-switch" title="Resposta automática">
+                  <input type="checkbox" id="cotacao_ativo" aria-label="Resposta automática para cotação"
+                         {% if config.respostas.cotacao.ativo %}checked{% endif %}>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="panel-body">
+              <label class="field-label" for="cotacao_corpo">Corpo do email</label>
+              <textarea class="input cfg-textarea" id="cotacao_corpo"
+                        placeholder="Corpo do email de resposta para cotação...">{{ config.respostas.cotacao.corpo }}</textarea>
+              <div class="vars-hint">
+                Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
+              </div>
+            </div>
+          </section>
 
-    <!-- RESPOSTA NÃO IDENTIFICADO -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">✉ Resposta — Documento Não Identificado</div>
-      <div class="toggle-wrap">
-        <label class="toggle-switch">
-          <input type="checkbox" id="nao_identificado_ativo"
-                 {% if config.respostas.nao_identificado.ativo %}checked{% endif %}>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-label">Resposta automática</span>
-        <span id="nao_identificado_badge"
-              class="{{ 'badge-ativo' if config.respostas.nao_identificado.ativo else 'badge-inativo' }}">
-          {{ 'ATIVO' if config.respostas.nao_identificado.ativo else 'INATIVO' }}
-        </span>
-      </div>
-      <div class="vars-hint" style="margin-bottom:8px;">
-        Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
-      </div>
-      <textarea class="cfg-textarea" id="nao_identificado_corpo"
-                placeholder="Corpo do email de resposta para documentos não identificados...">{{ config.respostas.nao_identificado.corpo }}</textarea>
-    </div>
+          <!-- RESPOSTA NÃO IDENTIFICADO -->
+          <section class="panel cfg-secao">
+            <div class="panel-head">
+              <div>
+                <h2>Resposta: documento não identificado</h2>
+                <p>Enviada quando o anexo não é reconhecido como OC nem cotação.</p>
+              </div>
+              <div class="toggle-wrap">
+                <span id="nao_identificado_badge"
+                      class="{{ 'badge-ativo' if config.respostas.nao_identificado.ativo else 'badge-inativo' }}">
+                  {{ 'Ativo' if config.respostas.nao_identificado.ativo else 'Inativo' }}
+                </span>
+                <label class="toggle-switch" title="Resposta automática">
+                  <input type="checkbox" id="nao_identificado_ativo" aria-label="Resposta automática para documento não identificado"
+                         {% if config.respostas.nao_identificado.ativo %}checked{% endif %}>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="panel-body">
+              <label class="field-label" for="nao_identificado_corpo">Corpo do email</label>
+              <textarea class="input cfg-textarea" id="nao_identificado_corpo"
+                        placeholder="Corpo do email de resposta para documentos não identificados...">{{ config.respostas.nao_identificado.corpo }}</textarea>
+              <div class="vars-hint">
+                Variáveis: <code>{nome}</code> · <code>{assinatura}</code>
+              </div>
+            </div>
+          </section>
+        </div>
 
-    <!-- ASSINATURA -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">✍ Assinatura</div>
-      <p style="font-size:12px;color:var(--subtext);margin:0 0 10px;">
-        Aplicada em todos os templates via <code style="font-size:11px;color:var(--vortex-cyan,#00d4ff);">{assinatura}</code>.
-      </p>
-      <textarea class="cfg-textarea" id="assinatura" style="min-height:80px;"
-                placeholder="Texto da assinatura...">{{ config.assinatura }}</textarea>
-    </div>
+        <!-- coluna lateral -->
+        <div class="cfg-col">
 
-    <!-- CLIENTES SEM RESPOSTA -->
-    <div class="cfg-secao">
-      <div class="cfg-titulo">🚫 Clientes sem Resposta Automática</div>
-      <p style="font-size:12px;color:var(--subtext);margin:0 0 14px;">
-        Clientes nesta lista não recebem nenhuma resposta automática, independente do tipo de email.
-      </p>
-      <div class="tags-wrap" id="tags-clientes">
-        {% for cliente in config.clientes_sem_resposta %}
-        <span class="tag-cliente" data-id="{{ cliente }}">
-          {{ cliente | upper }}
-          <button class="tag-remove" type="button" onclick="removerCliente('{{ cliente }}')" title="Remover">×</button>
-        </span>
-        {% endfor %}
-      </div>
-      <div class="add-cliente-row">
-        <input type="text" id="novo_cliente" placeholder="ex: brasal" maxlength="40"
-               onkeydown="if(event.key==='Enter'){adicionarCliente();}">
-        <button class="ios-button secondary" type="button" onclick="adicionarCliente()">Adicionar</button>
-      </div>
-    </div>
+          <!-- GERAL -->
+          <section class="panel cfg-secao">
+            <div class="panel-head"><h2>Geral</h2></div>
+            <div class="panel-body form-stack">
+              <div class="cfg-row field">
+                <label for="intervalo_minutos">Intervalo entre ciclos (minutos)</label>
+                <input type="number" id="intervalo_minutos" class="input cfg-num" min="1" max="60"
+                       value="{{ config.geral.intervalo_minutos }}">
+              </div>
+              <div class="cfg-row field">
+                <label for="max_emails_por_ciclo">Máx. emails por ciclo</label>
+                <input type="number" id="max_emails_por_ciclo" class="input cfg-num" min="1" max="100"
+                       value="{{ config.geral.max_emails_por_ciclo }}">
+              </div>
+            </div>
+          </section>
 
-    <!-- RODAPÉ -->
-    <div class="cfg-secao" style="background:transparent;border:none;padding:0;">
+          <!-- ASSINATURA -->
+          <section class="panel cfg-secao">
+            <div class="panel-head">
+              <div>
+                <h2>Assinatura</h2>
+                <p>Aplicada em todos os modelos via <code>{assinatura}</code>.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <textarea class="input cfg-textarea cfg-textarea-sm" id="assinatura" aria-label="Assinatura"
+                        placeholder="Texto da assinatura...">{{ config.assinatura }}</textarea>
+            </div>
+          </section>
+
+          <!-- CLIENTES SEM RESPOSTA -->
+          <section class="panel cfg-secao">
+            <div class="panel-head">
+              <div>
+                <h2>Clientes sem resposta automática</h2>
+                <p>Não recebem nenhuma resposta, independente do tipo de email.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="tags-wrap" id="tags-clientes">
+                {% for cliente in config.clientes_sem_resposta %}
+                <span class="tag-cliente" data-id="{{ cliente }}">
+                  {{ cliente | upper }}
+                  <button class="tag-remove" type="button" onclick="removerCliente('{{ cliente }}')" title="Remover">×</button>
+                </span>
+                {% endfor %}
+              </div>
+              <div class="add-cliente-row">
+                <input type="text" id="novo_cliente" class="input" placeholder="ex: brasal" maxlength="40" aria-label="Novo cliente"
+                       onkeydown="if(event.key==='Enter'){adicionarCliente();}">
+                <button class="btn" type="button" onclick="adicionarCliente()">Adicionar</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- RODAPÉ -->
       <div class="cfg-footer">
-        <button class="ios-button" type="button" onclick="salvar()">Salvar Configurações</button>
-        <button class="ios-button secondary" type="button" onclick="abrirPreview()">Testar Preview</button>
+        <button class="btn btn-primary" type="button" onclick="salvar()">Salvar configurações</button>
+        <button class="btn" type="button" onclick="abrirPreview()">Pré-visualizar resposta</button>
         <span id="cfg-msg" class="cfg-msg"></span>
       </div>
-    </div>
-
+    </main>
   </div>
 
   <!-- MODAL PREVIEW -->
   <div class="modal-overlay" id="modal-preview">
     <div class="modal-box">
-      <div class="modal-titulo">Preview — resposta simulada</div>
-      <div class="preview-select">
-        <button onclick="previewTipo('oc', this)" class="ativo">OC</button>
-        <button onclick="previewTipo('cotacao', this)">Cotação</button>
-        <button onclick="previewTipo('nao_identificado', this)">Não Identificado</button>
+      <div class="modal-header">
+        <h2 class="modal-titulo">Pré-visualização da resposta</h2>
+        <button class="modal-fechar" type="button" onclick="fecharPreview()" aria-label="Fechar">×</button>
       </div>
-      <div class="preview-corpo" id="preview-corpo"></div>
-      <div style="margin-top:16px;text-align:right;">
-        <button class="ios-button secondary" type="button" onclick="fecharPreview()">Fechar</button>
+      <div class="modal-body">
+        <div class="preview-select btn-group">
+          <button class="btn btn-sm ativo" type="button" onclick="previewTipo('oc', this)">OC</button>
+          <button class="btn btn-sm" type="button" onclick="previewTipo('cotacao', this)">Cotação</button>
+          <button class="btn btn-sm" type="button" onclick="previewTipo('nao_identificado', this)">Não identificado</button>
+        </div>
+        <div class="out preview-corpo" id="preview-corpo"></div>
+        <p class="preview-nota">Simulação com o remetente "João Silva". Nenhum email é enviado.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" type="button" onclick="fecharPreview()">Fechar</button>
       </div>
     </div>
   </div>
 
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script>
-    // ── tema ───────────────────────────────────────────────
-    (function(){
-      const saved = localStorage.getItem('vortex-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', saved);
-      const btn = document.getElementById('themeToggle');
-      if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
-    })();
-    document.getElementById('themeToggle')?.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', cur);
-      localStorage.setItem('vortex-theme', cur);
-      document.getElementById('themeToggle').textContent = cur === 'dark' ? '☀️' : '🌙';
-    });
+    // ── tema: tratado pelo app.js (#themeToggle no sidebar) ──
 
     // ── badge toggle ───────────────────────────────────────
     ['oc', 'cotacao', 'nao_identificado'].forEach(tipo => {
@@ -481,7 +219,7 @@
       const badge = document.getElementById(tipo + '_badge');
       if (!chk || !badge) return;
       chk.addEventListener('change', () => {
-        badge.textContent = chk.checked ? 'ATIVO' : 'INATIVO';
+        badge.textContent = chk.checked ? 'Ativo' : 'Inativo';
         badge.className = chk.checked ? 'badge-ativo' : 'badge-inativo';
       });
     });

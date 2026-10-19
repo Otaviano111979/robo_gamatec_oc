@@ -769,8 +769,8 @@ def montar_status_oc(nome_arquivo):
         status_label = "Concluído"
         status_classe = "status-ok"
     elif tem_planilha and em_entrada:
-        status_label = "Concluído / aguardando mover"
-        status_classe = "status-warning"
+        status_label = "Planilha pronta"
+        status_classe = "status-ready"
     elif em_entrada:
         status_label = "Na entrada"
         status_classe = "status-pending"
@@ -783,7 +783,7 @@ def montar_status_oc(nome_arquivo):
 
     if progresso_info["etapa"] == "erro":
         status_label = "Erro no processamento"
-        status_classe = "status-warning"
+        status_classe = "status-error"
 
     if tem_planilha:
         planilha_label = "Disponível para subir no GAMATEC"

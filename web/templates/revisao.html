@@ -3,742 +3,285 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Revisão de Itens · Vortex Sync</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260505_1901">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vortex_theme.css') }}">
-  <style>
-    /* ── LAYOUT REVISÃO ── */
-    .revisao-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 0;
-    }
-
-    .revisao-header {
-      padding: 20px;
-      background: var(--vt-overlay);
-      border-bottom: 1px solid var(--vt-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .revisao-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--vt-primary);
-    }
-
-    .revisao-badge {
-      background: var(--vt-amber-bg);
-      color: var(--vt-amber);
-      padding: 4px 12px;
-      border-radius: 99px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .revisao-content {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-    }
-
-    .revisao-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--vt-raised);
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .revisao-table thead {
-      background: var(--vt-overlay);
-      border-bottom: 1px solid var(--vt-border);
-    }
-
-    .revisao-table th {
-      padding: 12px 16px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--vt-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .revisao-table tbody tr {
-      border-bottom: 1px solid var(--vt-border);
-      transition: background 0.15s;
-    }
-
-    .revisao-table tbody tr:hover {
-      background: var(--vt-overlay);
-    }
-
-    .revisao-table td {
-      padding: 14px 16px;
-      font-size: 12px;
-      color: var(--vt-muted);
-      vertical-align: middle;
-    }
-
-    .revisao-arquivo {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--vt-hint);
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .revisao-descricao {
-      max-width: 250px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--vt-primary);
-      font-weight: 500;
-    }
-
-    .revisao-match-sugerido {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .revisao-codigo {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--vt-cyan);
-    }
-
-    .revisao-descr-krona {
-      font-size: 10px;
-      color: var(--vt-muted);
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .score-alto  { color: var(--vt-green); font-weight: 600; }
-    .score-medio { color: var(--vt-amber); font-weight: 600; }
-    .score-baixo { color: var(--vt-red);   font-weight: 600; }
-
-    /* ── BADGE IA ── */
-    .badge-ia {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 99px;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      margin-top: 4px;
-    }
-    .badge-ia-alta {
-      background: var(--vt-green-bg);
-      color: var(--vt-green);
-      border: 1px solid rgba(34, 197, 94, 0.25);
-    }
-    .badge-ia-media {
-      background: var(--vt-amber-bg);
-      color: var(--vt-amber);
-      border: 1px solid rgba(234, 179, 8, 0.25);
-    }
-    .badge-ia-baixa {
-      background: var(--vt-overlay);
-      color: var(--vt-muted);
-      border: 1px solid var(--vt-border);
-    }
-    .badge-ia-justificativa {
-      font-size: 9px;
-      color: var(--vt-hint);
-      margin-top: 3px;
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-style: italic;
-    }
-
-    /* ── ALERTA DE EQUIVALENCIA (regra pontual MRV) ── */
-    .alerta-equivalencia {
-      margin-top: 6px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      background: var(--vt-amber-bg);
-      border: 1px solid rgba(234, 179, 8, 0.35);
-      color: var(--vt-amber);
-      font-size: 10px;
-      font-weight: 600;
-      white-space: pre-line;
-      max-width: 260px;
-      line-height: 1.4;
-    }
-
-    .revisao-acoes {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-confirmar {
-      background: var(--vt-green-bg);
-      color: var(--vt-green);
-      border: 1px solid var(--vt-green);
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-confirmar:hover {
-      background: var(--vt-green);
-      color: #fff;
-    }
-
-    .btn-corrigir {
-      background: var(--vt-amber-bg);
-      color: var(--vt-amber);
-      border: 1px solid var(--vt-amber);
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-corrigir:hover {
-      background: var(--vt-amber);
-      color: #fff;
-    }
-
-    .btn-reprocessar {
-      background: transparent;
-      color: var(--vt-muted);
-      border: 1px solid var(--vt-border);
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-reprocessar:hover {
-      background: var(--vt-overlay);
-      color: var(--vt-primary);
-      border-color: var(--vt-borderstr);
-    }
-
-    /* ── MODAL CORREÇÃO ── */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(8, 8, 16, 0.80);
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-backdrop.ativo {
-      display: flex;
-    }
-
-    .modal-correcao {
-      background: var(--vt-overlay);
-      border: 1px solid var(--vt-border);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 500px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .modal-titulo {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--vt-primary);
-    }
-
-    .modal-descricao-oc {
-      padding: 12px;
-      background: var(--vt-raised);
-      border-left: 3px solid var(--vt-amber);
-      border-radius: 4px;
-      font-size: 11px;
-      color: var(--vt-muted);
-      font-family: 'Space Mono', monospace;
-    }
-
-    .modal-busca-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--vt-muted);
-    }
-
-    .modal-busca-input {
-      padding: 10px 12px;
-      background: var(--vt-raised);
-      border: 1px solid var(--vt-border);
-      border-radius: 6px;
-      color: var(--vt-primary);
-      font-family: 'Space Mono', monospace;
-      font-size: 12px;
-    }
-
-    .modal-busca-input:focus {
-      outline: none;
-      border-color: var(--vt-cyan);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
-    }
-
-    .modal-resultados {
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid var(--vt-border);
-      border-radius: 6px;
-      background: var(--vt-raised);
-    }
-
-    .krona-result-item {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--vt-border);
-      cursor: pointer;
-      font-size: 11px;
-      color: var(--vt-muted);
-      transition: background 0.1s, color 0.1s;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .krona-result-item:last-child {
-      border-bottom: none;
-    }
-
-    .krona-result-item:hover {
-      background: var(--vt-overlay);
-      color: var(--vt-primary);
-    }
-
-    .krona-codigo-resultado {
-      font-weight: 600;
-      color: var(--vt-cyan);
-      font-family: 'Space Mono', monospace;
-      min-width: 80px;
-    }
-
-    .krona-descricao-resultado {
-      flex: 1;
-      margin-left: 12px;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    .krona-selecionado {
-      padding: 10px 12px;
-      background: var(--vt-green-bg);
-      color: var(--vt-green);
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .krona-selecionado::before {
-      content: '✓';
-      font-weight: 700;
-    }
-
-    .modal-campos {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .modal-campo-grupo {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .modal-campo-label {
-      font-size: 9px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--vt-hint);
-    }
-
-    .modal-campo-input {
-      padding: 10px 12px;
-      background: var(--vt-raised);
-      border: 1px solid var(--vt-border);
-      border-radius: 6px;
-      color: var(--vt-primary);
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-    }
-
-    .modal-campo-input:focus {
-      outline: none;
-      border-color: var(--vt-cyan);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
-    }
-
-    .modal-campo-input:disabled {
-      background: var(--vt-overlay);
-      color: var(--vt-muted);
-      cursor: not-allowed;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      padding-top: 12px;
-      border-top: 1px solid var(--vt-border);
-    }
-
-    .btn-modal-cancelar {
-      padding: 8px 16px;
-      background: var(--vt-raised);
-      color: var(--vt-muted);
-      border: 1px solid var(--vt-border);
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-modal-cancelar:hover {
-      background: var(--vt-overlay);
-      color: var(--vt-primary);
-    }
-
-    .btn-modal-confirmar {
-      padding: 8px 16px;
-      background: var(--vt-green-bg);
-      color: var(--vt-green);
-      border: 1px solid var(--vt-green);
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .btn-modal-confirmar:hover:not(:disabled) {
-      background: var(--vt-green);
-      color: #fff;
-    }
-
-    .btn-modal-confirmar:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .modal-msg-vazio {
-      padding: 20px;
-      text-align: center;
-      color: var(--vt-hint);
-      font-size: 12px;
-    }
-
-  </style>
+  <title>Revisão de itens | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_revisao.css') }}">
 </head>
-<body class="ios-body revisao-page">
+<body class="revisao-page">
+  <div class="app">
+    {% set nav_ativo = 'revisao' %}
+    {% set total_revisao = total %}
+    {% include '_sidebar.html' %}
 
-  <div class="revisao-container">
-    <!-- HEADER -->
-    <div class="revisao-header">
-      <div>
-        <a href="/ocs"
-           style="display:inline-flex;align-items:center;gap:6px;
-                  padding:6px 14px;border-radius:8px;font-size:12px;
-                  font-weight:500;background:transparent;
-                  border:1px solid var(--vt-borderstr);
-                  color:var(--vt-muted);text-decoration:none;
-                  margin-bottom:12px;">
-          ← Voltar às OCs
-        </a>
-        <div class="revisao-title">⚠️ Revisão de Itens</div>
-      </div>
-      <div class="revisao-badge">{{ total }} pendentes</div>
-    </div>
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Revisão de itens</h1>
+          <p>Itens de OC cujo match de produto não foi confirmado automaticamente.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip {{ 'chip-warn' if total else 'chip-ok' }} revisao-badge">{{ total }} pendentes</span>
+        </div>
+      </header>
 
-    <!-- CONTEÚDO -->
-    <div class="revisao-content">
-      {% if itens %}
-      <table class="revisao-table">
-        <thead>
-          <tr>
-            <th>Arquivo</th>
-            <th>Descrição OC</th>
-            <th>Match Sugerido</th>
-            <th>Score</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in itens %}
-          <tr data-item-id="{{ item.id }}"
-              data-codigo-sugerido="{{ item.codigo_krona_sugerido or '' }}"
-              data-descricao-sugerida="{{ item.descricao_krona_sugerida or '' }}"
-              data-descricao-oc="{{ item.descricao_oc }}">
-            <td class="revisao-arquivo">{{ item.arquivo }}</td>
-            <td class="revisao-descricao" title="{{ item.descricao_oc }}">
-              {{ item.descricao_oc }}
-            </td>
-            <td>
-              <div class="revisao-match-sugerido">
-                <div class="revisao-codigo">{{ item.codigo_krona_sugerido or '—' }}</div>
-                <div class="revisao-descr-krona" title="{{ item.descricao_krona_sugerida or '' }}">
-                  {{ item.descricao_krona_sugerida or '—' }}
-                </div>
-                {% if item.tipo_match == 'MATCH_IA' %}
-                  {% set conf = item.confianca_ia or 'baixa' %}
-                  <div class="badge-ia badge-ia-{{ conf }}">
-                    🤖
-                    {% if conf == 'alta' %}ALTA CONFIANÇA
-                    {% elif conf == 'media' %}BAIXA CONFIANÇA
-                    {% else %}SEM CONFIANÇA FORTE{% endif %}
+      <!-- FILA DE REVISÃO -->
+      <section class="panel revisao-content">
+        <div class="panel-head">
+          <div>
+            <h2>Fila de revisão</h2>
+            <p>Confirme o produto sugerido, corrija pela base Krona ou descarte o item.</p>
+          </div>
+        </div>
+        {% if itens %}
+        <div class="table-wrap">
+          <table class="table revisao-table">
+            <colgroup>
+              <col class="col-item">
+              <col class="col-match">
+              <col class="col-score">
+              <col class="col-acoes">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Item da OC</th>
+                <th>Match sugerido</th>
+                <th class="t-right">Score</th>
+                <th class="t-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in itens %}
+              <tr data-item-id="{{ item.id }}"
+                  data-codigo-sugerido="{{ item.codigo_krona_sugerido or '' }}"
+                  data-descricao-sugerida="{{ item.descricao_krona_sugerida or '' }}"
+                  data-descricao-oc="{{ item.descricao_oc }}">
+                <td>
+                  <div class="revisao-descricao" title="{{ item.descricao_oc }}">{{ item.descricao_oc }}</div>
+                  <div class="revisao-arquivo" title="{{ item.arquivo }}">{{ item.arquivo }}</div>
+                </td>
+                <td>
+                  <div class="revisao-match-sugerido">
+                    <div class="revisao-match-linha">
+                      <span class="revisao-codigo">{{ item.codigo_krona_sugerido or '—' }}</span>
+                      {% if item.tipo_match == 'MATCH_IA' %}
+                        {% set conf = item.confianca_ia or 'baixa' %}
+                        <span class="badge-ia badge-ia-{{ conf }}">
+                          IA ·
+                          {% if conf == 'alta' %}alta confiança
+                          {% elif conf == 'media' %}baixa confiança
+                          {% else %}sem confiança forte{% endif %}
+                        </span>
+                      {% endif %}
+                    </div>
+                    <div class="revisao-descr-krona" title="{{ item.descricao_krona_sugerida or '' }}">
+                      {% if item.descricao_krona_sugerida %}{{ item.descricao_krona_sugerida }}{% else %}<span class="revisao-sem-match">Sem match sugerido</span>{% endif %}
+                    </div>
+                    {% if item.tipo_match == 'MATCH_IA' %}
+                      {% if item.justificativa_ia %}
+                      <div class="badge-ia-justificativa" title="{{ item.justificativa_ia }}">
+                        {{ item.justificativa_ia }}
+                      </div>
+                      {% endif %}
+                    {% endif %}
+                    {% if item.alerta_equivalencia %}
+                      <div class="alerta-equivalencia">{{ item.alerta_equivalencia }}</div>
+                    {% endif %}
                   </div>
-                  {% if item.justificativa_ia %}
-                  <div class="badge-ia-justificativa" title="{{ item.justificativa_ia }}">
-                    {{ item.justificativa_ia }}
-                  </div>
+                </td>
+                <td class="t-right">
+                  {% set score = item.score_total or 0 %}
+                  {% if score >= 0.75 %}
+                    <span class="score score-alto">{{ "%.2f"|format(score) }}</span>
+                  {% elif score >= 0.50 %}
+                    <span class="score score-medio">{{ "%.2f"|format(score) }}</span>
+                  {% else %}
+                    <span class="score score-baixo">{{ "%.2f"|format(score) }}</span>
                   {% endif %}
-                {% endif %}
-                {% if item.alerta_equivalencia %}
-                  <div class="alerta-equivalencia">{{ item.alerta_equivalencia }}</div>
-                {% endif %}
-              </div>
-            </td>
-            <td>
-              {% set score = item.score_total or 0 %}
-              {% if score >= 0.75 %}
-                <span class="score-alto">{{ "%.2f"|format(score) }}</span>
-              {% elif score >= 0.50 %}
-                <span class="score-medio">{{ "%.2f"|format(score) }}</span>
-              {% else %}
-                <span class="score-baixo">{{ "%.2f"|format(score) }}</span>
-              {% endif %}
-            </td>
-            <td>
-              <div class="revisao-acoes">
-                <button class="btn-confirmar" onclick="confirmarMatch({{ item.id }})">
-                  ✓ Confirmar
-                </button>
-                <button class="btn-corrigir" onclick="abrirModalCorrecao({{ item.id }})">
-                  ✏️ Corrigir
-                </button>
-                <button class="btn-reprocessar"
-                        onclick="reprocessarOC('{{ item.arquivo }}')"
-                        title="Mover para entrada e reprocessar">
-                  🔄 Reprocessar
-                </button>
-                <button style="background:var(--vt-red-bg);color:var(--vt-red);
-                               border:1px solid rgba(220,38,38,0.2);border-radius:6px;
-                               padding:4px 10px;font-size:11px;cursor:pointer"
-                        onclick="descartarItem({{ item.id }}, '{{ item.descricao_oc[:30]|replace("'", "\\'") }}')"
-                        title="Descartar — item não tem equivalente Krona">
-                  🗑️ Descartar
-                </button>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div style="padding: 40px; text-align: center; color: var(--vt-muted);">
-        <p style="font-size: 16px; margin-bottom: 10px;">✓</p>
-        <p style="font-size: 12px;">Nenhum item pendente de revisão!</p>
-      </div>
-      {% endif %}
+                </td>
+                <td class="td-actions">
+                  <div class="revisao-acoes">
+                    <button type="button" class="btn btn-sm btn-primary btn-confirmar" onclick="confirmarMatch({{ item.id }})"
+                            title="Confirmar o produto sugerido">
+                      Confirmar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-corrigir" onclick="abrirModalCorrecao({{ item.id }})"
+                            title="Escolher outro produto na base Krona">
+                      Corrigir
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost btn-reprocessar"
+                            onclick="reprocessarOC('{{ item.arquivo }}')"
+                            title="Mover para entrada e reprocessar">
+                      Reprocessar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost btn-danger btn-descartar"
+                            onclick="descartarItem({{ item.id }}, '{{ item.descricao_oc[:30]|replace("'", "\\'") }}')"
+                            title="Descartar — item não tem equivalente Krona">
+                      Descartar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="revisao-vazio">
+          <p>Nenhum item pendente de revisão.</p>
+        </div>
+        {% endif %}
+      </section>
 
       <!-- HISTÓRICO DE CORREÇÕES -->
-      <div style="margin-top:24px">
-        <h3 style="font-size:14px;font-weight:600;color:var(--vt-primary);
-                   margin-bottom:12px;display:flex;align-items:center;gap:8px">
-          📋 Histórico de correções
-          <span style="background:var(--vt-blue-bg);color:var(--vt-blue);
-                       font-size:10px;padding:2px 8px;border-radius:99px;font-weight:500">
-            {{ historico|length }} registros
-          </span>
-        </h3>
+      <section class="panel revisao-historico">
+        <div class="panel-head">
+          <div>
+            <h2>Histórico de correções</h2>
+            <p>Últimas resoluções registradas na fila.</p>
+          </div>
+          <span class="badge neutral-state">{{ historico|length }} registros</span>
+        </div>
 
         {% if historico %}
-        <table style="width:100%;border-collapse:collapse;background:var(--vt-raised);border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-          <thead>
-            <tr style="background:var(--vt-overlay);border-bottom:1px solid var(--vt-border)">
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Data</th>
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Descrição OC</th>
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Corrigido para</th>
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Por</th>
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Score original</th>
-              <th style="font-size:10px;color:var(--vt-muted);text-transform:uppercase;
-                         letter-spacing:0.05em;padding:12px 16px;text-align:left;
-                         font-weight:600">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for h in historico %}
-            <tr style="border-bottom:1px solid var(--vt-border);transition:background 0.15s">
-              <td style="padding:12px 16px;font-size:11px;color:var(--vt-muted);
-                         font-family:monospace">
-                {{ h.resolvido_em[:16] if h.resolvido_em else '—' }}
-              </td>
-              <td style="padding:12px 16px;font-size:11px;color:var(--vt-primary);
-                         max-width:200px;overflow:hidden;text-overflow:ellipsis;
-                         white-space:nowrap;font-weight:500"
-                  title="{{ h.descricao_oc }}">
-                {{ h.descricao_oc[:50] }}
-              </td>
-              <td style="padding:12px 16px;font-size:11px">
-                <span style="color:var(--vt-cyan);font-family:monospace;font-weight:600">
-                  {{ h.codigo_krona_correto or '—' }}
-                </span>
-                <span style="color:var(--vt-muted);display:block;font-size:10px;margin-top:2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-                      title="{{ h.descricao_krona_correta or '' }}">
-                  {{ h.descricao_krona_correta[:35] if h.descricao_krona_correta else '—' }}
-                </span>
-              </td>
-              <td style="padding:12px 16px;font-size:11px;color:var(--vt-muted)">
-                {{ h.corrigido_por or '—' }}
-              </td>
-              <td style="padding:12px 16px;font-size:11px">
-                {% set score = h.score_total|float %}
-                <span style="{% if score >= 0.75 %}color:var(--vt-green)
-                             {% elif score >= 0.50 %}color:var(--vt-amber)
-                             {% else %}color:var(--vt-red){% endif %};
-                             font-family:monospace;font-weight:600">
-                  {{ "%.2f"|format(score) }}
-                </span>
-              </td>
-              <td style="padding:12px 16px;font-size:11px">
-                {% if h.status == 'descartado' %}
-                <span style="color:var(--vt-red);font-size:10px">🗑️ Descartado</span>
-                {% else %}
-                <span style="color:var(--vt-green);font-size:10px">✓ Corrigido</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="table historico-table">
+            <colgroup>
+              <col class="col-data">
+              <col class="col-desc">
+              <col class="col-corrigido">
+              <col class="col-por">
+              <col class="col-score">
+              <col class="col-status">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição OC</th>
+                <th>Corrigido para</th>
+                <th>Por</th>
+                <th class="t-right">Score original</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in historico %}
+              <tr>
+                <td class="hist-data">
+                  {{ h.resolvido_em[:16] if h.resolvido_em else '—' }}
+                </td>
+                <td>
+                  <div class="hist-desc" title="{{ h.descricao_oc }}">{{ h.descricao_oc[:50] }}</div>
+                </td>
+                <td>
+                  <span class="revisao-codigo">{{ h.codigo_krona_correto or '—' }}</span>
+                  <span class="revisao-descr-krona hist-krona" title="{{ h.descricao_krona_correta or '' }}">
+                    {{ h.descricao_krona_correta[:35] if h.descricao_krona_correta else '—' }}
+                  </span>
+                </td>
+                <td class="hist-por">
+                  {{ h.corrigido_por or '—' }}
+                </td>
+                <td class="t-right">
+                  {% set score = h.score_total|float %}
+                  <span class="score {% if score >= 0.75 %}score-alto{% elif score >= 0.50 %}score-medio{% else %}score-baixo{% endif %}">
+                    {{ "%.2f"|format(score) }}
+                  </span>
+                </td>
+                <td>
+                  {% if h.status == 'descartado' %}
+                  <span class="chip chip-err">Descartado</span>
+                  {% else %}
+                  <span class="chip chip-ok">Corrigido</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
         {% else %}
-        <p style="font-size:12px;color:var(--vt-muted);padding:12px 0">
-          Nenhuma correção registrada ainda.
-        </p>
+        <div class="panel-body">
+          <p class="muted">Nenhuma correção registrada ainda.</p>
+        </div>
         {% endif %}
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
   <!-- MODAL CORREÇÃO -->
-  <div class="modal-backdrop" id="modal-backdrop">
-    <div class="modal-correcao">
-      <div class="modal-titulo">Corrigir Item</div>
-
-      <div class="modal-descricao-oc" id="descricao-oc-display">—</div>
-
-      <div style="display: none;">
-        <input type="hidden" id="item-id-atual" value="">
-        <input type="hidden" id="descricao-oc-atual" value="">
+  <div class="vtx-modal modal-backdrop" id="modal-backdrop">
+    <div class="modal-box modal-correcao" role="dialog" aria-modal="true" aria-labelledby="modal-correcao-titulo">
+      <div class="modal-header">
+        <h2 class="modal-titulo" id="modal-correcao-titulo">Corrigir item</h2>
+        <button type="button" class="modal-fechar" onclick="fecharModalCorrecao()" title="Fechar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
 
-      <div class="modal-campo-grupo">
-        <label class="modal-busca-label">Buscar na base Krona</label>
-        <input
-          type="text"
-          id="campo-busca-krona"
-          class="modal-busca-input"
-          placeholder="Digite parte do nome do produto..."
-          autocomplete="off"
-          onkeyup="debounceSearch(this.value)">
-      </div>
-
-      <div class="modal-resultados" id="krona-resultados">
-        <div class="modal-msg-vazio">Digite para buscar...</div>
-      </div>
-
-      <div class="modal-campos">
-        <div class="modal-campo-grupo">
-          <label class="modal-campo-label">Código Krona</label>
-          <input
-            type="text"
-            id="campo-codigo-correto"
-            class="modal-campo-input"
-            placeholder="Código"
-            readonly>
+      <div class="modal-body form-stack">
+        <div class="field">
+          <span class="field-label">Descrição na OC</span>
+          <div class="modal-descricao-oc" id="descricao-oc-display">—</div>
         </div>
 
-        <div class="modal-campo-grupo">
-          <label class="modal-campo-label">Descrição Krona</label>
-          <input
-            type="text"
-            id="campo-descricao-correta"
-            class="modal-campo-input"
-            placeholder="Descrição"
-            readonly>
+        <div style="display: none;">
+          <input type="hidden" id="item-id-atual" value="">
+          <input type="hidden" id="descricao-oc-atual" value="">
+        </div>
+
+        <div class="field">
+          <label class="modal-busca-label" for="campo-busca-krona">Buscar na base Krona</label>
+          <div class="input-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input
+              type="text"
+              id="campo-busca-krona"
+              class="input modal-busca-input"
+              placeholder="Digite parte do nome do produto"
+              autocomplete="off"
+              onkeyup="debounceSearch(this.value)">
+          </div>
+        </div>
+
+        <div class="modal-resultados" id="krona-resultados">
+          <div class="modal-msg-vazio">Digite para buscar.</div>
+        </div>
+
+        <div class="modal-campos">
+          <div class="field modal-campo-grupo">
+            <label class="modal-campo-label" for="campo-codigo-correto">Código Krona</label>
+            <input
+              type="text"
+              id="campo-codigo-correto"
+              class="input modal-campo-input"
+              placeholder="Código"
+              readonly>
+          </div>
+
+          <div class="field modal-campo-grupo">
+            <label class="modal-campo-label" for="campo-descricao-correta">Descrição Krona</label>
+            <input
+              type="text"
+              id="campo-descricao-correta"
+              class="input modal-campo-input"
+              placeholder="Descrição"
+              readonly>
+          </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-modal-cancelar" onclick="fecharModalCorrecao()">
+        <button type="button" class="btn btn-modal-cancelar" onclick="fecharModalCorrecao()">
           Cancelar
         </button>
-        <button class="btn-modal-confirmar" onclick="confirmarCorrecao()">
-          Confirmar Correção
+        <button type="button" class="btn btn-primary btn-modal-confirmar" onclick="confirmarCorrecao()">
+          Confirmar correção
         </button>
       </div>
     </div>
   </div>
 
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script>
     let debounceTimer = null;
 
@@ -752,7 +295,7 @@
     async function buscarKrona(termo) {
       if (termo.length < 2) {
         document.getElementById('krona-resultados').innerHTML =
-          '<div class="modal-msg-vazio">Digite pelo menos 2 caracteres...</div>';
+          '<div class="modal-msg-vazio">Digite pelo menos 2 caracteres.</div>';
         return;
       }
 
@@ -775,7 +318,7 @@
         ).join('');
       } catch (err) {
         document.getElementById('krona-resultados').innerHTML =
-          `<div class="modal-msg-vazio" style="color: var(--vt-red);">Erro na busca: ${err.message}</div>`;
+          `<div class="modal-msg-vazio is-erro">Erro na busca: ${err.message}</div>`;
       }
     }
 
@@ -784,7 +327,7 @@
       document.getElementById('campo-descricao-correta').value = descricao;
 
       const div = document.getElementById('krona-resultados');
-      div.innerHTML = `<div class="krona-selecionado">${codigo} · ${descricao}</div>`;
+      div.innerHTML = `<div class="krona-selecionado"><span class="chip chip-ok">Selecionado</span><span class="krona-codigo-resultado">${codigo}</span><span class="krona-descricao-resultado">${descricao}</span></div>`;
     }
 
     function abrirModalCorrecao(itemId) {
@@ -800,7 +343,7 @@
       document.getElementById('campo-codigo-correto').value = '';
       document.getElementById('campo-descricao-correta').value = '';
       document.getElementById('krona-resultados').innerHTML =
-        '<div class="modal-msg-vazio">Digite para buscar...</div>';
+        '<div class="modal-msg-vazio">Digite para buscar.</div>';
 
       document.getElementById('modal-backdrop').classList.add('ativo');
     }
@@ -859,7 +402,7 @@
         });
         const data = await r.json();
         if (data.ok) {
-          alert('OC movida para entrada_oc. Processe na pagina de OCs.');
+          alert('OC movida para entrada_oc. Processe na página de OCs.');
         } else {
           alert('Erro: ' + data.mensagem);
         }

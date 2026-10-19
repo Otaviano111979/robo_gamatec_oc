@@ -3,425 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortex Ecosystem | Launcher</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}?v=20260506_eco_01">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    .launcher-page {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      font-family: 'DM Sans', sans-serif;
-      overflow-x: hidden;
-    }
-
-    .grid-bg {
-      position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(0, 119, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 119, 255, 0.06) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none; z-index: 0;
-    }
-
-    .glow-bg {
-      position: fixed;
-      width: 600px; height: 600px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(0, 119, 255, 0.10) 0%, transparent 65%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none; z-index: 0;
-      animation: bg-pulse 4s ease-in-out infinite;
-    }
-    @keyframes bg-pulse {
-      0%,100% { transform: translate(-50%,-50%) scale(1); opacity:1; }
-      50%      { transform: translate(-50%,-50%) scale(1.2); opacity:0.6; }
-    }
-
-    .container {
-      width: 100%;
-      max-width: 980px;
-      position: relative; z-index: 1;
-    }
-
-    /* BRAND */
-    .brand {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 16px; margin-bottom: 36px;
-    }
-    .spinner { width: 56px; height: 56px; position: relative; }
-    .vls-ring {
-      position: absolute; border-radius: 50%;
-      border: 2px solid transparent;
-    }
-    .vls-ring:nth-child(1) {
-      inset: 0;
-      border-top-color: #00d4ff; border-right-color: #00d4ff44;
-      animation: spin 2.5s linear infinite;
-    }
-    .vls-ring:nth-child(2) {
-      inset: 8px;
-      border-top-color: #0077ff; border-left-color: #0077ff33;
-      animation: spin 2s linear infinite reverse;
-    }
-    .vls-ring:nth-child(3) {
-      inset: 16px;
-      border-top-color: #00d4ff66;
-      animation: spin 1.5s linear infinite;
-    }
-    .vls-dot {
-      position: absolute; inset: 22px;
-      background: #00d4ff; border-radius: 50%;
-      box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44;
-      animation: vls-pulse 2s ease-in-out infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes vls-pulse {
-      0%,100% { box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44; }
-      50%      { box-shadow: 0 0 24px #00d4ff, 0 0 48px #00d4ff33; }
-    }
-
-    .wordmark {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 24px; font-weight: 700;
-      letter-spacing: 0.08em; color: var(--text);
-      text-align: center; line-height: 1;
-    }
-    .wordmark span { color: var(--primary); }
-
-    .sub-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px; letter-spacing: 0.3em;
-      color: rgba(90, 100, 120, 0.85); text-transform: uppercase;
-      margin-top: 4px; text-align: center;
-    }
-    .sub-label.cyan { color: rgba(0, 119, 255, 0.70); }
-
-    .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0, 119, 255, 0.20), transparent);
-      margin-bottom: 28px;
-    }
-
-    /* SCREENS */
-    .screen { display: none; animation: fadeUp .25s ease; }
-    .screen.active { display: block; }
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(10px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* EMPRESA CARDS */
-    .empresa-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer; margin-bottom: 8px;
-      box-shadow: var(--shadow);
-      transition: border-color .2s, box-shadow .2s, transform .15s;
-    }
-    .empresa-card:hover {
-      border-color: rgba(0, 119, 255, 0.22);
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-1px);
-    }
-    .empresa-card.selected {
-      border-color: rgba(0, 119, 255, 0.35);
-      box-shadow: var(--shadow-hover);
-    }
-
-    .avatar {
-      width: 40px; height: 40px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px; font-weight: 700; flex-shrink: 0;
-    }
-    .av-cyan   { background: rgba(0,212,255,0.1);  color: #00d4ff;  border: 1px solid rgba(0,212,255,0.2); }
-    .av-blue   { background: rgba(0,119,255,0.1);  color: #4499ff;  border: 1px solid rgba(0,119,255,0.2); }
-    .av-teal   { background: rgba(16,185,129,0.10); color: #10b981; border: 1px solid rgba(16,185,129,0.20); }
-    .av-amber  { background: rgba(245,158,11,0.10); color: #f59e0b; border: 1px solid rgba(245,158,11,0.20); }
-    .av-purple { background: rgba(127,119,221,0.1);color: #9f99dd;  border: 1px solid rgba(127,119,221,0.2); }
-
-    .card-info { flex: 1; min-width: 0; }
-    .card-nome { font-size: 14px; font-weight: 600; color: var(--text); }
-    .card-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(90, 100, 120, 0.75); margin-top: 3px; }
-
-    .tag {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px; padding: 3px 8px;
-      border-radius: 20px; letter-spacing: 0.1em; flex-shrink: 0;
-    }
-    .tag-ativo { background: rgba(0, 119, 255, 0.08); color: rgba(0, 119, 255, 0.85); border: 1px solid rgba(0, 119, 255, 0.18); }
-    .tag-trial { background: rgba(245, 158, 11, 0.10); color: rgba(180, 110, 0, 0.95); border: 1px solid rgba(245, 158, 11, 0.18); }
-
-    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .dot-cyan { background: #00d4ff; animation: pulse-dot 2s infinite; box-shadow: 0 0 6px #00d4ff88; }
-    .dot-gray { background: rgba(90, 100, 120, 0.25); }
-
-    .btn-entrar {
-      background: linear-gradient(135deg, var(--primary), var(--vortex-cyan));
-      border: none; border-radius: 10px;
-      padding: 7px 16px;
-      font-family: 'Syncopate', sans-serif;
-      font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
-      color: #fff; cursor: pointer; flex-shrink: 0;
-      box-shadow: var(--shadow-soft);
-      transition: box-shadow .2s, transform .15s;
-    }
-    .btn-entrar:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-    .btn-entrar.ghost {
-      background: transparent;
-      border: 1px solid rgba(0, 119, 255, 0.18);
-      color: rgba(0, 119, 255, 0.70);
-      box-shadow: none;
-    }
-    .btn-entrar.ghost:hover { border-color: rgba(0, 119, 255, 0.30); color: rgba(0, 119, 255, 0.90); transform: none; }
-
-    .add-card {
-      background: var(--surface);
-      border: 1px dashed rgba(0, 119, 255, 0.22);
-      border-radius: 16px; padding: 14px 16px;
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer; margin-bottom: 8px;
-      transition: border-color .2s;
-    }
-    .add-card:hover { border-color: rgba(0, 119, 255, 0.35); }
-    .add-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      border: 1px dashed rgba(0, 119, 255, 0.25);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; color: rgba(0, 119, 255, 0.55); flex-shrink: 0;
-    }
-    .add-info .nome { font-size: 13px; color: rgba(90, 100, 120, 0.90); font-weight: 600; }
-    .add-info .sub  { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(90, 100, 120, 0.70); margin-top:2px; }
-
-    /* MÓDULOS */
-    .back-btn {
-      display: flex; align-items: center; gap: 6px;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px; letter-spacing: 0.1em; color: rgba(90, 100, 120, 0.80);
-      background: none; border: none; cursor: pointer;
-      margin-bottom: 1.5rem; padding: 0; text-transform: uppercase;
-      transition: color .2s;
-    }
-    .back-btn:hover { color: rgba(0, 119, 255, 0.85); }
-
-    .empresa-header {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 1.5rem; padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .empresa-header .nome { font-size: 15px; font-weight: 700; color: var(--text); }
-    .empresa-header .sub  {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px; letter-spacing: 0.2em;
-      color: rgba(90, 100, 120, 0.70); text-transform: uppercase; margin-top: 3px;
-    }
-
-    .hub-sections { display: grid; gap: 14px; margin-bottom: 1.5rem; }
-    .hub-section { background: transparent; }
-    .hub-section-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-      padding: 0 2px;
-    }
-    .hub-section-title {
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-    .hub-section-sub {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(90, 100, 120, 0.70);
-      white-space: nowrap;
-    }
-
-    .module-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .module-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px; padding: 16px;
-      cursor: pointer; transition: border-color .2s, box-shadow .2s;
-      text-decoration: none; display: block;
-    }
-    .module-card.unlocked:hover {
-      border-color: rgba(0, 119, 255, 0.22);
-      box-shadow: var(--shadow-hover);
-    }
-    .module-card.locked { opacity: .45; cursor: not-allowed; }
-    .module-card.placeholder {
-      border-style: dashed;
-      border-color: rgba(0, 119, 255, 0.18);
-      background: linear-gradient(180deg, rgba(0, 119, 255, 0.04), transparent 70%), var(--card);
-      cursor: default;
-      opacity: 1;
-    }
-    .module-card.placeholder:hover { box-shadow: var(--shadow-soft); }
-
-    .mod-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 10px;
-    }
-    .ic-cyan   { background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.12); }
-    .ic-blue   { background: rgba(0,119,255,0.08); border: 1px solid rgba(0,119,255,0.12); }
-    .ic-purple { background: rgba(127,119,221,0.08); border: 1px solid rgba(127,119,221,0.12); }
-    .ic-yellow { background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.15); }
-    .ic-gray   { background: rgba(90, 100, 120, 0.08); border: 1px solid rgba(90, 100, 120, 0.14); }
-
-    .mod-name { font-size: 13px; font-weight: 700; color: var(--text); }
-    .mod-desc { font-size: 11px; color: rgba(90, 100, 120, 0.75); margin-top: 3px; line-height: 1.4; }
-
-    .mod-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 8px; font-family: 'Space Mono', monospace;
-      font-size: 9px; padding: 2px 8px; border-radius: 20px;
-      letter-spacing: 0.05em;
-    }
-    .mb-active { background: rgba(0, 119, 255, 0.10); color: rgba(0, 119, 255, 0.92); border: 1px solid rgba(0, 119, 255, 0.20); }
-    .mb-soon   { background: rgba(127,119,221,0.10); color: rgba(95, 85, 200, 0.92); border: 1px solid rgba(127,119,221,0.20); }
-    .mb-locked { background: rgba(90, 100, 120, 0.08); color: rgba(90, 100, 120, 0.80); border: 1px solid rgba(90, 100, 120, 0.14); }
-
-    .ic-gray svg [stroke],
-    .ic-gray svg path,
-    .ic-gray svg circle,
-    .ic-gray svg rect {
-      stroke: rgba(90, 100, 120, 0.75);
-    }
-
-    /* FOOTER */
-    .footer {
-      margin-top: 2rem; text-align: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 9px; letter-spacing: 0.2em;
-      color: rgba(90, 100, 120, 0.55); text-transform: uppercase;
-    }
-    .footer .ia-online { color: rgba(0, 119, 255, 0.75); }
-    @keyframes pulse-ia { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .ia-dot-small {
-      display: inline-block; width: 5px; height: 5px;
-      border-radius: 50%; background: var(--primary);
-      animation: pulse-ia 1.5s infinite;
-      vertical-align: middle; margin-right: 4px;
-      box-shadow: 0 0 6px rgba(0, 119, 255, 0.35);
-    }
-    @media (max-width: 860px) {
-      .container { max-width: 520px; }
-      .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-
-    @media (max-width: 520px) {
-      .module-grid { grid-template-columns: 1fr; }
-    }
-
-  </style>
+  <title>Launcher | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_launcher.css') }}">
 </head>
-<body class="ios-body launcher-page">
-  <div class="grid-bg"></div>
-  <div class="glow-bg"></div>
+<body class="page-launcher">
+  <div class="app">
+    {% set nav_ativo = 'launcher' %}
+    {% include '_sidebar.html' %}
 
-  <div class="container">
-
-    <div class="brand">
-      <div class="spinner">
-        <div class="vls-ring"></div>
-        <div class="vls-ring"></div>
-        <div class="vls-ring"></div>
-        <div class="vls-dot"></div>
-      </div>
-      <div>
-        <div class="wordmark">Vortex <span>Ecosystem</span></div>
-        <div class="sub-label" id="brand-sub">Launcher · HUB modular</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- TELA 1: EMPRESAS -->
-    <div class="screen active" id="screen-empresas">
-
-      <div class="sub-label cyan" style="margin-bottom:16px;">Selecione a empresa</div>
-
-      {% for empresa in empresas %}
-      <div class="empresa-card {% if loop.first %}selected{% endif %}"
-           onclick="abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
-        <div class="avatar {{ empresa.avatar_class }}">{{ empresa.sigla }}</div>
-        <div class="card-info">
-          <div class="card-nome">{{ empresa.nome }}</div>
-          <div class="card-meta">{{ empresa.meta }}</div>
-        </div>
-        <span class="tag {{ 'tag-ativo' if empresa.ativo else 'tag-trial' }}">
-          {{ 'ativo' if empresa.ativo else 'trial' }}
-        </span>
-        <div class="status-dot {{ 'dot-cyan' if empresa.ativo else 'dot-gray' }}"></div>
-        <button class="btn-entrar {{ '' if loop.first else 'ghost' }}"
-                onclick="event.stopPropagation(); abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
-          ENTRAR
-        </button>
-      </div>
-      {% endfor %}
-
-      <div class="add-card" onclick="alert('Em breve: nova licença Vortex.')">
-        <div class="add-icon">+</div>
-        <div class="add-info">
-          <div class="nome">Adicionar empresa</div>
-          <div class="sub">Nova licença Vortex</div>
-        </div>
-      </div>
-
-      <div class="footer">Vortex Ecosystem v{{ versao }} · Sync engine ativo</div>
-    </div>
-
-    <!-- TELA 2: MÓDULOS -->
-    <div class="screen" id="screen-modulos">
-
-      <button class="back-btn" onclick="voltarEmpresas()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Trocar empresa
-      </button>
-
-      <div class="empresa-header">
-        <div class="avatar" id="mod-avatar" style="width:40px;height:40px;border-radius:10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;"></div>
+    <main class="main page-narrow">
+      <header class="page-head">
         <div>
-          <div class="nome" id="mod-nome"></div>
-          <div class="sub">Vortex Ecosystem · HUB modular</div>
+          <h1>Launcher</h1>
+          <p id="brand-sub">Selecione a empresa para ver os módulos disponíveis.</p>
         </div>
+      </header>
+
+      <!-- TELA 1: EMPRESAS -->
+      <div class="screen active" id="screen-empresas">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Empresas</h2>
+            <span class="badge neutral-state">{{ empresas|length }}</span>
+          </div>
+
+          <div class="empresa-list">
+            {% for empresa in empresas %}
+            <div class="empresa-card {% if loop.first %}selected{% endif %}"
+                 onclick="abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
+              <div class="avatar {{ empresa.avatar_class }}">{{ empresa.sigla }}</div>
+              <div class="card-info">
+                <div class="card-nome">{{ empresa.nome }}</div>
+                <div class="card-meta">{{ empresa.meta }}</div>
+              </div>
+              <span class="chip {{ 'chip-ok' if empresa.ativo else 'chip-warn' }}">
+                {{ 'Ativo' if empresa.ativo else 'Trial' }}
+              </span>
+              <button class="btn btn-sm {{ 'btn-primary' if loop.first else '' }}" type="button"
+                      onclick="event.stopPropagation(); abrirEmpresa('{{ empresa.id }}','{{ empresa.nome }}','{{ empresa.sigla }}','{{ empresa.avatar_class }}')">
+                Entrar
+              </button>
+            </div>
+            {% endfor %}
+
+            <div class="add-card" onclick="alert('Em breve: nova licença Vortex.')">
+              <div class="avatar avatar-add" aria-hidden="true">+</div>
+              <div class="card-info">
+                <div class="card-nome">Adicionar empresa</div>
+                <div class="card-meta">Nova licença Vortex</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="launcher-foot">Vortex Sync v{{ versao }}</div>
       </div>
 
-      <div class="hub-sections" id="mod-grid"></div>
+      <!-- TELA 2: MÓDULOS -->
+      <div class="screen" id="screen-modulos">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="empresa-header">
+              <div class="avatar" id="mod-avatar"></div>
+              <div>
+                <h2 id="mod-nome"></h2>
+                <p>Módulos do ecossistema Vortex</p>
+              </div>
+            </div>
+            <button class="btn btn-sm" type="button" onclick="voltarEmpresas()">
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Trocar empresa
+            </button>
+          </div>
 
-      <div class="footer">
-        <span class="ia-online"><span class="ia-dot-small"></span>IA online</span>
-        &nbsp;·&nbsp; Vortex Sync v{{ versao }}
+          <div class="hub-sections" id="mod-grid"></div>
+        </section>
+
+        <div class="launcher-foot">Vortex Sync v{{ versao }}</div>
       </div>
-
-    </div>
-
+    </main>
   </div>
 
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script id="modulos-data" type="application/json">{{ modulos_json | safe }}</script>
   <script id="empresa-urls" type="application/json">{{ empresa_urls | safe }}</script>
   <script>
@@ -430,23 +96,23 @@
 
   const TODOS_MODULOS = [
     { id:'oc',    nome:'Vortex Sync',    desc:'Motor operacional · OCs e processamento', ic:'ic-cyan',   url_key:'ocs', group:'engines',
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#00d4ff" stroke-width="1.5"/><path d="M5 6h8M5 9h6M5 12h4" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 6h8M5 9h6M5 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
     { id:'core',  nome:'Vortex Core',    desc:'Decision Engine · regras e decisões', ic:'ic-purple', url_key:null, group:'engines', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M6 3h6l3 3v6l-3 3H6l-3-3V6l3-3z" stroke="#9f99dd" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 9h5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M6 3h6l3 3v6l-3 3H6l-3-3V6l3-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
     { id:'email', nome:'Agente de Email', desc:'Serviço interno do Sync · monitor e respostas', ic:'ic-blue',   url_key:'painel', group:'internal',
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#4499ff" stroke-width="1.5"/><path d="M2 6l7 5 7-5" stroke="#4499ff" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l7 5 7-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
     { id:'crm',   nome:'Vortex CRM',     desc:'Clientes, jornadas e histórico', ic:'ic-purple', url_key:null, group:'apps', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="#9f99dd" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="#9f99dd" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
     { id:'geo',   nome:'Vortex GEO',     desc:'Mapa, rotas e presença territorial', ic:'ic-gray', url_key:null, group:'apps', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 16s5-3.5 5-8a5 5 0 10-10 0c0 4.5 5 8 5 8z" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="8" r="1.75" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 16s5-3.5 5-8a5 5 0 10-10 0c0 4.5 5 8 5 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="8" r="1.75" stroke="currentColor" stroke-width="1.5"/></svg>` },
     { id:'flow',  nome:'Vortex Flow',    desc:'Workflows, aprovações e automações', ic:'ic-gray', url_key:null, group:'apps', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M5 4h4v4H5V4zM9 10h4v4H9v-4z" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><path d="M9 6h2a2 2 0 012 2v2" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M5 4h4v4H5V4zM9 10h4v4H9v-4z" stroke="currentColor" stroke-width="1.5"/><path d="M9 6h2a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
     { id:'analytics', nome:'Analytics', desc:'Indicadores, tendências e insights', ic:'ic-gray', url_key:null, group:'insights', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="9" width="2.5" height="6" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><rect x="7.75" y="6" width="2.5" height="9" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><rect x="12.5" y="3" width="2.5" height="12" rx="1" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="9" width="2.5" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="7.75" y="6" width="2.5" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="12.5" y="3" width="2.5" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>` },
     { id:'steck', nome:'Catálogo Steck', desc:'Produtos · Steck / Schneider', ic:'ic-yellow', url_key:'catalogo/steck', group:'integrations',
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M10 2L4 10h5l-1 6 6-8h-5z" stroke="#f5c842" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M10 2L4 10h5l-1 6 6-8h-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>` },
     { id:'servicos', nome:'Serviços futuros', desc:'Conectores e módulos do ecossistema', ic:'ic-gray', url_key:null, group:'future', placeholder:true,
-      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5"/><path d="M9 6v3l2 2" stroke="rgba(90, 100, 120, 0.75)" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+      svg:`<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M9 6v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
   ];
 
   const SECOES = [
@@ -459,7 +125,7 @@
   ];
 
   function abrirEmpresa(id, nome, sigla, avClass) {
-    document.getElementById('brand-sub').textContent = `HUB · ${nome}`;
+    document.getElementById('brand-sub').textContent = `Módulos disponíveis para ${nome}.`;
     const av = document.getElementById('mod-avatar');
     av.textContent = sigla;
     av.className = 'avatar ' + avClass;
@@ -475,7 +141,7 @@
     SECOES.forEach(sec => {
       const wrap = document.createElement('section');
       wrap.className = 'hub-section';
-      wrap.innerHTML = `<div class="hub-section-head"><div class="hub-section-title">${sec.titulo}</div><div class="hub-section-sub">${sec.sub}</div></div><div class="module-grid"></div>`;
+      wrap.innerHTML = `<div class="hub-section-head"><h3 class="hub-section-title">${sec.titulo}</h3><span class="hub-section-sub">${sec.sub}</span></div><div class="module-grid"></div>`;
 
       const gridSec = wrap.querySelector('.module-grid');
       sec.ids.forEach(modId => {
@@ -487,19 +153,19 @@
         const liberado = ativo || trial;
 
         const badge = ativo
-          ? '<span class="mod-badge mb-active"><span style="width:4px;height:4px;border-radius:50%;background:rgba(0,119,255,0.95);display:inline-block;box-shadow:0 0 4px rgba(0,119,255,0.35)"></span>ativo</span>'
+          ? '<span class="chip chip-ok mod-badge">Ativo</span>'
           : trial
-            ? '<span class="mod-badge mb-soon">trial</span>'
+            ? '<span class="chip chip-warn mod-badge">Trial</span>'
             : mod.placeholder
-              ? '<span class="mod-badge mb-soon">em preparação</span>'
-              : '<span class="mod-badge mb-locked">bloqueado</span>';
+              ? '<span class="chip plain mod-badge">Em preparação</span>'
+              : '<span class="chip chip-pending mod-badge">Bloqueado</span>';
 
         const tagName = (liberado && mod.url_key) ? 'a' : 'div';
         const el = document.createElement(tagName);
 
         if (liberado && mod.url_key) el.href = base + '/' + mod.url_key;
         el.className = 'module-card ' + (mod.placeholder ? 'placeholder' : (liberado ? 'unlocked' : 'locked'));
-        el.innerHTML = `<div class="mod-icon ${mod.ic}">${mod.svg}</div><div class="mod-name">${mod.nome}</div><div class="mod-desc">${mod.desc}</div>${badge}`;
+        el.innerHTML = `<span class="mod-icon ${mod.ic}">${mod.svg}</span><span class="mod-name">${mod.nome}</span><span class="mod-desc">${mod.desc}</span>${badge}<span class="mod-go" aria-hidden="true"></span>`;
         gridSec.appendChild(el);
       });
 
@@ -513,7 +179,7 @@
   function voltarEmpresas() {
     document.getElementById('screen-modulos').classList.remove('active');
     document.getElementById('screen-empresas').classList.add('active');
-    document.getElementById('brand-sub').textContent = 'Launcher · HUB modular';
+    document.getElementById('brand-sub').textContent = 'Selecione a empresa para ver os módulos disponíveis.';
   }
 
   window.addEventListener('load', () => {

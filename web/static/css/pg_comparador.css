@@ -1,0 +1,74 @@
+/* Comparador OC x orçamento — complementa vtx.css (só tokens). */
+
+/* ── upload ───────────────────────────────────────────── */
+.cmp-narrow { max-width: 720px; }
+.cmp-steps { margin: 0 0 16px; }
+.cmp-oc-head { min-width: 0; }
+.cmp-oc-id {
+  color: var(--text-2); font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.cmp-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong); border-radius: var(--r-lg);
+  transition: border-color .12s, background .12s;
+}
+.cmp-drop:hover { border-color: var(--accent); background: var(--accent-weak); }
+.cmp-drop input { display: none; }
+.cmp-drop-icon { width: 26px; height: 26px; color: var(--text-3); margin-bottom: 4px; }
+.cmp-drop:hover .cmp-drop-icon { color: var(--accent-text); }
+.cmp-drop-label { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.cmp-drop-hint { font-size: 12px; color: var(--text-3); }
+.cmp-drop-file {
+  display: none; margin-top: 8px; padding: 4px 8px; max-width: 100%;
+  border-radius: var(--r-sm); background: var(--surface);
+  border: 1px solid var(--border);
+  font: 12px/1.4 var(--mono); color: var(--accent-text);
+  overflow-wrap: anywhere;
+}
+.cmp-drop.is-selected { border-style: solid; border-color: var(--accent); }
+
+.cmp-form-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+
+/* ── resultado ────────────────────────────────────────── */
+.cmp-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.cmp-meta strong { color: var(--text-2); font-weight: 500; }
+
+.kpi.is-ok .kpi-value { color: var(--ok); }
+.kpi.is-err .kpi-value { color: var(--err); }
+
+.cmp-filtros .tbl-filter-btn.active { background: var(--surface-3); color: var(--text); }
+.cmp-count {
+  color: var(--text-3); font-weight: 400; font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.cmp-search { flex: 0 1 280px; min-width: 200px; }
+
+.cmp-table th, .cmp-table td { white-space: nowrap; }
+.cmp-table .td-cod { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--text); }
+.cmp-table .td-desc {
+  max-width: 320px; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-2);
+}
+.cmp-table .td-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* bloco OC | bloco orçamento/resultado */
+.cmp-table .th-preco-orc, .cmp-table .td-preco-orc { border-left: 1px solid var(--border); }
+.cmp-table .td-total-oc { font-weight: 600; color: var(--text); }
+.cmp-table .td-preco-orc { color: var(--text-2); }
+.cmp-table .th-desconto { color: var(--ok); }
+.cmp-table .td-desconto { font-weight: 600; color: var(--ok); }
+.preco-final-ok { color: var(--ok); font-weight: 600; }
+.preco-final-bad { color: var(--err); }
+
+.cmp-obs { margin-left: 4px; background: var(--surface-3); color: var(--text-2); }
+
+@media (max-width: 1280px) {
+  .cmp-table .td-desc { max-width: 220px; }
+  .cmp-table th, .cmp-table td { padding-left: 10px; padding-right: 10px; }
+}

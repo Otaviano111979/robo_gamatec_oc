@@ -1,211 +1,162 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Resultado Comparação — Vortex</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
-  <style>
-    body { background: transparent; min-height:100vh; padding: 24px; font-family: 'Inter', sans-serif; color: var(--text); }
-
-    .cmp-header { max-width: 1200px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .cmp-title  { font-family: 'Syncopate', monospace; font-size: 14px; font-weight: 700; letter-spacing: .06em; color: var(--primary); }
-    .cmp-sub    { font-size: 12px; color: var(--subtext); margin-top: 2px; }
-
-    .cmp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn-dl   { background: var(--primary); border: 1px solid rgba(0, 119, 255, 0.22); border-radius: 12px; color: #ffffff; padding: 10px 16px; font-size: 13px; text-decoration: none; transition: background .2s, box-shadow .2s, transform .15s; white-space: nowrap; box-shadow: var(--shadow-soft); }
-    .btn-dl:hover { background: var(--primary-hover); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-    .btn-back { background: var(--secondary-btn); border: 1px solid var(--border); border-radius: 12px; color: var(--text); padding: 10px 16px; font-size: 13px; text-decoration: none; transition: background .2s, transform .15s; }
-    .btn-back:hover { background: var(--secondary-btn-hover); transform: translateY(-1px); }
-
-    /* Stats */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; max-width: 1200px; margin: 0 auto 20px; }
-    .stat  { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); }
-    .stat-val { font-size: 28px; font-weight: 700; margin-bottom: 4px; font-family: monospace; }
-    .stat-lbl { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: .06em; }
-    .stat.ok  .stat-val { color: var(--primary); }
-    .stat.abx .stat-val { color: var(--success); }
-    .stat.warn .stat-val { color: var(--warning); }
-    .stat.err  .stat-val { color: var(--danger); }
-
-    /* Tabela */
-    .tbl-wrap { max-width: 1200px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
-    .tbl-filters { display: flex; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; background: var(--surface); }
-    .tbl-filter-btn { font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--subtext); transition: all .15s; }
-    .tbl-filter-btn.active { border-color: rgba(0, 119, 255, 0.35); color: var(--primary); background: rgba(0, 119, 255, 0.06); }
-    .tbl-search { flex: 1; min-width: 180px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); padding: 8px 12px; font-size: 13px; outline: none; }
-    .tbl-search:focus { border-color: rgba(0, 119, 255, 0.45); box-shadow: 0 0 0 4px var(--ring); }
-
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead th { padding: 12px 12px; text-align: left; font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: .06em; background: var(--table-head); border-bottom: 1px solid var(--border); white-space: nowrap; }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
-    tbody tr:hover { background: var(--hover-blue); }
-    tbody tr:last-child { border-bottom: none; }
-    td { padding: 10px 12px; vertical-align: middle; }
-
-    /* Colunas coloridas */
-    .td-cod   { font-family: monospace; color: var(--primary); font-weight: 600; white-space: nowrap; }
-    .td-desc  { color: var(--text); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .td-num   { font-family: monospace; text-align: right; white-space: nowrap; }
-
-    /* Coluna Preço OC — fundo azul escuro */
-    .td-preco-oc { font-family: monospace; text-align: right; white-space: nowrap;
-                   background: rgba(0, 119, 255, 0.05); color: rgba(0, 119, 255, 0.85); }
-
-    /* Coluna Valor Total OC — fundo azul um pouco mais forte */
-    .td-total-oc { font-family: monospace; text-align: right; white-space: nowrap;
-                   background: rgba(0, 119, 255, 0.08); color: var(--primary); font-weight: 700; }
-
-    /* Coluna Preço Orçamento */
-    .td-preco-orc { font-family: monospace; text-align: right; white-space: nowrap;
-                    background: rgba(245, 158, 11, 0.06); color: rgba(180, 110, 0, 0.95); }
-
-    /* Coluna Desconto — verde */
-    .td-desconto { font-family: monospace; text-align: right; white-space: nowrap;
-                   background: rgba(16, 185, 129, 0.10); color: var(--success); font-weight: 700; }
-
-    /* Coluna Preço Final */
-    .td-preco-final { font-family: monospace; text-align: right; white-space: nowrap; }
-    .preco-final-ok  { color: var(--success); font-weight: 700; }
-    .preco-final-bad { color: var(--danger); }
-
-    .badge { display: inline-block; font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
-    .badge-ok   { background: rgba(16, 185, 129, 0.10); color: var(--success); border-color: rgba(16, 185, 129, 0.18); }
-    .badge-abx  { background: rgba(0, 119, 255, 0.08);  color: var(--primary); border-color: rgba(0, 119, 255, 0.18); }
-    .badge-warn { background: rgba(245, 158, 11, 0.10); color: rgba(180, 110, 0, 0.95); border-color: rgba(245, 158, 11, 0.18); }
-    .badge-err  { background: rgba(255, 69, 58, 0.10); color: var(--danger); border-color: rgba(255, 69, 58, 0.18); }
-    .badge-limit { background: rgba(125, 211, 252, 0.12); color: rgba(2, 132, 199, 0.95); border-color: rgba(125, 211, 252, 0.35); }
-
-    .empty { text-align: center; padding: 40px; color: var(--subtext); font-size: 13px; }
-
-    /* Header das colunas coloridas */
-    thead th.th-preco-oc   { background: rgba(0, 119, 255, 0.06); color: rgba(0, 119, 255, 0.85); }
-    thead th.th-total-oc   { background: rgba(0, 119, 255, 0.09); color: var(--primary); }
-    thead th.th-preco-orc  { background: rgba(245, 158, 11, 0.06); color: rgba(180, 110, 0, 0.95); }
-    thead th.th-desconto   { background: rgba(16, 185, 129, 0.10); color: var(--success); }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparação de descontos | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
 </head>
-<body class="ios-body">
+<body class="page-comparador">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
 
-  <div class="cmp-header">
-    <div>
-      <div class="cmp-title">Comparação de Descontos</div>
-      <div class="cmp-sub">
-        OC: {{ oc_id }} &nbsp;·&nbsp;
-        Orçamento: {{ dados.numero_orcamento }} &nbsp;·&nbsp;
-        Emissão: {{ dados.emissao }}
-      </div>
-    </div>
-    <div class="cmp-actions">
-      <a href="{{ url_for('comparador.upload_page', oc_id=oc_id) }}" class="btn-back">← Novo orçamento</a>
-      <a href="{{ url_for('comparador.download', oc_id=oc_id) }}" class="btn-dl">↓ Baixar planilha GAMATEC</a>
-    </div>
-  </div>
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Comparação de descontos</h1>
+          <p class="cmp-meta">
+            <span>OC <span class="mono cmp-oc-id">{{ oc_id }}</span></span>
+            <span>Orçamento <strong>{{ dados.numero_orcamento }}</strong></span>
+            <span>Emissão <strong>{{ dados.emissao }}</strong></span>
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="/ocs" class="btn btn-ghost">Voltar às OCs</a>
+          <a href="{{ url_for('comparador.upload_page', oc_id=oc_id) }}" class="btn">Novo orçamento</a>
+          <a href="{{ url_for('comparador.download', oc_id=oc_id) }}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            Baixar planilha GAMATEC
+          </a>
+        </div>
+      </header>
 
-  <!-- Stats -->
-  <div class="stats">
-    <div class="stat ok">
-      <div class="stat-val">{{ stats.ok }}</div>
-      <div class="stat-lbl">✓ Com desconto</div>
-    </div>
-    <div class="stat abx">
-      <div class="stat-val">{{ stats.abaixo }}</div>
-      <div class="stat-lbl">↓ Já abaixo da OC</div>
-    </div>
-    <div class="stat warn">
-      <div class="stat-val">{{ stats.sem_orc }}</div>
-      <div class="stat-lbl">⚠ Sem orçamento</div>
-    </div>
-    <div class="stat err">
-      <div class="stat-val">{{ stats.sem_oc }}</div>
-      <div class="stat-lbl">✗ Fora da OC</div>
-    </div>
-    <div class="stat ok">
-      <div class="stat-val">{{ stats.para_gamatec }}</div>
-      <div class="stat-lbl">→ Para o GAMATEC</div>
-    </div>
-  </div>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for m in messages %}
+              <div class="alert alert-warn">{{ m }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
 
-  <!-- Tabela -->
-  <div class="tbl-wrap">
-    <div class="tbl-filters">
-      <button class="tbl-filter-btn active" onclick="filtrar('TODOS', this)">Todos</button>
-      <button class="tbl-filter-btn" onclick="filtrar('OK', this)">✓ Com desconto</button>
-      <button class="tbl-filter-btn" onclick="filtrar('ABAIXO', this)">↓ Já abaixo</button>
-      <button class="tbl-filter-btn" onclick="filtrar('SEM_ORC', this)">⚠ Sem orçamento</button>
-      <button class="tbl-filter-btn" onclick="filtrar('SEM_OC', this)">✗ Fora da OC</button>
-      <input class="tbl-search" placeholder="Buscar código ou descrição..." oninput="buscar(this.value)">
-    </div>
+      <section class="kpis">
+        <div class="kpi is-ok">
+          <div class="kpi-label">Com desconto</div>
+          <div class="kpi-value">{{ stats.ok }}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Já abaixo da OC</div>
+          <div class="kpi-value">{{ stats.abaixo }}</div>
+        </div>
+        <div class="kpi {{ 'is-warn' if stats.sem_orc }}">
+          <div class="kpi-label">Sem orçamento</div>
+          <div class="kpi-value">{{ stats.sem_orc }}</div>
+        </div>
+        <div class="kpi {{ 'is-err' if stats.sem_oc }}">
+          <div class="kpi-label">Fora da OC</div>
+          <div class="kpi-value">{{ stats.sem_oc }}</div>
+        </div>
+        <div class="kpi is-run">
+          <div class="kpi-label">Para o GAMATEC</div>
+          <div class="kpi-value">{{ stats.para_gamatec }}<small>de {{ stats.total }}</small></div>
+        </div>
+      </section>
 
-    <table id="tabelaComparacao">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Descrição</th>
-          <th>Qtde</th>
-          <th class="th-preco-oc">Preço OC</th>
-          <th class="th-total-oc">Total OC</th>
-          <th class="th-preco-orc">Preço Orç.</th>
-          <th class="th-desconto">Desconto %</th>
-          <th>Preço Final</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in registros %}
-        {% set qtde = r.QUANTIDADE if r.QUANTIDADE else 0 %}
-        {% set total_oc = (qtde * r.PRECO_OC) if (r.PRECO_OC and qtde) else None %}
-        <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO }} {{ r.DESCRICAO }}">
-          <td class="td-cod">{{ r.CODIGO }}</td>
-          <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
-          <td class="td-num">{{ qtde if qtde else '—' }}</td>
-          <td class="td-preco-oc">
-            {% if r.PRECO_OC %}R$ {{ "%.3f"|format(r.PRECO_OC) }}{% else %}—{% endif %}
-          </td>
-          <td class="td-total-oc">
-            {% if total_oc %}R$ {{ "%.2f"|format(total_oc) }}{% else %}—{% endif %}
-          </td>
-          <td class="td-preco-orc">
-            {% if r.PRECO_ORCAMENTO %}R$ {{ "%.3f"|format(r.PRECO_ORCAMENTO) }}{% else %}—{% endif %}
-          </td>
-          <td class="td-desconto">
-            {% if r.DESCONTO is not none %}
-              {{ "%.5f"|format(r.DESCONTO)|replace(",",".") }}%
-            {% else %}—{% endif %}
-          </td>
-          <td class="td-preco-final">
-            {% if r.PRECO_FINAL is not none %}
-              {% if r.STATUS in ('OK','ABAIXO') %}
-                <span class="preco-final-ok">R$ {{ r.PRECO_FINAL }}</span>
+      <section class="panel">
+        <div class="toolbar">
+          <div class="btn-group cmp-filtros" role="group" aria-label="Filtrar por status">
+            <button class="btn btn-sm tbl-filter-btn active" type="button" onclick="filtrar('TODOS', this)">Todos <span class="cmp-count">{{ stats.total }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('OK', this)">Com desconto <span class="cmp-count">{{ stats.ok }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('ABAIXO', this)">Já abaixo <span class="cmp-count">{{ stats.abaixo }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM_ORC', this)">Sem orçamento <span class="cmp-count">{{ stats.sem_orc }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM_OC', this)">Fora da OC <span class="cmp-count">{{ stats.sem_oc }}</span></button>
+          </div>
+          <div class="spacer"></div>
+          <div class="input-search cmp-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="input tbl-search" type="text" placeholder="Buscar código ou descrição" aria-label="Buscar código ou descrição" oninput="buscar(this.value)">
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table cmp-table" id="tabelaComparacao">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th class="t-right">Qtde</th>
+                <th class="t-right th-preco-oc">Preço OC</th>
+                <th class="t-right th-total-oc">Total OC</th>
+                <th class="t-right th-preco-orc">Preço orç.</th>
+                <th class="t-right th-desconto">Desconto %</th>
+                <th class="t-right">Preço final</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in registros %}
+              {% set qtde = r.QUANTIDADE if r.QUANTIDADE else 0 %}
+              {% set total_oc = (qtde * r.PRECO_OC) if (r.PRECO_OC and qtde) else None %}
+              <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO }} {{ r.DESCRICAO }}">
+                <td class="td-cod">{{ r.CODIGO }}</td>
+                <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
+                <td class="td-num">{{ qtde if qtde else '—' }}</td>
+                <td class="td-num td-preco-oc">
+                  {% if r.PRECO_OC %}R$ {{ "%.3f"|format(r.PRECO_OC) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-total-oc">
+                  {% if total_oc %}R$ {{ "%.2f"|format(total_oc) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-preco-orc">
+                  {% if r.PRECO_ORCAMENTO %}R$ {{ "%.3f"|format(r.PRECO_ORCAMENTO) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-desconto">
+                  {% if r.DESCONTO is not none %}
+                    {{ "%.5f"|format(r.DESCONTO)|replace(",",".") }}%
+                  {% else %}—{% endif %}
+                </td>
+                <td class="td-num td-preco-final">
+                  {% if r.PRECO_FINAL is not none %}
+                    {% if r.STATUS in ('OK','ABAIXO') %}
+                      <span class="preco-final-ok">R$ {{ r.PRECO_FINAL }}</span>
+                    {% else %}
+                      <span class="preco-final-bad">R$ {{ r.PRECO_FINAL }}</span>
+                    {% endif %}
+                  {% else %}—{% endif %}
+                </td>
+                <td class="td-status">
+                  {% if r.STATUS == 'OK' %}
+                    <span class="chip chip-ok">OK</span>
+                  {% elif r.STATUS == 'ABAIXO' %}
+                    <span class="chip chip-accent">Abaixo</span>
+                  {% elif r.STATUS == 'SEM_ORC' %}
+                    <span class="chip chip-warn">Sem orç.</span>
+                  {% elif r.STATUS == 'SEM_OC' %}
+                    <span class="chip chip-err">Fora da OC</span>
+                  {% else %}
+                    <span class="chip chip-warn">{{ r.STATUS }}</span>
+                  {% endif %}
+                  {% if r.OBS %}
+                    <span class="badge cmp-obs">{{ r.OBS }}</span>
+                  {% endif %}
+                </td>
+              </tr>
               {% else %}
-                <span class="preco-final-bad">R$ {{ r.PRECO_FINAL }}</span>
-              {% endif %}
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            {% if r.STATUS == 'OK' %}
-              <span class="badge badge-ok">✓ OK</span>
-            {% elif r.STATUS == 'ABAIXO' %}
-              <span class="badge badge-abx">↓ Abaixo</span>
-            {% elif r.STATUS == 'SEM_ORC' %}
-              <span class="badge badge-warn">⚠ Sem orç.</span>
-            {% elif r.STATUS == 'SEM_OC' %}
-              <span class="badge badge-err">✗ Fora OC</span>
-            {% else %}
-              <span class="badge badge-warn">{{ r.STATUS }}</span>
-            {% endif %}
-            {% if r.OBS %}
-              <span class="badge badge-limit">{{ r.OBS }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="9" class="empty">Nenhum item encontrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              <tr><td colspan="9" class="empty">Nenhum item encontrado.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-foot">
+          <span><span id="cmpVisiveis">{{ registros|length }}</span> de {{ registros|length }} itens visíveis</span>
+          <span>A planilha GAMATEC inclui apenas os itens com desconto ou já abaixo da OC.</span>
+        </div>
+      </section>
+    </main>
   </div>
 
   <script>
@@ -222,12 +173,17 @@
 
     function aplicarFiltros(q) {
       const busca = (q !== undefined ? q : document.querySelector('.tbl-search').value).toLowerCase();
+      let visiveis = 0;
       document.querySelectorAll('#tabelaComparacao tbody tr[data-status]').forEach(tr => {
         const statusOk = filtroAtivo === 'TODOS' || tr.dataset.status === filtroAtivo;
         const buscaOk  = !busca || tr.dataset.busca.toLowerCase().includes(busca);
         tr.style.display = (statusOk && buscaOk) ? '' : 'none';
+        if (statusOk && buscaOk) visiveis++;
       });
+      const cont = document.getElementById('cmpVisiveis');
+      if (cont) cont.textContent = visiveis;
     }
   </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

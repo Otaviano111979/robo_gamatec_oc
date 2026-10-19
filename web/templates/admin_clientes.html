@@ -3,75 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Clientes | Vortex Sync</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
+  <title>Clientes | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
 </head>
-<body class="ios-body">
-  <header class="topbar">
-    <div>
-      <h1 class="page-title">Administração de Clientes</h1>
-      <p class="page-subtitle">Cadastro de clientes do sistema</p>
-    </div>
+<body>
+  <div class="app">
+    {% set nav_ativo = 'clientes' %}
+    {% include '_sidebar.html' %}
 
-    <div class="topbar-actions">
-      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-      <a href="/ocs" class="ios-button secondary">OCs</a>
-      <a href="/logout" class="ios-button danger ghost">Sair</a>
-    </div>
-  </header>
-
-  <main class="page-grid">
-    <section class="ios-card">
-      <div class="card-header">
+    <main class="main page-narrow">
+      <header class="page-head">
         <div>
-          <h2>Novo cliente</h2>
-          <p>Cadastro simples para gestão futura por cliente.</p>
+          <h1>Clientes</h1>
+          <p>Cadastro de clientes do sistema.</p>
         </div>
+      </header>
+
+      <div class="split">
+        <section class="panel">
+          <div class="panel-head"><h2>Novo cliente</h2></div>
+          <form method="post" class="panel-body form-stack">
+            <div class="field">
+              <label for="nome">Nome do cliente</label>
+              <input id="nome" name="nome" type="text" class="input" placeholder="Nome do cliente" required>
+            </div>
+            <div><button class="btn btn-primary" type="submit">Salvar cliente</button></div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Clientes cadastrados</h2>
+            <span class="badge neutral-state">{{ clientes|length }}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Nome</th></tr>
+              </thead>
+              <tbody>
+                {% for cliente in clientes %}
+                <tr><td>{{ cliente.nome }}</td></tr>
+                {% else %}
+                <tr><td class="empty-cell">Nenhum cliente cadastrado.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-
-      <form method="post" class="ios-form">
-        <div class="ios-field">
-          <label for="nome">Nome do cliente</label>
-          <input id="nome" name="nome" type="text" placeholder="Digite o nome do cliente" required>
-        </div>
-
-        <button class="ios-button primary" type="submit">Salvar cliente</button>
-      </form>
-    </section>
-
-    <section class="ios-card">
-      <div class="card-header">
-        <div>
-          <h2>Clientes cadastrados</h2>
-          <p>Base atual de clientes.</p>
-        </div>
-        <span class="badge">{{ clientes|length }} cliente(s)</span>
-      </div>
-
-      <div class="table-wrap">
-        <table class="ios-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if clientes %}
-              {% for cliente in clientes %}
-              <tr>
-                <td>{{ cliente.nome }}</td>
-              </tr>
-              {% endfor %}
-            {% else %}
-              <tr>
-                <td class="empty-cell">Nenhum cliente cadastrado.</td>
-              </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+    </main>
+  </div>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

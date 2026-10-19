@@ -268,7 +268,7 @@ function aplicarConclusaoNoPainel(nomeArquivo, data) {
     ? nomeArquivo.substring(0, 30) + "..."
     : nomeArquivo;
 
-  document.title = "✅ Concluído — " + nomeResumido;
+  document.title = "Concluído — " + nomeResumido;
 
   // restaura o titulo original apos 30 segundos
   setTimeout(() => {
@@ -1167,7 +1167,7 @@ function mostrarArquivoSelecionado(input) {
 
   if (input.files && input.files.length > 0) {
     const arquivo = input.files[0];
-    nomeEl.textContent = "📄 " + arquivo.name;
+    nomeEl.textContent = arquivo.name;
     preview.style.display = "flex";
     texto.textContent = "Trocar arquivo";
     label.classList.add("arquivo-selecionado");
@@ -1186,7 +1186,7 @@ function limparUpload() {
 
   if (input) input.value = "";
   if (preview) preview.style.display = "none";
-  if (texto) texto.textContent = "📎 Selecionar PDF da OC";
+  if (texto) texto.textContent = "Selecionar PDF";
   if (label) label.classList.remove("arquivo-selecionado");
   if (btnEnviar) btnEnviar.disabled = true;
 }
@@ -1231,7 +1231,7 @@ async function aepCarregarStatus() {
     if (alerta) {
       if (data.token_expirado) {
         alerta.style.display = "";
-        alerta.innerHTML = "⚠️ Token expirado — execute <strong>python rodar_agente_email.py</strong> no terminal para reautenticar.";
+        alerta.innerHTML = "Token expirado — execute <strong>python rodar_agente_email.py</strong> no terminal para reautenticar.";
         if (ind) ind.className = "aep-indicador-bar erro";
       } else {
         alerta.style.display = "none";
@@ -1319,14 +1319,14 @@ function vortexLoading(msg, progresso) {
   const msgEl   = document.getElementById("vlo-msg");
   const barEl   = document.getElementById("vlo-bar");
   if (overlay) overlay.classList.add("ativo");
-  if (msgEl)   msgEl.textContent = (msg || "PROCESSANDO...").toUpperCase();
+  if (msgEl)   msgEl.textContent = (msg || "Processando...");
   if (barEl && progresso != null) barEl.style.width = progresso + "%";
 }
 
 function vortexLoadingMsg(msg, progresso) {
   const msgEl = document.getElementById("vlo-msg");
   const barEl = document.getElementById("vlo-bar");
-  if (msgEl) msgEl.textContent = (msg || "").toUpperCase();
+  if (msgEl) msgEl.textContent = (msg || "");
   if (barEl && progresso != null) barEl.style.width = progresso + "%";
 }
 
@@ -1402,7 +1402,7 @@ function mostrarPassoCalibracao() {
   const btn = document.getElementById("btn-capturar");
   if (btn) {
     btn.disabled = false;
-    btn.textContent = "🎯 Capturar";
+    btn.textContent = "Capturar";
   }
 }
 
@@ -1413,8 +1413,8 @@ function contarRegressiva(segundos, elementoFeedback) {
     function tick() {
       if (elementoFeedback) {
         elementoFeedback.innerHTML =
-          `⏳ Posicione o mouse no GAMATEC...<br>` +
-          `<span style="font-size:28px; font-weight:700; letter-spacing:2px;">${restante}</span>`;
+          `Posicione o mouse no GAMATEC...<br>` +
+          `<span class="num" style="font-size:24px; font-weight:600;">${restante}</span>`;
       }
 
       if (restante <= 0) {
@@ -1450,7 +1450,7 @@ async function capturarPonto() {
   await contarRegressiva(ESPERA, feedback);
 
   if (feedback) {
-    feedback.textContent = "📸 Capturando posição...";
+    feedback.textContent = "Capturando posição...";
   }
 
   try {
@@ -1466,18 +1466,18 @@ async function capturarPonto() {
     if (!data.ok) {
       if (feedback) {
         feedback.className = "calib-feedback calib-feedback-erro";
-        feedback.textContent = "❌ " + data.mensagem;
+        feedback.textContent = data.mensagem;
       }
       if (btn) {
         btn.disabled = false;
-        btn.textContent = "🎯 Tentar novamente";
+        btn.textContent = "Tentar novamente";
       }
       return;
     }
 
     if (feedback) {
       feedback.className = "calib-feedback calib-feedback-ok";
-      feedback.textContent = `✅ Capturado: (${data.x}, ${data.y})`;
+      feedback.textContent = `Capturado: (${data.x}, ${data.y})`;
     }
 
     // avança para o próximo ponto após 1 segundo
@@ -1494,11 +1494,11 @@ async function capturarPonto() {
   } catch (e) {
     if (feedback) {
       feedback.className = "calib-feedback calib-feedback-erro";
-      feedback.textContent = "❌ Erro ao capturar ponto.";
+      feedback.textContent = "Erro ao capturar ponto.";
     }
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "🎯 Tentar novamente";
+      btn.textContent = "Tentar novamente";
     }
   }
 }
@@ -1525,10 +1525,10 @@ async function salvarCalibracao() {
     const resumo = document.getElementById("calib-resumo-pontos");
     if (resumo) {
       resumo.innerHTML = `
-        <p style="font-size:13px; color:var(--subtext);">
-          ✔ ${calibracaoPontos.length} pontos capturados<br>
-          ✔ Passo de linha: ${data.passo_linha}px<br>
-          ✔ Arquivo salvo em: saida/calibracao_gamatec.json
+        <p class="calib-resumo">
+          ${calibracaoPontos.length} pontos capturados<br>
+          Passo de linha: ${data.passo_linha}px<br>
+          Arquivo salvo em: saida/calibracao_gamatec.json
         </p>`;
     }
 
@@ -1607,16 +1607,16 @@ async function verificarCalibracao() {
     if (!data.calibrado) {
       if (btnIniciar) {
         btnIniciar.disabled = true;
-        btnIniciar.textContent = "⚠️ Calibração necessária";
+        btnIniciar.textContent = "Calibração necessária";
       }
       if (infoBox) {
         const aviso = document.createElement("div");
         aviso.id = "calib-aviso-automacao"; // id fixo para poder remover depois
         aviso.className = "flash-msg flash-erro";
         aviso.style.marginTop = "10px";
-        aviso.innerHTML = `⚠️ Calibração não encontrada.
-          <br><button class="ios-button small primary" style="margin-top:8px;"
-            onclick="fecharModalAutomacaoECalibar()">🎯 Calibrar agora</button>`;
+        aviso.innerHTML = `Calibração não encontrada.
+          <br><button class="btn btn-sm btn-primary" style="margin-top:8px;"
+            onclick="fecharModalAutomacaoECalibar()">Calibrar agora</button>`;
         infoBox.appendChild(aviso);
       }
     }
@@ -1686,7 +1686,7 @@ async function iniciarAutomacao() {
     if (statusWrap) statusWrap.style.display = "";
     if (footer) footer.style.display = "none";
     if (logEl) logEl.textContent = "Automação iniciada. Aguardando resposta do GAMATEC...";
-    if (statusLabel) statusLabel.textContent = "🔄 Executando...";
+    if (statusLabel) statusLabel.textContent = "Executando...";
 
     automacaoPollingId = setInterval(consultarStatusAutomacao, 2000);
 
@@ -1717,7 +1717,7 @@ async function consultarStatusAutomacao() {
     }
 
     if (data.automatizando) {
-      if (statusLabel) statusLabel.textContent = "🔄 Executando...";
+      if (statusLabel) statusLabel.textContent = "Executando...";
       return;
     }
 
@@ -1729,7 +1729,7 @@ async function consultarStatusAutomacao() {
     if (status && status.itens) {
       exibirResultadoAutomacao(status);
     } else {
-      if (statusLabel) statusLabel.textContent = "✅ Finalizado";
+      if (statusLabel) statusLabel.textContent = "Finalizado";
       exibirResultadoSimples();
     }
 
@@ -1744,7 +1744,7 @@ function exibirResultadoAutomacao(status) {
   const resumoEl = document.getElementById("automacao-resumo-itens");
   const statusLabel = document.getElementById("automacao-status-label");
 
-  if (statusLabel) statusLabel.textContent = "✅ Concluído — revise abaixo";
+  if (statusLabel) statusLabel.textContent = "Concluído — revise abaixo";
   if (statusWrap) statusWrap.style.display = "";
   if (resultadoWrap) resultadoWrap.style.display = "";
 
@@ -1758,7 +1758,7 @@ function exibirResultadoAutomacao(status) {
   itens.forEach(function(item) {
     const ok = item.status === "SUCESSO_VALIDADO" || item.status === "ITEM_OK_VALIDAR_E_SEGUIR";
     const statusClass = ok ? "status-pill status-ok" : "status-pill status-warning";
-    const statusTexto = ok ? "✅ OK" : "⚠️ Revisar";
+    const statusTexto = ok ? "OK" : "Revisar";
 
     html += `<tr>
       <td>${item.codigo || "—"}</td>
@@ -1934,7 +1934,11 @@ function toggleMenu(btn) {
   const estaAberto = menu.classList.contains("aberto");
   fecharMenus();
   if (!estaAberto) {
+    menu.classList.remove("acima");
     menu.classList.add("aberto");
+    const limite = menu.closest(".table-wrap") || document.documentElement;
+    const fundo = Math.min(limite.getBoundingClientRect().bottom, window.innerHeight);
+    if (menu.getBoundingClientRect().bottom > fundo) menu.classList.add("acima");
   }
 }
 
@@ -1946,6 +1950,8 @@ document.addEventListener("click", function (e) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
+  // o arranque abaixo consome estado do localStorage da fila de OCs; noutras páginas só o tema é usado
+  if (!document.body.classList.contains("page-ocs")) return;
   registrarInterceptacaoProcessar();
   registrarInterceptacaoMover();
   registrarInterceptacaoRemover();

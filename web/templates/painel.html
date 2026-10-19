@@ -3,511 +3,193 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortex | Painel de Controle</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vortex_theme.css') }}">
-  <style>
-    .painel-grid {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 20px 60px 20px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    @media (max-width: 700px) {
-      .painel-grid { grid-template-columns: 1fr; }
-    }
-
-    .painel-secao {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-
-    .painel-secao-full {
-      grid-column: 1 / -1;
-    }
-
-    .painel-secao-titulo {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.25em;
-      color: var(--subtext);
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* SAUDE */
-    .saude-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .saude-item:last-child { border-bottom: none; }
-
-    .saude-item-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .saude-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .saude-dot.ok     { background: #10b981; box-shadow: 0 0 6px #10b98166; }
-    .saude-dot.aviso  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b66; }
-    .saude-dot.erro   { background: #ff453a; box-shadow: 0 0 6px #ff453a66; }
-    .saude-dot.inativo { background: var(--neutral); }
-
-    .saude-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .saude-detalhe {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--subtext);
-      letter-spacing: 0.05em;
-      text-align: right;
-    }
-
-    /* MÉTRICAS */
-    .metricas-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    @media (max-width: 600px) {
-      .metricas-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .metrica-card {
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .metrica-numero {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--vortex-cyan, #00d4ff);
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .metrica-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--subtext);
-      text-transform: uppercase;
-    }
-
-    .clientes-wrap {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .cliente-chip {
-      background: rgba(0,212,255,0.08);
-      border: 1px solid rgba(0,212,255,0.2);
-      border-radius: 8px;
-      padding: 4px 10px;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--vortex-cyan, #00d4ff);
-      letter-spacing: 0.1em;
-    }
-
-    /* REVISÃO EMAILS */
-    .revisao-lista {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .revisao-item {
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .revisao-info { flex: 1; min-width: 0; }
-
-    .revisao-assunto {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 4px;
-    }
-
-    .revisao-meta {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      color: var(--subtext);
-      letter-spacing: 0.05em;
-    }
-
-    .revisao-motivo {
-      display: inline-block;
-      background: rgba(245,158,11,0.10);
-      border: 1px solid rgba(245,158,11,0.25);
-      border-radius: 6px;
-      padding: 2px 7px;
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      color: #f59e0b;
-      margin-top: 4px;
-    }
-
-    .revisao-acoes {
-      display: flex;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .badge-cliente-novo {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(249,115,22,0.12);
-      border: 1px solid rgba(249,115,22,0.35);
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      font-weight: 700;
-      color: #f97316;
-      letter-spacing: 0.05em;
-    }
-
-    .revisao-vazio {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: var(--subtext);
-      text-align: center;
-      padding: 24px 0;
-      letter-spacing: 0.1em;
-    }
-
-    /* GESTÃO DE BASES */
-    .bases-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    @media (max-width: 700px) {
-      .bases-grid { grid-template-columns: 1fr; }
-    }
-
-    .base-card {
-      background: var(--surface, var(--bg-secondary));
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-    }
-
-    .base-card-titulo {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--text);
-      margin-bottom: 8px;
-    }
-
-    .base-card-info {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--subtext);
-      letter-spacing: 0.05em;
-      margin-bottom: 14px;
-      line-height: 1.6;
-    }
-
-    .base-upload-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .base-upload-input {
-      display: none;
-    }
-
-    .base-upload-label {
-      display: block;
-      background: var(--hover-blue, rgba(0,119,255,0.05));
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      text-align: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--subtext);
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      letter-spacing: 0.1em;
-    }
-
-    .base-upload-label:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-
-    .base-upload-nome {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--vortex-cyan, #00d4ff);
-      text-align: center;
-      display: none;
-    }
-
-    .base-status {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      text-align: center;
-      padding: 4px;
-      border-radius: 6px;
-      display: none;
-    }
-
-    .base-status.ok   { color: #10b981; background: rgba(16,185,129,0.08); }
-    .base-status.erro { color: #ff453a; background: rgba(255,69,58,0.08); }
-
-    /* Navegação */
-    .painel-nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 20px;
-      margin-bottom: 4px;
-    }
-
-    .painel-nav a {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      color: var(--subtext);
-      text-decoration: none;
-      text-transform: uppercase;
-      padding: 4px 0;
-      border-bottom: 1px solid transparent;
-      transition: color 0.2s, border-color 0.2s;
-    }
-
-    .painel-nav a:hover,
-    .painel-nav a.ativo {
-      color: var(--vortex-cyan, #00d4ff);
-      border-bottom-color: var(--vortex-cyan, #00d4ff);
-    }
-
-    .painel-nav-sep { color: var(--border); font-size: 12px; }
-  </style>
+  <title>Painel de controle | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_painel.css') }}">
 </head>
-<body class="ios-body">
+<body class="page-painel">
+  <div class="app">
+    {% set nav_ativo = 'painel' %}
+    {% include '_sidebar.html' %}
 
-  <header class="topbar-vortex">
-    <div class="vortex-header">
-      <div class="vortex-spinner">
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
-        <div class="vs-ring"></div>
-        <div class="vs-dot"></div>
-      </div>
-      <div>
-        <div class="vortex-wordmark">Vortex <span>Sync</span></div>
-        <div class="vortex-sub">Painel de Controle</div>
-      </div>
-    </div>
-    <div class="topbar-actions">
-      <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-      <a href="/ocs" class="ios-button secondary">OCs</a>
-      <span class="usuario-logado" style="font-size:10px;opacity:0.6;">{{ nivel|upper }}</span>
-      <span class="usuario-logado">👤 {{ session.get('user') }}</span>
-      <a href="/logout" class="ios-button danger ghost" onclick="return confirm('Deseja realmente sair?')">Sair</a>
-    </div>
-  </header>
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Painel de controle</h1>
+          <p>Saúde do sistema, métricas de processamento e fila de revisão de emails.</p>
+        </div>
+        <div class="page-actions">
+          <span class="chip plain" title="Nível de acesso">{{ nivel }}</span>
+          <a href="/agente-email/config" class="btn btn-sm">Configurar agente de email</a>
+        </div>
+      </header>
 
-  <div style="padding: 20px 20px 0 20px; max-width:1100px; margin: 0 auto;">
-    <div class="painel-nav">
-      <a href="#saude" class="ativo" onclick="navAtivo(this)">Saúde</a>
-      <span class="painel-nav-sep">·</span>
-      <a href="#metricas" onclick="navAtivo(this)">Métricas</a>
-      <a href="#aprendizado" onclick="navAtivo(this)">Aprendizado</a>
-      <span class="painel-nav-sep">·</span>
-      <a href="#revisao" onclick="navAtivo(this)">Revisão Emails</a>
-      <span class="painel-nav-sep">·</span>
-      <a href="/agente-email/config">Config Email</a>
-      <span class="painel-nav-sep">·</span>
+      <nav class="tabs painel-nav" aria-label="Seções do painel">
+        <a href="#saude" class="tab ativo" onclick="navAtivo(this)">Saúde</a>
+        <a href="#metricas" class="tab" onclick="navAtivo(this)">Métricas</a>
+        <a href="#aprendizado" class="tab" onclick="navAtivo(this)">Aprendizado</a>
+        <a href="#revisao" class="tab" onclick="navAtivo(this)">Revisão de emails</a>
+        {% if nivel == "admin" %}
+        <a href="#bases" class="tab" onclick="navAtivo(this)">Bases de dados</a>
+        {% endif %}
+      </nav>
+
+      <div class="painel-cols">
+        <!-- SAÚDE DO SISTEMA -->
+        <section class="panel" id="saude">
+          <div class="panel-head">
+            <div>
+              <h2>Saúde do sistema</h2>
+              <p>Atualizado automaticamente a cada 30 segundos.</p>
+            </div>
+          </div>
+          <div id="saude-lista" class="saude-lista">
+            <div class="revisao-vazio">Carregando...</div>
+          </div>
+        </section>
+
+        <!-- MÉTRICAS -->
+        <section class="panel" id="metricas">
+          <div class="panel-head">
+            <div>
+              <h2>Métricas de processamento</h2>
+              <p>OCs processadas pelo sistema.</p>
+            </div>
+          </div>
+          <div class="kpis kpis-flush kpis-2" id="metricas-nums">
+            <div class="kpi"><div class="kpi-label">Hoje</div><div class="kpi-value" id="met-hoje">—</div></div>
+            <div class="kpi"><div class="kpi-label">Esta semana</div><div class="kpi-value" id="met-semana">—</div></div>
+            <div class="kpi"><div class="kpi-label">Total geral</div><div class="kpi-value" id="met-total">—</div></div>
+            <div class="kpi"><div class="kpi-label">Taxa de match</div><div class="kpi-value" id="met-match">—</div></div>
+          </div>
+          <div class="panel-body">
+            <h3 class="painel-subtitulo">Clientes ativos</h3>
+            <div class="clientes-wrap" id="met-clientes">
+              <span class="muted small">Carregando...</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- APRENDIZADO -->
+      <section class="panel" id="aprendizado">
+        <div class="panel-head">
+          <div>
+            <h2>Aprendizado do sistema</h2>
+            <p>Correções registradas pelos operadores e regras promovidas a partir delas.</p>
+          </div>
+        </div>
+        <div class="kpis kpis-flush" id="aprendizado-nums">
+          <div class="kpi">
+            <div class="kpi-label">Correções registradas</div>
+            <div class="kpi-value" id="apr-correcoes">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Regras automáticas</div>
+            <div class="kpi-value" id="apr-regras">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Clientes com histórico</div>
+            <div class="kpi-value" id="apr-clientes">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Correções para virar regra</div>
+            <div class="kpi-value" id="apr-proxima">2</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <h3 class="painel-subtitulo">Últimas regras promovidas</h3>
+          <div id="apr-ultimas" class="apr-ultimas">
+            Carregando...
+          </div>
+        </div>
+      </section>
+
+      <!-- REVISÃO EMAILS -->
+      <section class="panel" id="revisao">
+        <div class="panel-head">
+          <div>
+            <h2>Fila de revisão de emails</h2>
+            <p>Emails que o agente não conseguiu encaminhar automaticamente.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-sm btn-danger" type="button"
+              onclick="limparFilaRevisao()"
+              title="Remove emails de clientes conhecidos que foram para revisão antes da correção">
+              Limpar fila antiga
+            </button>
+            <button class="btn btn-sm" type="button" onclick="carregarRevisao()">Atualizar</button>
+          </div>
+        </div>
+        <div class="revisao-lista" id="revisao-lista">
+          <div class="revisao-vazio">Carregando...</div>
+        </div>
+      </section>
+
+      <!-- GESTÃO DE BASES — só admin -->
       {% if nivel == "admin" %}
-      <span class="painel-nav-sep">·</span>
-      <a href="#bases" onclick="navAtivo(this)">Bases de Dados</a>
+      <section class="panel" id="bases">
+        <div class="panel-head">
+          <div>
+            <h2>Bases de dados</h2>
+            <p>Envie um novo arquivo para substituir a base de produtos do cliente.</p>
+          </div>
+        </div>
+        <div class="bases-grid">
+
+          <!-- Krona -->
+          <div class="base-card">
+            <div class="base-card-head">
+              <h3 class="base-card-titulo">Krona</h3>
+              <span class="badge">XLSX</span>
+            </div>
+            <div class="base-card-info" id="base-krona-info">Carregando...</div>
+            <div class="base-upload-wrap">
+              <input type="file" id="file-krona" class="base-upload-input" accept=".xlsx,.xls">
+              <label for="file-krona" class="btn btn-sm base-upload-label" id="label-krona">Selecionar XLSX</label>
+              <div class="base-upload-nome" id="nome-krona"></div>
+              <button class="btn btn-sm btn-primary" type="button" onclick="uploadBase('krona')" id="btn-krona" style="display:none;">Atualizar base</button>
+              <div class="base-status" id="status-krona"></div>
+            </div>
+          </div>
+
+          <!-- Brasal -->
+          <div class="base-card">
+            <div class="base-card-head">
+              <h3 class="base-card-titulo">Brasal</h3>
+              <span class="badge">CSV</span>
+            </div>
+            <div class="base-card-info" id="base-brasal-info">Carregando...</div>
+            <div class="base-upload-wrap">
+              <input type="file" id="file-brasal" class="base-upload-input" accept=".csv">
+              <label for="file-brasal" class="btn btn-sm base-upload-label" id="label-brasal">Selecionar CSV</label>
+              <div class="base-upload-nome" id="nome-brasal"></div>
+              <button class="btn btn-sm btn-primary" type="button" onclick="uploadBase('brasal')" id="btn-brasal" style="display:none;">Atualizar base</button>
+              <div class="base-status" id="status-brasal"></div>
+            </div>
+          </div>
+
+          <!-- MRV -->
+          <div class="base-card">
+            <div class="base-card-head">
+              <h3 class="base-card-titulo">MRV</h3>
+              <span class="badge">CSV</span>
+            </div>
+            <div class="base-card-info" id="base-mrv-info">Carregando...</div>
+            <div class="base-upload-wrap">
+              <input type="file" id="file-mrv" class="base-upload-input" accept=".csv">
+              <label for="file-mrv" class="btn btn-sm base-upload-label" id="label-mrv">Selecionar CSV</label>
+              <div class="base-upload-nome" id="nome-mrv"></div>
+              <button class="btn btn-sm btn-primary" type="button" onclick="uploadBase('mrv')" id="btn-mrv" style="display:none;">Atualizar base</button>
+              <div class="base-status" id="status-mrv"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
       {% endif %}
-    </div>
+    </main>
   </div>
-
-  <div class="painel-grid">
-
-    <!-- SAÚDE DO SISTEMA -->
-    <div class="painel-secao painel-secao-full" id="saude">
-      <div class="painel-secao-titulo">
-        <span>⬡</span> Saúde do Sistema
-      </div>
-      <div id="saude-lista">
-        <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--subtext);text-align:center;padding:20px;">Carregando...</div>
-      </div>
-    </div>
-
-    <!-- MÉTRICAS -->
-    <div class="painel-secao painel-secao-full" id="metricas">
-      <div class="painel-secao-titulo">
-        <span>◈</span> Métricas de Processamento
-      </div>
-      <div class="metricas-grid" id="metricas-nums">
-        <div class="metrica-card"><div class="metrica-numero" id="met-hoje">—</div><div class="metrica-label">Hoje</div></div>
-        <div class="metrica-card"><div class="metrica-numero" id="met-semana">—</div><div class="metrica-label">Esta semana</div></div>
-        <div class="metrica-card"><div class="metrica-numero" id="met-total">—</div><div class="metrica-label">Total geral</div></div>
-        <div class="metrica-card"><div class="metrica-numero" id="met-match">—</div><div class="metrica-label">Taxa match</div></div>
-      </div>
-      <div class="painel-secao-titulo" style="margin-top:8px;">Clientes ativos</div>
-      <div class="clientes-wrap" id="met-clientes">
-        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--subtext);">Carregando...</span>
-      </div>
-    </div>
-
-    <!-- APRENDIZADO -->
-    <div class="painel-secao painel-secao-full" id="aprendizado">
-      <div class="painel-secao-titulo">
-        <span>🧠</span> Aprendizado do Sistema
-      </div>
-      <div class="metricas-grid" id="aprendizado-nums">
-        <div class="metrica-card">
-          <div class="metrica-numero" id="apr-correcoes">—</div>
-          <div class="metrica-label">Correções registradas</div>
-        </div>
-        <div class="metrica-card">
-          <div class="metrica-numero" id="apr-regras">—</div>
-          <div class="metrica-label">Regras automáticas</div>
-        </div>
-        <div class="metrica-card">
-          <div class="metrica-numero" id="apr-clientes">—</div>
-          <div class="metrica-label">Clientes com histórico</div>
-        </div>
-        <div class="metrica-card">
-          <div class="metrica-numero" id="apr-proxima">2</div>
-          <div class="metrica-label">Correções p/ virar regra</div>
-        </div>
-      </div>
-      <div class="painel-secao-titulo" style="margin-top:12px;">
-        Últimas regras promovidas
-      </div>
-      <div id="apr-ultimas" style="font-size:12px;color:var(--subtext);">
-        Carregando...
-      </div>
-    </div>
-
-    <!-- REVISÃO EMAILS -->
-    <div class="painel-secao painel-secao-full" id="revisao">
-      <div class="painel-secao-titulo" style="justify-content:space-between;">
-        <span>◎ Fila de Revisão — Emails</span>
-        <div style="display:flex;gap:8px;">
-          <button class="ios-button small danger ghost"
-            onclick="limparFilaRevisao()"
-            title="Remove emails de clientes conhecidos que foram para revisão antes da correção">
-            Limpar fila antiga
-          </button>
-          <button class="ios-button small secondary" onclick="carregarRevisao()">↻ Atualizar</button>
-        </div>
-      </div>
-      <div class="revisao-lista" id="revisao-lista">
-        <div class="revisao-vazio">Carregando...</div>
-      </div>
-    </div>
-
-    <!-- GESTÃO DE BASES — só admin -->
-    {% if nivel == "admin" %}
-    <div class="painel-secao painel-secao-full" id="bases">
-      <div class="painel-secao-titulo">
-        <span>◆</span> Gestão de Bases de Dados
-      </div>
-      <div class="bases-grid">
-
-        <!-- Krona -->
-        <div class="base-card">
-          <div class="base-card-titulo">KRONA</div>
-          <div class="base-card-info" id="base-krona-info">Carregando...</div>
-          <div class="base-upload-wrap">
-            <input type="file" id="file-krona" class="base-upload-input" accept=".xlsx,.xls">
-            <label for="file-krona" class="base-upload-label" id="label-krona">+ Selecionar XLSX</label>
-            <div class="base-upload-nome" id="nome-krona"></div>
-            <button class="ios-button small primary" onclick="uploadBase('krona')" id="btn-krona" style="display:none;">Atualizar Base</button>
-            <div class="base-status" id="status-krona"></div>
-          </div>
-        </div>
-
-        <!-- Brasal -->
-        <div class="base-card">
-          <div class="base-card-titulo">BRASAL</div>
-          <div class="base-card-info" id="base-brasal-info">Carregando...</div>
-          <div class="base-upload-wrap">
-            <input type="file" id="file-brasal" class="base-upload-input" accept=".csv">
-            <label for="file-brasal" class="base-upload-label" id="label-brasal">+ Selecionar CSV</label>
-            <div class="base-upload-nome" id="nome-brasal"></div>
-            <button class="ios-button small primary" onclick="uploadBase('brasal')" id="btn-brasal" style="display:none;">Atualizar Base</button>
-            <div class="base-status" id="status-brasal"></div>
-          </div>
-        </div>
-
-        <!-- MRV -->
-        <div class="base-card">
-          <div class="base-card-titulo">MRV</div>
-          <div class="base-card-info" id="base-mrv-info">Carregando...</div>
-          <div class="base-upload-wrap">
-            <input type="file" id="file-mrv" class="base-upload-input" accept=".csv">
-            <label for="file-mrv" class="base-upload-label" id="label-mrv">+ Selecionar CSV</label>
-            <div class="base-upload-nome" id="nome-mrv"></div>
-            <button class="ios-button small primary" onclick="uploadBase('mrv')" id="btn-mrv" style="display:none;">Atualizar Base</button>
-            <div class="base-status" id="status-mrv"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-    {% endif %}
-
-  </div><!-- fim painel-grid -->
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script>
@@ -579,7 +261,7 @@
           return `
             <div class="saude-item">
               <div class="saude-item-left">
-                <div class="saude-dot ${cls}"></div>
+                <span class="dot saude-dot ${cls}"></span>
                 <span class="saude-label">${item.label}</span>
               </div>
               <span class="saude-detalhe">${item.detalhe}</span>
@@ -601,7 +283,7 @@
         }
 
       } catch (e) {
-        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar saude.</div>';
+        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar saúde do sistema.</div>';
       }
     }
 
@@ -620,10 +302,10 @@
         const clientes = Object.entries(data.por_cliente);
         const wrap = document.getElementById("met-clientes");
         if (clientes.length === 0) {
-          wrap.innerHTML = '<span style="font-family:Space Mono,monospace;font-size:10px;color:var(--subtext);">Nenhum dado ainda.</span>';
+          wrap.innerHTML = '<span class="muted small">Nenhum dado ainda.</span>';
         } else {
           wrap.innerHTML = clientes.map(([nome, qtd]) =>
-            `<span class="cliente-chip">${nome} (${qtd})</span>`
+            `<span class="badge cliente-chip">${nome} <span class="cliente-qtd">${qtd}</span></span>`
           ).join("");
         }
       } catch (e) {
@@ -640,9 +322,10 @@
           const ul = document.getElementById("apr-ultimas");
           if (da.ultimas_regras && da.ultimas_regras.length > 0) {
             ul.innerHTML = da.ultimas_regras.map(r =>
-              `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
-                <span style="font-weight:500;color:var(--accent)">[${r.codigo}]</span>
-                ${r.descricao} <span style="color:var(--subtext)">(${r.confirmacoes}x)</span>
+              `<div class="regra-item">
+                <span class="regra-codigo">${r.codigo}</span>
+                <span class="regra-descricao">${r.descricao}</span>
+                <span class="regra-conf">${r.confirmacoes}x</span>
               </div>`
             ).join("");
           } else {
@@ -670,25 +353,25 @@
           <div class="revisao-item" id="rev-${email.id}">
             <div class="revisao-info">
               <div class="revisao-assunto">
-                ${email.cliente_novo ? '<span class="badge-cliente-novo" title="Cliente não cadastrado — verifique o matching">🆕 CLIENTE NOVO</span> ' : ''}${email.assunto || "(sem assunto)"}
+                ${email.cliente_novo ? '<span class="chip chip-mail badge-cliente-novo" title="Cliente não cadastrado — verifique o matching">Cliente novo</span> ' : ''}${email.assunto || "(sem assunto)"}
               </div>
               <div class="revisao-meta">${email.remetente} · ${email.timestamp || ""}</div>
-              <div>
-                <span class="revisao-motivo">${email.motivo || "revisao_manual"}</span>
-                ${(email.anexos || []).map(a => `<span class="revisao-motivo" style="color:var(--subtext);">${a}</span>`).join("")}
+              <div class="revisao-tags">
+                <span class="chip chip-warn plain revisao-motivo">${email.motivo || "revisao_manual"}</span>
+                ${(email.anexos || []).map(a => `<span class="badge revisao-anexo">${a}</span>`).join("")}
               </div>
             </div>
             <div class="revisao-acoes">
-              <button class="ios-button small primary"
+              <button class="btn btn-sm btn-primary" type="button"
                 onclick="revisaoProcessar('${email.id}', this)">Processar</button>
-              <button class="ios-button small danger ghost"
+              <button class="btn btn-sm btn-ghost btn-danger" type="button"
                 onclick="revisaoAcao('${email.id}', 'ignorar')">Ignorar</button>
             </div>
           </div>
         `).join("");
 
       } catch (e) {
-        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar revisoes.</div>';
+        lista.innerHTML = '<div class="revisao-vazio">Erro ao carregar revisões.</div>';
       }
     }
 
@@ -744,7 +427,7 @@
           if (el) {
             el.style.opacity = "0.4";
             el.querySelector(".revisao-acoes").innerHTML =
-              '<span style="font-family:Space Mono,monospace;font-size:10px;color:#10b981;">[OK] Removido da fila</span>';
+              '<span class="chip chip-ok">Removido da fila</span>';
           }
           setTimeout(carregarRevisao, 1500);
         } else {
@@ -773,7 +456,7 @@
           if (el) el.remove();
           const lista = document.getElementById("revisao-lista");
           if (!lista.children.length) {
-            lista.innerHTML = '<div class="revisao-vazio">Nenhum email aguardando revisao.</div>';
+            lista.innerHTML = '<div class="revisao-vazio">Nenhum email aguardando revisão.</div>';
           }
         } else {
           alert(data.mensagem);
@@ -831,7 +514,7 @@
           input.value = "";
           document.getElementById("nome-" + tipo).style.display = "none";
           btn.style.display = "none";
-          document.getElementById("label-" + tipo).textContent = "+ Selecionar novo arquivo";
+          document.getElementById("label-" + tipo).textContent = "Selecionar novo arquivo";
           setTimeout(carregarSaude, 1000);
         }
 
@@ -842,7 +525,7 @@
       }
 
       btn.disabled    = false;
-      btn.textContent = "Atualizar Base";
+      btn.textContent = "Atualizar base";
     }
 
     // ── INICIALIZAÇÃO ──────────────────────────────────────

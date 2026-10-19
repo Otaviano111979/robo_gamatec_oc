@@ -1,0 +1,34 @@
+{# uso: {% set nav_ativo = 'ocs' %}{% include '_sidebar.html' %} #}
+<aside class="sidebar">
+  <a class="brand" href="/ocs">
+    <div class="brand-name">Vortex <span>Sync</span></div>
+    <div class="brand-sub">Processamento de OCs</div>
+  </a>
+  <nav class="nav" aria-label="Navegação principal">
+    <a href="/ocs" class="{{ 'is-active' if nav_ativo == 'ocs' }}">OCs</a>
+    <a href="/revisao" class="{{ 'is-active' if nav_ativo == 'revisao' }}">
+      <span>Revisão</span>
+      {% if total_revisao is defined and total_revisao %}<span class="nav-count">{{ total_revisao }}</span>{% endif %}
+    </a>
+    <a href="/catalogo/steck/" class="{{ 'is-active' if nav_ativo == 'steck' }}">Catálogo Steck</a>
+    {% if session.get('tipo') in ('admin', 'supervisor') %}
+    <div class="nav-sep"></div>
+    <a href="/painel" class="{{ 'is-active' if nav_ativo == 'painel' }}">Painel</a>
+    {% endif %}
+    {% if session.get('tipo') == 'admin' %}
+    <a href="/admin/clientes" class="{{ 'is-active' if nav_ativo == 'clientes' }}">Clientes</a>
+    <a href="/admin/usuarios" class="{{ 'is-active' if nav_ativo == 'usuarios' }}">Usuários</a>
+    {% endif %}
+    <div class="nav-sep"></div>
+    <a href="/launcher" class="{{ 'is-active' if nav_ativo == 'launcher' }}">Launcher</a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="who">{{ session.get('user') }}<small>{{ session.get('tipo', 'user') }}</small></div>
+    <div class="sidebar-foot-actions">
+      <button id="themeToggle" class="btn btn-ghost btn-sm btn-icon" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+      </button>
+      <a href="/logout" class="btn btn-ghost btn-sm" onclick="return confirm('Deseja realmente sair?')">Sair</a>
+    </div>
+  </div>
+</aside>

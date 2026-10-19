@@ -3,310 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortex | Acesso</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ios.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/vortex_theme.css') }}">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
-
-    .vortex-login-page {
-      min-height: 100vh;
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .vortex-login-page::before {
-      content: '';
-      position: fixed;
-      width: 600px;
-      height: 600px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(0, 119, 255, 0.10) 0%, transparent 65%);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      animation: bg-pulse 4s ease-in-out infinite;
-    }
-
-    @keyframes bg-pulse {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.6; }
-    }
-
-    .login-grid-bg {
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0, 119, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 119, 255, 0.06) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
-    }
-
-    .vortex-login-card {
-      width: 100%;
-      max-width: 420px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 48px 40px;
-      position: relative;
-      z-index: 1;
-      box-shadow: var(--shadow-hover);
-      animation: card-in 0.5s ease-out both;
-    }
-
-    @keyframes card-in {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .vortex-login-brand {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-
-    .vortex-login-spinner {
-      width: 72px;
-      height: 72px;
-      position: relative;
-    }
-
-    .vls-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid transparent;
-    }
-
-    .vls-ring:nth-child(1) {
-      inset: 0;
-      border-top-color: #00d4ff;
-      border-right-color: #00d4ff44;
-      animation: vls-spin 2.5s linear infinite;
-    }
-
-    .vls-ring:nth-child(2) {
-      inset: 10px;
-      border-top-color: #0077ff;
-      border-left-color: #0077ff33;
-      animation: vls-spin 2s linear infinite reverse;
-    }
-
-    .vls-ring:nth-child(3) {
-      inset: 20px;
-      border-top-color: #00d4ff66;
-      animation: vls-spin 1.5s linear infinite;
-    }
-
-    .vls-dot {
-      position: absolute;
-      inset: 29px;
-      background: #00d4ff;
-      border-radius: 50%;
-      box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44;
-      animation: vls-pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes vls-spin { to { transform: rotate(360deg); } }
-
-    @keyframes vls-pulse {
-      0%, 100% { box-shadow: 0 0 16px #00d4ff, 0 0 32px #00d4ff44; }
-      50%       { box-shadow: 0 0 24px #00d4ff, 0 0 48px #00d4ff33; }
-    }
-
-    .vortex-login-wordmark {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--text);
-      line-height: 1;
-      text-align: center;
-    }
-
-    .vortex-login-wordmark span {
-      color: var(--primary);
-    }
-
-    .vortex-login-sub {
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.3em;
-      color: rgba(90, 100, 120, 0.75);
-      text-transform: uppercase;
-      margin-top: 6px;
-      text-align: center;
-    }
-
-    .vortex-divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.2), transparent);
-      margin-bottom: 32px;
-    }
-
-    .vortex-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .vortex-field {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .vortex-field label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      color: rgba(90, 100, 120, 0.85);
-      text-transform: uppercase;
-    }
-
-    .vortex-field input {
-      background: var(--card-strong);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      width: 100%;
-    }
-
-    .vortex-field input::placeholder { color: rgba(90, 100, 120, 0.60); font-size: 14px; }
-
-    .vortex-field input:focus {
-      border-color: rgba(0, 119, 255, 0.45);
-      background: var(--card);
-      box-shadow: 0 0 0 4px var(--ring);
-    }
-
-    .vortex-btn-login {
-      background: linear-gradient(135deg, var(--primary), var(--vortex-cyan));
-      border: none;
-      border-radius: 12px;
-      padding: 15px;
-      font-family: 'Syncopate', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      color: #fff;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 8px;
-      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: var(--shadow-soft);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .vortex-btn-login:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-hover);
-    }
-
-    .vortex-btn-login:active { transform: translateY(0); }
-
-    .vortex-erro {
-      background: rgba(255, 69, 58, 0.08);
-      border: 1px solid rgba(255, 69, 58, 0.25);
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      color: #ff6961;
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-
-    .vortex-login-footer {
-      margin-top: 32px;
-      text-align: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      color: rgba(90, 100, 120, 0.55);
-      text-transform: uppercase;
-    }
-
-    .vortex-theme-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 16px;
-      z-index: 10;
-      box-shadow: var(--shadow-soft);
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-    }
-
-    .vortex-theme-btn:hover { border-color: rgba(0, 119, 255, 0.30); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-  </style>
+  <title>Entrar | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_login.css') }}">
 </head>
-<body class="ios-body vortex-login-page">
+<body class="page-login">
 
-  <div class="login-grid-bg"></div>
+  <button id="themeToggle" class="btn btn-ghost btn-sm btn-icon login-theme" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+  </button>
 
-  <button id="themeToggle" class="vortex-theme-btn" type="button">🌙</button>
-
-  <div class="vortex-login-card">
-
-    <div class="vortex-login-brand">
-      <div class="vortex-login-spinner">
-        <div class="vls-ring"></div>
-        <div class="vls-ring"></div>
-        <div class="vls-ring"></div>
-        <div class="vls-dot"></div>
-      </div>
-      <div>
-        <div class="vortex-login-wordmark">Vortex <span>Sync</span></div>
-        <div class="vortex-login-sub">Process · Automate · Deliver</div>
-      </div>
+  <main class="login-wrap">
+    <div class="login-brand">
+      <div class="brand-name">Vortex <span>Sync</span></div>
+      <div class="brand-sub">Processamento de ordens de compra</div>
     </div>
 
-    <div class="vortex-divider"></div>
+    <section class="panel login-panel">
+      <div class="panel-body">
+        <h1 class="login-title">Entrar</h1>
+        <p class="login-lead">Use seu usuário e senha de acesso.</p>
 
-    {% if erro %}
-      <div class="vortex-erro">⚠ {{ erro }}</div>
-    {% endif %}
+        {% if erro %}
+          <div class="alert alert-err login-erro" role="alert">{{ erro }}</div>
+        {% endif %}
 
-    <form method="post" class="vortex-form">
-      <div class="vortex-field">
-        <label for="user">Usuário</label>
-        <input id="user" name="user" type="text" placeholder="Digite seu usuário" required autocomplete="username">
+        <form method="post" class="form-stack">
+          <div class="field">
+            <label for="user">Usuário</label>
+            <input id="user" name="user" type="text" class="input login-input" placeholder="Digite seu usuário" required autocomplete="username" autofocus>
+          </div>
+
+          <div class="field">
+            <label for="senha">Senha</label>
+            <input id="senha" name="senha" type="password" class="input login-input" placeholder="Digite sua senha" required autocomplete="current-password">
+          </div>
+
+          <button class="btn btn-primary login-submit" type="submit">Entrar</button>
+        </form>
       </div>
+    </section>
 
-      <div class="vortex-field">
-        <label for="senha">Senha</label>
-        <input id="senha" name="senha" type="password" placeholder="••••••••" required autocomplete="current-password">
-      </div>
-
-      <button class="vortex-btn-login" type="submit">ACESSAR</button>
-    </form>
-
-    <div class="vortex-login-footer">
-      Vortex · v1.0
-    </div>
-
-  </div>
+    <div class="login-foot">Vortex Sync · v1.0</div>
+  </main>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

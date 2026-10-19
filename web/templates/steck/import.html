@@ -1,49 +1,69 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Importar Lista — Catálogo Steck</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar lista | Catálogo Steck | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
   <link rel="stylesheet" href="{{ url_for('catalogo_steck.static', filename='steck.css') }}">
 </head>
-<body>
-  <div class="vx-bg"></div>
-  <main class="vx-wrap fade-in">
-    <header class="vx-topbar">
-      <div class="vx-topbar-left">
-        <a href="/launcher" class="vx-back">← Vortex</a>
-        <span class="vx-module-name">Catálogo Elétrico</span>
-      </div>
-      <div class="vx-actions">
-        <a class="vx-chip" href="{{ url_for('catalogo_steck.index') }}">← Busca</a>
-      </div>
-    </header>
+<body class="page-steck">
+  <div class="app">
+    {% set nav_ativo = 'steck' %}
+    {% include '_sidebar.html' %}
 
-    <section class="vx-card">
-      <div class="vx-card-title">Importar Lista de Produtos</div>
-      <div class="vx-card-sub" style="margin-bottom:20px;">
-        Envie um Excel (.xlsx) com colunas CODIGO e/ou DESCRICAO. O sistema encontra os produtos automaticamente.
-      </div>
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Catálogo Steck</h1>
+          <p>Produtos Steck / Schneider. Pesquise, selecione itens e exporte para Excel.</p>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Seções do catálogo">
+        <a class="tab" href="{{ url_for('catalogo_steck.index') }}">Pesquisa</a>
+        <a class="tab is-active" href="{{ url_for('catalogo_steck.import_page') }}">Importar lista</a>
+        <a class="tab" href="{{ url_for('catalogo_steck.cart') }}">Selecionados</a>
+      </nav>
 
       {% with messages = get_flashed_messages() %}
         {% if messages %}
-          {% for m in messages %}
-            <div class="vx-alert">{{ m }}</div>
-          {% endfor %}
+          <div class="flash-wrap steck-narrow">
+            {% for m in messages %}
+              <div class="alert alert-err">{{ m }}</div>
+            {% endfor %}
+          </div>
         {% endif %}
       {% endwith %}
 
-      <form action="{{ url_for('catalogo_steck.import_upload') }}" method="post" enctype="multipart/form-data" class="vx-col">
-        <input type="file" name="file" accept=".xlsx,.xls" class="vx-file-input">
-        <button class="vx-btn vx-btn-cyan" type="submit" style="margin-top:12px;">Processar arquivo</button>
-      </form>
+      <section class="panel steck-narrow">
+        <div class="panel-head">
+          <div>
+            <h2>Importar lista de produtos</h2>
+            <p>Envie um Excel com colunas de código e/ou descrição. O sistema localiza os produtos no catálogo.</p>
+          </div>
+        </div>
 
-      <div class="vx-hint" style="margin-top:20px;">
-        Colunas reconhecidas: <code>CODIGO</code>, <code>DESCRICAO</code>, <code>QTDE</code> (opcional)<br>
-        O fuzzy match encontra o produto mesmo com descrição aproximada.
-      </div>
-    </section>
-  </main>
+        <form action="{{ url_for('catalogo_steck.import_upload') }}" method="post" enctype="multipart/form-data" class="panel-body form-stack">
+          <div class="field">
+            <label for="steckFile">Planilha (.xlsx ou .xls)</label>
+            <input type="file" id="steckFile" name="file" accept=".xlsx,.xls" class="steck-file">
+          </div>
+          <div><button class="btn btn-primary" type="submit">Processar arquivo</button></div>
+        </form>
+
+        <div class="panel-foot steck-import-foot">
+          <dl class="dl steck-dicas">
+            <dt>Colunas</dt>
+            <dd><code>CODIGO</code> <code>DESCRICAO</code> <code>QTDE</code> <span class="muted">(quantidade opcional)</span></dd>
+            <dt>Busca</dt>
+            <dd>Encontra o produto mesmo com descrição aproximada. Os itens vão para revisão antes do carrinho.</dd>
+          </dl>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
