@@ -25,6 +25,9 @@ _TIPOS = [
     "CAIXA", "TAMPA", "GRELHA", "SOLUCAO", "CONEXAO", "ESPUMA",
 ]
 _RX_TIPOS = re.compile(r"\b(" + "|".join(_TIPOS) + r")\b")
+_RX_ELETRODUTO = re.compile(r"\bELETROD(?:UTO)?\b")
+_RX_ANGULO = re.compile(r"(?<!\d)(45|90)(?!\d)")
+_RX_ROSCA = re.compile(r"\bROSCA|\bLR\b|\(LR\)")
 
 
 def _codigo(valor):
@@ -41,8 +44,30 @@ def _sem_acento(texto):
 
 
 def _tipo_de(texto):
-    achado = _RX_TIPOS.search(_sem_acento(texto))
+    texto = _sem_acento(texto)
+    if _RX_ELETRODUTO.search(texto):
+        return "ELETRODUTO"
+    # o catalogo abrevia "CX." (CX.SIFONADA); sem isto a caixa fica fora do
+    # filtro de tipo e sobra so o "CORPO CAIXA SIFONADA".
+    if re.search(r"\bCX\.?\b", texto):
+        return "CAIXA"
+    achado = _RX_TIPOS.search(texto)
     return achado.group(1) if achado else None
+
+
+def _assinatura_produto(descricao):
+    """Traços que distinguem variantes do mesmo tipo (45 vs 90, LR, reducao)."""
+    texto = _sem_acento(_repara_texto(descricao))
+    angulos = tuple(sorted({int(a) for a in _RX_ANGULO.findall(texto)}))
+    return (_tipo_de(texto), angulos, _e_reducao(texto), bool(_RX_ROSCA.search(texto)))
+
+
+def _mesmo_produto(desc_oc, desc_alt):
+    """So permite troca por preco entre variantes do mesmo produto."""
+    assinatura_oc = _assinatura_produto(desc_oc)
+    if not assinatura_oc[0]:
+        return False
+    return assinatura_oc == _assinatura_produto(desc_alt)
 
 
 def _preco_unitario_item(item):
@@ -142,7 +167,8 @@ def _repara_texto(descricao):
     so reconhece por 'REFORC'.
     """
     texto = str(descricao or "").translate(_REPAROS_TEXTO)
-    return _RX_SERIE_R.sub("SERIE REFORCADA", texto)
+    texto = _RX_SERIE_R.sub("SERIE REFORCADA", texto)
+    return re.sub(r"\bRECUCAO\b", "REDUCAO", texto)
 
 
 def _texto_reparado(item):
@@ -233,11 +259,12 @@ def _match_no_indice(item, indice):
         if not retas.empty:
             alvo = retas
     medidas = _medidas_oc(item)
-    if len(medidas) >= 2:
-        alvo = alvo[alvo["descricao_krona"].map(
+    if medidas:
+        filtrado = alvo[alvo["descricao_krona"].map(
             lambda descricao: medidas <= _numeros_descricao(descricao))]
-        if alvo.empty:
+        if filtrado.empty:
             return None
+        alvo = filtrado
 
     # o topo pode violar uma restricao dura (medida/material/serie); nesse
     # caso tenta o proximo colocado antes de desistir do item
@@ -300,6 +327,13 @@ def _tentativa_por_preco(item, indice, fator, referencia):
             and _serie_de(referencia.get("descricao_krona")) == serie_oc):
         return None, True
 
+    # a serie acima gera revisao de proposito; aqui so travamos trocas entre
+    # produtos diferentes (45 vs 90, luva vs eletroduto, com/sem rosca)
+    if not _mesmo_produto(
+            item.get("descricao_oc") or item.get("descricao_reconstruida"),
+            alternativo.get("descricao_krona")):
+        return None, False
+
     score_alternativo = alternativo.get("score_total", 0)
     preco_alternativo = _preco_tabela_de(indice, alternativo.get("codigo_krona"))
     confirma = bool(
@@ -310,6 +344,47 @@ def _tentativa_por_preco(item, indice, fator, referencia):
     if score_alternativo >= score_referencia - 0.10 or (confirma and score_alternativo >= 0.55):
         return alternativo, False
     return None, False
+
+
+def _preferir_preco_exato(item, indice, resultado, fator):
+    """Troca por candidato de preco praticamente igual quando o atual diverge.
+
+    Variantes do mesmo produto (ex.: CAP serie normal vs reforcada, caixa
+    completa vs corpo) tem descricoes quase iguais e precos proximos; o preco
+    da OC desempata sem nunca sobrepor uma serie que a OC declare.
+    """
+    preco_oc = _preco_unitario_item(item)
+    codigo_atual = _codigo(resultado.get("codigo_krona"))
+    preco_atual = _preco_tabela_de(indice, codigo_atual)
+    if not preco_oc or not preco_atual:
+        return resultado, False
+    referencia = fator or 1.0
+    razoes = preco_oc / indice["preco_tabela"].astype(float)
+    alvo = indice[((razoes / referencia) - 1).abs() <= 0.01]
+    alvo = alvo[alvo["_codigo"] != codigo_atual]
+    if alvo.empty:
+        return resultado, False
+
+    alternativo = _match_no_indice(item, alvo)
+    if not alternativo:
+        return resultado, False
+    if not _mesmo_produto(
+            item.get("descricao_oc") or item.get("descricao_reconstruida"),
+            alternativo.get("descricao_krona")):
+        return resultado, False
+    serie_oc = _serie_de(item.get("descricao_oc") or item.get("descricao_reconstruida"))
+    serie_alt = _serie_de(alternativo.get("descricao_krona"))
+    if serie_oc and serie_alt and serie_alt != serie_oc:
+        return resultado, False
+
+    desvio_atual = abs(preco_oc / preco_atual / referencia - 1)
+    score_atual = resultado.get("score_total", 0)
+    score_alternativo = alternativo.get("score_total", 0)
+    if desvio_atual > 0.01 and (
+            score_alternativo >= score_atual - 0.05
+            or (desvio_atual > 0.20 and score_alternativo >= 0.45)):
+        return alternativo, True
+    return resultado, False
 
 
 def match_tabela_cliente(item, indice, fator_preco=None):
@@ -330,6 +405,13 @@ def match_tabela_cliente(item, indice, fator_preco=None):
             alternativo, conflito_serie = _tentativa_por_preco(
                 item, indice, fator_preco, resultado)
             if alternativo:
+                resultado = alternativo
+                preco_tabela = _preco_tabela_de(indice, resultado.get("codigo_krona"))
+                preco_confirmado = _avaliar_preco(preco_oc / preco_tabela, fator_preco)
+        if not conflito_serie:
+            alternativo, trocado = _preferir_preco_exato(
+                item, indice, resultado, fator_preco)
+            if trocado:
                 resultado = alternativo
                 preco_tabela = _preco_tabela_de(indice, resultado.get("codigo_krona"))
                 preco_confirmado = _avaliar_preco(preco_oc / preco_tabela, fator_preco)

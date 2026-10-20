@@ -633,8 +633,10 @@ _RX_BRAS  = re.compile(r"\bBRASO\b|\bLAT[AÃ]O\b")
 # linhas do catalogo Krona que sao PVC por definicao (material nao escrito na descricao)
 _RX_LINHA_PVC = re.compile(r"ROSC[ÃA]?VEL|ROSQUE[ÁA]?VEL|SOLDAVEL|\bSOLD\b|ESGOTO|\bESG\b|INCENDIO|\bFVM\b|\bPSM\b")
 
-_RX_DIAM_MM  = re.compile(r"\b(\d{1,3})\s*MM\b")
-_RX_DIAM_PAR = re.compile(r"\b(\d{1,3})\s*(?:X|×)\s*(\d{1,3})\b")
+# "X40MM" e "75X50MM" nao tem fronteira de palavra antes do numero; sem isto
+# medidas de joelhos/juncoes ficam vazias e o match cai no candidato errado.
+_RX_DIAM_MM  = re.compile(r"(?<!\d)(\d{1,3})\s*MM\b")
+_RX_DIAM_PAR = re.compile(r"(?<!\d)(\d{1,3})\s*(?:X|×)\s*(\d{1,3})(?!\d)")
 _RX_DN       = re.compile(r"\bD\.?N\.?\s*(\d{2,3})\b")
 
 
