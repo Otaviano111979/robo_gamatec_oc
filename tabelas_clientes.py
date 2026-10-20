@@ -56,6 +56,14 @@ LAYOUTS = {
         "col": {"codigo_krona": 0, "descricao": 1, "preco": 5},
         "vigencia": "2 SEM - 2026",
     },
+    "TERRAL": {
+        "nome": "Terral",
+        "sheet": "Planilha4",
+        "linha_inicio": 3,
+        "exigir_codigo": True,
+        "col": {"codigo_krona": 0, "unidade": 2, "descricao": 3, "preco": 9},
+        "vigencia": "2 SEM - 2026",
+    },
 }
 
 # Identificacao do cliente pelo texto da OC. Dominios primeiro; termos so como
@@ -67,6 +75,19 @@ IDENTIDADES = {
             "termos": ["BRASIL INCORPORACAO", "BRASIL INCORPORAÇÃO"]},
     "VEGA": {"dominios": ["grupovega.com.br"], "termos": ["GRUPO VEGA"]},
     "CONSTRUAPP": {"dominios": [], "termos": ["CONTRUAPP", "CONSTRUAPP"]},
+    # 13 SPEs do comunicado de compras da Terral (25/02/2026); todas usam a
+    # mesma tabela. O CNPJ e o sinal mais forte quando o e-mail nao aparece.
+    "TERRAL": {
+        "dominios": ["terral.com.br"],
+        "termos": ["TERRAL", "SPE TSA"],
+        "cnpjs": [
+            "13.070.562/0001-53", "36.728.929/0001-89", "43.682.805/0001-75",
+            "23.347.748/0001-60", "40.461.517/0001-00", "40.830.478/0001-63",
+            "40.370.325/0001-80", "30.133.519/0001-09", "35.072.756/0001-20",
+            "40.213.294/0001-54", "42.824.872/0001-14", "40.458.900/0001-00",
+            "53.462.257/0001-21",
+        ],
+    },
 }
 
 _SCHEMA = """
@@ -169,10 +190,13 @@ def importar(cliente, caminho, vigencia=None, conn=None):
     for _, row in dados.iterrows():
         descricao = _texto(cel(row, "descricao"))
         preco = _preco(cel(row, "preco"))
+        codigo = _codigo(cel(row, "codigo_krona"))
         if not descricao or preco is None or preco <= 0:
             continue
+        if layout.get("exigir_codigo") and (not codigo or codigo == "-"):
+            continue
         itens.append({
-            "codigo_krona": _codigo(cel(row, "codigo_krona")),
+            "codigo_krona": codigo,
             "codigo_cliente": _codigo(cel(row, "codigo_cliente")),
             "descricao": descricao,
             "unidade": _texto(cel(row, "unidade")).upper(),
@@ -259,10 +283,16 @@ def identificar_cliente(texto, conn=None):
     if not texto:
         return None
     norm = _normalizar(texto)
+    digitos = re.sub(r"\D", "", norm)
     emails = " ".join(re.findall(r"@([\w.-]+)", norm.lower()))
     disponiveis = clientes_disponiveis(conn)
     if not disponiveis:
         return None
+    for cliente in sorted(disponiveis):
+        ident = IDENTIDADES.get(cliente, {})
+        for cnpj in ident.get("cnpjs", []):
+            if re.sub(r"\D", "", cnpj) in digitos:
+                return cliente
     for cliente in sorted(disponiveis):
         ident = IDENTIDADES.get(cliente, {})
         for dominio in ident.get("dominios", []):

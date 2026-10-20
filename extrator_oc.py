@@ -8,6 +8,7 @@ from extracao_oc.estruturador_item import estruturar_blocos_em_itens
 from extracao_oc.validacao_extracao_oc import validar_itens_extraidos
 from extracao_oc.debug_extracao import gerar_relatorio_extracao
 from extracao_oc.extrator_sienge import extrair_oc_sienge, detectar_formato_sienge
+from extracao_oc.extrator_terral import detectar_formato_terral, extrair_itens_terral
 import re as _re
 
 
@@ -295,6 +296,22 @@ def extrair_itens_oc(caminho_pdf: str, caminho_debug: str | None = None) -> List
                 except Exception:
                     pass
             return itens_normalizados
+
+    # ── PRIORIDADE 1.5: TERRAL / SPE (PEDIDO DE COMPRA) ──────
+    if detectar_formato_terral(caminho_pdf):
+        itens = extrair_itens_terral(caminho_pdf)
+        if itens:
+            if caminho_debug:
+                try:
+                    with open(caminho_debug, "w", encoding="utf-8") as f:
+                        f.write("FORMATO: TERRAL/SPE\n")
+                        f.write(f"Total de itens: {len(itens)}\n\n")
+                        for item in itens:
+                            f.write(f"[{item['status_extracao']}] {item['idx_item']} | {item['descricao_reconstruida']}\n")
+                            f.write(f"  qtd={item['quantidade']} {item['unidade_normalizada']} | unit=R${item['valor_unitario']}\n")
+                except Exception:
+                    pass
+            return itens, "TERRAL"
 
     # ── PRIORIDADE 2: BRASAL / CLOSER / ARTESANO ─────────────
     if _detectar_formato_brasal(caminho_pdf):
