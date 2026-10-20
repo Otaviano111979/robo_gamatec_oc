@@ -544,8 +544,19 @@ def processar_oc(caminho_oc: str) -> dict:
 
     print(f"Itens válidos para match: {len(df_para_match)}")
 
+    # cliente com tabela de preco propria (CITY, EBM, VEGA...) — o MRV fica de fora
+    cliente_tabela = None
+    if not _is_mrv:
+        try:
+            from tabelas_clientes import identificar_cliente_arquivo
+            cliente_tabela = identificar_cliente_arquivo(caminho_oc)
+            if cliente_tabela:
+                print(f"[TABELA] Cliente identificado: {cliente_tabela}")
+        except Exception as _tab_e:
+            print(f"[TABELA] Aviso: falha ao identificar cliente — {_tab_e}")
+
     print("\n[2/4] REALIZANDO MATCH...")
-    df_match = etapa_matching(df_para_match)
+    df_match = etapa_matching(df_para_match, cliente_tabela=cliente_tabela)
     print(f"Itens após match: {len(df_match)}")
 
     print("\n[3/4] CONSOLIDANDO QUANTIDADE...")

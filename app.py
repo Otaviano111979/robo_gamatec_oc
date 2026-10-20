@@ -77,11 +77,23 @@ def etapa_extracao(caminho_oc):
     return df
 
 
-def etapa_matching(df):
+def etapa_matching(df, cliente_tabela=None):
     print("\n[2/6] REALIZANDO MATCH HÍBRIDO (MRV + KRONA)...")
 
     base_krona = carregar_base_krona()
-    df_match = match_lote_itens(df, base_krona=base_krona)
+
+    indice_tabela = None
+    if cliente_tabela:
+        from tabelas_clientes import carregar_tabela
+        from matcher_tabela_cliente import preparar_indice
+
+        itens, vigencia = carregar_tabela(cliente_tabela)
+        if itens:
+            indice_tabela = preparar_indice(itens, base_krona)
+            if indice_tabela is not None:
+                print(f"[TABELA] {cliente_tabela} — {len(indice_tabela)} itens da tabela ({vigencia})")
+
+    df_match = match_lote_itens(df, base_krona=base_krona, indice_tabela=indice_tabela)
 
     print(f"Itens processados no matching: {len(df_match)}")
 

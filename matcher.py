@@ -8,6 +8,10 @@ from base_mrv_loader import carregar_base_mrv
 from matcher_mrv import match_por_codigo_mrv
 from base_brasal_loader import carregar_base_brasal
 from matcher_brasal import match_por_codigo_brasal
+from matcher_tabela_cliente import (
+    estimar_fator_preco,
+    match_tabela_cliente,
+)
 from regra_quantidade import ajustar_quantidade_tubo
 
 # ── IA Helper — fallback seguro se modulo nao disponivel ──────────────────
@@ -695,7 +699,8 @@ def _conflito_hard(item, res) -> bool:
     return False
 
 
-def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
+def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
+                  indice_tabela=None, fator_preco=None):
     if base_krona is None:
         base_krona = carregar_base_krona()
 
@@ -782,6 +787,17 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
         match_brasal = match_por_codigo_brasal(item, indice_brasal)
         if match_brasal:
             return match_brasal
+
+    # =========================================================
+    # PRIORIDADE 1.7 — TABELA DE PRECO DO CLIENTE
+    # So corre quando o cliente tem tabela importada (CITY, EBM, VEGA...).
+    # Restringe a descricao aos itens contratados e confirma pelo preco.
+    # Clientes sem tabela (MRV, Brasal...) nunca entram aqui.
+    # =========================================================
+    if indice_tabela is not None:
+        match_tabela = match_tabela_cliente(item, indice_tabela, fator_preco)
+        if match_tabela:
+            return match_tabela
 
     # ── CONSULTAR CORRECOES APRENDIDAS (com correspondência aproximada) ──
     # Só chega aqui para clientes sem tabela DE/PARA (ex: UAU, SIENGE, genérico)
@@ -1052,7 +1068,8 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None):
 # LOTE + REGRA DE QUANTIDADE
 # ============================================================
 
-def match_lote_itens(df_oc, base_krona=None, indice_mrv=None, indice_brasal=None):
+def match_lote_itens(df_oc, base_krona=None, indice_mrv=None, indice_brasal=None,
+                     indice_tabela=None):
     if base_krona is None:
         base_krona = carregar_base_krona()
 
@@ -1062,12 +1079,16 @@ def match_lote_itens(df_oc, base_krona=None, indice_mrv=None, indice_brasal=None
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
 
+    fator_preco = estimar_fator_preco(df_oc, indice_tabela)
+
     resultados = []
 
     for _, row in df_oc.iterrows():
         item = row.to_dict()
 
-        resultado = match_item_oc(item, base_krona, indice_mrv, indice_brasal)
+        resultado = match_item_oc(item, base_krona, indice_mrv, indice_brasal,
+                                  indice_tabela=indice_tabela,
+                                  fator_preco=fator_preco)
 
         final = {**item, **resultado}
 
