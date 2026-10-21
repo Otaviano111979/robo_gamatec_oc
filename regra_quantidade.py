@@ -48,6 +48,13 @@ def classificar_unidade(unidade_oc: str) -> str:
     return "DESCONHECIDA"
 
 
+def _texto_unidade(valor) -> str:
+    if valor is None:
+        return ""
+    texto = str(valor).strip()
+    return "" if texto.lower() in ("", "nan", "none") else texto.upper()
+
+
 def ajustar_quantidade_tubo(item: Dict[str, Any]) -> Dict[str, Any]:
     """
     Ajusta quantidade conforme a unidade da OC e o tipo de produto.
@@ -60,12 +67,13 @@ def ajustar_quantidade_tubo(item: Dict[str, Any]) -> Dict[str, Any]:
     - Unidade desconhecida     -> mantém e sinaliza para revisão
     """
 
-    unidade_oc = str(
-        item.get("unidade")
-        or item.get("unidade_oc")
-        or item.get("um")
-        or ""
-    ).strip().upper()
+    # unidade_oc e a coluna consolidada da OC e tem prioridade; unidade/um
+    # sao apenas fallback de formatos antigos e nao podem sobrepor-se a ela
+    unidade_oc = (
+        _texto_unidade(item.get("unidade_oc"))
+        or _texto_unidade(item.get("unidade"))
+        or _texto_unidade(item.get("um"))
+    )
 
     quantidade_original = item.get("quantidade")
     eh_tubo = item.get("eh_tubo_krona")
@@ -135,6 +143,7 @@ def ajustar_quantidade_tubo(item: Dict[str, Any]) -> Dict[str, Any]:
                 item["tipo_quantidade"] = "TUBO_COMPRIMENTO_NAO_E_BARRA_REVISAR"
                 item["fator_conversao_quantidade"] = None
                 item["revisao_unidade"] = True
+                item["revisao_manual"] = True
                 return item
 
             qtd_barras_bruta = qtd_metros / comp_barra
@@ -163,12 +172,16 @@ def ajustar_quantidade_tubo(item: Dict[str, Any]) -> Dict[str, Any]:
         item["quantidade_ajustada"] = quantidade_original
         item["tipo_quantidade"] = f"TUBO_UNIDADE_{classe_unidade}_REVISAR"
         item["fator_conversao_quantidade"] = None
+        item["revisao_unidade"] = True
+        item["revisao_manual"] = True
         return item
 
     # ------------------------------------------------------
-    # Unidade desconhecida -> mantém e sinaliza
+    # Unidade desconhecida -> mantém e sinaliza; nunca assume M
     # ------------------------------------------------------
     item["quantidade_ajustada"] = quantidade_original
     item["tipo_quantidade"] = f"UNIDADE_OC_NAO_MAPEADA({unidade_oc})"
     item["fator_conversao_quantidade"] = None
+    item["revisao_unidade"] = True
+    item["revisao_manual"] = True
     return item
