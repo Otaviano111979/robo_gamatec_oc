@@ -1213,6 +1213,20 @@ def _tentar_semantico(item, base_krona):
             return None
         resultado = motor.match(descricao)
         if resultado.get("match_encontrado") and not _conflito_hard(item, resultado):
+            # o motor devolve so codigo/descricao/scores; o cadastro e a fonte
+            # dos metadados que a regra de quantidade precisa para converter
+            # metros em barras apenas quando o produto e mesmo um tubo
+            cadastro = buscar_cadastro_krona_por_codigo(
+                resultado.get("codigo_krona"), base_krona)
+            if cadastro:
+                resultado.setdefault("linha_krona_match", cadastro.get("linha_krona"))
+                resultado.setdefault("familia_krona_match", cadastro.get("familia_krona"))
+                resultado.setdefault("unidade_venda_krona", cadastro.get("unidade_venda"))
+                resultado.setdefault("quantidade_embalagem_krona", cadastro.get("quantidade_embalagem"))
+                resultado["eh_tubo_krona"] = cadastro.get("eh_tubo")
+                resultado["comprimento_krona_m"] = obter_comprimento_krona(cadastro)
+                if resultado.get("diametro_krona_mm") in (None, ""):
+                    resultado["diametro_krona_mm"] = obter_diametro_krona(cadastro)
             resultado["via_motor_semantico"] = True
             return resultado
     except Exception as e:
