@@ -41,6 +41,13 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+.sugestao-composicao {
+  margin-top: 4px; padding: 7px 9px;
+  border-radius: var(--r-sm); border-left: 3px solid var(--accent);
+  background: var(--surface-2); color: var(--text);
+  font-size: 12px; line-height: 1.45;
+}
+
 .alerta-equivalencia {
   margin-top: 4px; padding: 6px 9px;
   border-radius: var(--r-sm); border-left: 3px solid var(--warn);

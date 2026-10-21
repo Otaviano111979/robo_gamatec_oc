@@ -33,7 +33,8 @@ def init_db():
             criado_em TEXT DEFAULT (datetime('now')),
             resolvido_em TEXT,
             confianca_ia TEXT,
-            justificativa_ia TEXT
+            justificativa_ia TEXT,
+            sugestao_composicao TEXT
         )
     """)
     # migração: adiciona colunas IA em bases existentes sem elas
@@ -44,6 +45,8 @@ def init_db():
         c.execute("ALTER TABLE itens_revisao ADD COLUMN justificativa_ia TEXT")
     if "alerta_equivalencia" not in colunas_existentes:
         c.execute("ALTER TABLE itens_revisao ADD COLUMN alerta_equivalencia TEXT")
+    if "sugestao_composicao" not in colunas_existentes:
+        c.execute("ALTER TABLE itens_revisao ADD COLUMN sugestao_composicao TEXT")
     conn.commit()
     conn.close()
 
@@ -52,7 +55,7 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
                         codigo_sugerido, descricao_sugerida,
                         score, tipo_match,
                         confianca_ia=None, justificativa_ia=None,
-                        alerta_equivalencia=None):
+                        alerta_equivalencia=None, sugestao_composicao=None):
     """
     Salva um item para revisão, evitando duplicatas.
 
@@ -84,13 +87,21 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
     existente = c.fetchone()
 
     if existente:
-        # item já pendente — se houver alerta novo, anexa à linha existente
+        # item já pendente — anexa alerta/composição novos à linha existente
+        campos = []
+        valores = []
         if alerta_equivalencia:
-            c.execute("""
-                UPDATE itens_revisao
-                SET alerta_equivalencia=?
-                WHERE id=?
-            """, (alerta_equivalencia, existente[0]))
+            campos.append("alerta_equivalencia=?")
+            valores.append(alerta_equivalencia)
+        if sugestao_composicao:
+            campos.append("sugestao_composicao=?")
+            valores.append(sugestao_composicao)
+        if campos:
+            valores.append(existente[0])
+            c.execute(
+                f"UPDATE itens_revisao SET {', '.join(campos)} WHERE id=?",
+                valores,
+            )
             conn.commit()
         conn.close()
         return
@@ -99,12 +110,13 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         INSERT INTO itens_revisao
         (arquivo, num_item, descricao_oc, codigo_krona_sugerido,
          descricao_krona_sugerida, score_total, tipo_match,
-         confianca_ia, justificativa_ia, alerta_equivalencia)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+         confianca_ia, justificativa_ia, alerta_equivalencia,
+         sugestao_composicao)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
     """, (arquivo, num_item, descricao_oc, codigo_sugerido,
           descricao_sugerida, score, tipo_match,
           confianca_ia or None, justificativa_ia or None,
-          alerta_equivalencia or None))
+          alerta_equivalencia or None, sugestao_composicao or None))
 
     conn.commit()
     conn.close()

@@ -13,6 +13,7 @@ from matcher_tabela_cliente import (
     match_tabela_cliente,
 )
 from regra_quantidade import ajustar_quantidade_tubo
+from enriquecimento_krona import enriquecer_base_krona
 
 # ── IA Helper — fallback seguro se modulo nao disponivel ──────────────────
 try:
@@ -92,6 +93,15 @@ def carregar_base_krona():
         sem_cat2 = df["categoria_detectada"].isna()
         desc2 = df.loc[sem_cat2, "descricao_krona"].fillna("").str.upper()
         df.loc[sem_cat2 & desc2.str.contains("REDUC", na=False), "categoria_detectada"] = "REDUCAO"
+
+    df = enriquecer_base_krona(df)
+
+    # categorias que o normalizador original nao cobria (QUADRO, CAIXA...)
+    # sao recuperadas da propria descricao para entrarem nos filtros duros.
+    vazias = df["categoria_enriquecida"].fillna("").astype(str).str.strip().str.upper().isin(["", "NAN", "NONE"])
+    if vazias.any():
+        df.loc[vazias, "categoria_enriquecida"] = df.loc[vazias, "descricao_krona"].map(
+            lambda d: (extrair_categoria_da_descricao(d) or "").upper())
 
     return df
 
@@ -178,6 +188,24 @@ _NORMAS = re.compile(
     re.IGNORECASE
 )
 
+# texto padrao que os PDFs ActiveReports repetem no fim de cada item
+_RX_BOILERPLATE = re.compile(
+    r"\bDEVERAO SER ENVIADOS JUNTAMENTE COM A NF.*$",
+    re.IGNORECASE
+)
+
+_TABELA_ACENTOS = str.maketrans(
+    "ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ",
+    "AAAAAEEEEIIIIOOOOOUUUUCN",
+)
+
+
+def _normalizar_texto(texto):
+    """Maiusculas, sem acentos e sem o caractere de substituicao dos PDFs."""
+    t = str(texto or "").upper().translate(_TABELA_ACENTOS)
+    t = t.replace("\ufffd", " ").replace("º", " ").replace("°", " ")
+    return re.sub(r"\s+", " ", t).strip()
+
 
 # Mapa de expansão de abreviações comuns nos PDFs de clientes
 _ABREV_EXPANSAO = [
@@ -213,9 +241,10 @@ def limpar_descricao_para_match(descricao, formato=None):
     Limpa e expande a descricao para melhorar o match.
     formato: 'SIENGE' | 'UAU' | 'MRV' | 'BRASAL' | None
     """
-    texto = str(descricao or "").upper().strip()
+    texto = _normalizar_texto(descricao)
     texto = _PREFIXOS_RUIDO.sub("", texto)
     texto = _NORMAS.sub("", texto)
+    texto = _RX_BOILERPLATE.sub("", texto)
 
     # expansao de abreviacoes — maior impacto em PDFs UAU e SIENGE
     for padrao, substituto in _ABREV_EXPANSAO:
@@ -237,50 +266,145 @@ def limpar_descricao_para_match(descricao, formato=None):
     return texto
 
 
+_RX_DIAM_PAR_OC = re.compile(
+    r"(?<!\d)(\d{1,3})\s*(?:MM)?\s*(?:X|×)\s*(?:DN\s*)?(\d{1,3})(?!\d)"
+)
+_RX_DIAM_MM_OC = re.compile(r"(?<!\d)(\d{1,3})\s*MM\b")
+_RX_DN_OC = re.compile(r"\bD\.?N\.?\s*(\d{2,3})(?!\d)")
+
+_ANGULOS = {45, 90, 180}
+
+# A ordem decide apenas empates na mesma posicao do texto.
+_CATEGORIAS_OC = [
+    ("QUADRO",      r"\bQUADRO\b"),
+    ("CAIXA",       r"\bCAIXA\b|\bCX\.?\b"),
+    ("ELETRODUTO",  r"\bELETROD(?:UTO)?\b|\bCORRUGAD[OA]\b"),
+    ("TUBO",        r"\bTUBO\b"),
+    ("JOELHO",      r"\bJOELHO\b|\bCURVA\b"),
+    ("TE",          r"\bTEE?\b"),
+    ("LUVA",        r"\bLUVA\b"),
+    ("BUCHA",       r"\bBUCHA\b"),
+    ("REDUCAO",     r"\bREDU(?:CAO|C)\b|\bRED\.?\b"),
+    ("ADAPTADOR",   r"\bADAPTADOR\b|\bADAPT\.?\b"),
+    ("CAP",         r"\bCAP\b"),
+    ("REGISTRO",    r"\bREGISTRO\b|\bREG\.?\b"),
+    ("VALVULA",     r"\bVALVULA\b|\bVALV\.?\b"),
+    ("JUNCAO",      r"\bJUNCAO\b|\bJUNC\.?\b"),
+    ("UNIAO",       r"\bUNIAO\b"),
+    ("FLANGE",      r"\bFLANGE\b"),
+    ("CONDULETE",   r"\bCONDULETE\b"),
+    ("TAMPA",       r"\bTAMPA\b"),
+    ("SIFAO",       r"\bSIFAO\b"),
+    ("RALO",        r"\bRALO\b"),
+    ("GRELHA",      r"\bGRELHA\b"),
+    ("ENGATE",      r"\bENGATE\b"),
+    ("COLAR",       r"\bCOLAR\b"),
+    ("PROLONGAMENTO", r"\bPROLONGAMENTO\b"),
+    ("TORNEIRA",    r"\bTORNEIRA\b"),
+    ("FITA",        r"\bFITA\b"),
+    ("ADESIVO",     r"\bADESIVO\b|\bCOLA\b"),
+    ("PASTA",       r"\bPASTA\b"),
+]
+
+
+def extrair_diametros_da_descricao(descricao, categoria=None):
+    """Todos os diametros citados na OC, sem confundir angulo com medida."""
+    texto = _normalizar_texto(descricao)
+    cat = str(categoria or extrair_categoria_da_descricao(texto) or "").upper()
+    diametros = set()
+
+    for m in _RX_DIAM_PAR_OC.finditer(texto):
+        a, b = int(m.group(1)), int(m.group(2))
+        if cat in ("JOELHO", "CURVA") and a in _ANGULOS and b >= 10:
+            diametros.add(b)
+        elif cat == "TE" and a == 90 and b >= 10:
+            diametros.add(b)
+        else:
+            diametros.update({a, b})
+
+    for m in _RX_DN_OC.finditer(texto):
+        diametros.add(int(m.group(1)))
+
+    for m in _RX_DIAM_MM_OC.finditer(texto):
+        valor = int(m.group(1))
+        if cat in ("JOELHO", "CURVA") and valor in _ANGULOS:
+            continue
+        diametros.add(valor)
+
+    return {d for d in diametros if 10 <= d <= 1000}
+
+
 def extrair_diametro_da_descricao(descricao):
-    texto = str(descricao or "").upper()
-    padroes = [r"\bDN\s*(\d{1,3})\b", r"\b(\d{1,3})\s*MM\b", r"\b(\d{1,3})MM\b"]
-    for p in padroes:
-        m = re.search(p, texto)
+    """Diametro principal: o maior citado (60X50 -> 60)."""
+    diametros = extrair_diametros_da_descricao(descricao)
+    return float(max(diametros)) if diametros else None
+
+
+def extrair_angulo_da_descricao(descricao, categoria=None):
+    texto = _normalizar_texto(descricao)
+    cat = str(categoria or extrair_categoria_da_descricao(texto) or "").upper()
+    if cat not in ("JOELHO", "CURVA", "TE"):
+        return None
+    for angulo in (45, 90, 180):
+        if re.search(rf"(?<!\d){angulo}(?!\d)", texto):
+            return angulo
+    return None
+
+
+def _quadro_tamanho_do_texto(texto):
+    texto = _normalizar_texto(texto)
+    padroes = (
+        r"(\d{1,3})\s*D\s*/\s*\d{1,3}\s*N",
+        r"(\d{1,3})\s*DIN\b",
+        r"(\d{1,3})\s*DISJ",
+        r"(\d{1,3})\s*D\b",
+    )
+    for padrao in padroes:
+        m = re.search(padrao, texto)
         if m:
             try:
-                return float(m.group(1))
-            except Exception:
+                return int(m.group(1))
+            except ValueError:
                 pass
     return None
 
 
-def extrair_categoria_da_descricao(descricao):
-    texto = str(descricao or "").upper()
-    categorias = [
-        ("TUBO",      [r"\bTUBO\b"]),
-        ("CAP",       [r"\bCAP\b"]),
-        ("JOELHO",    [r"\bJOELHO\b", r"\bCURVA\b"]),
-        ("TE",        [r"\bT[EE]\b"]),
-        ("LUVA",      [r"\bLUVA\b"]),
-        ("REDUCAO",   [r"\bREDU[C]"]),
-        ("ADAPTADOR", [r"\bADAPTADOR\b"]),
-        ("BUCHA",     [r"\bBUCHA\b"]),
-        ("REGISTRO",  [r"\bREGISTRO\b"]),
-        ("VALVULA",   [r"\bVALVULA\b"]),
-        ("FITA",      [r"\bFITA\b"]),
-        ("TORNEIRA",  [r"\bTORNEIRA\b"]),
-        ("ADESIVO",   [r"\bADESIVO\b", r"\bCOLA\b"]),
-        ("PASTA",     [r"\bPASTA\b"]),
-        ("FLANGE",    [r"\bFLANGE\b"]),
-        ("UNIAO",     [r"\bUNIAO\b"]),
-        ("JUNCAO",    [r"\bJUN[CÇ][AÃ]O\b", r"\bJUNC\.?\b"]),
-    ]
-    for categoria, padroes in categorias:
-        for padrao in padroes:
-            if re.search(padrao, texto):
-                return categoria
+def _barramento_do_texto(texto):
+    t = _normalizar_texto(texto)
+    if re.search(r"\bSEM\s+BARRAMENTO\b|\bS/\s*BARRAMENTO\b", t):
+        return "SEM"
+    if re.search(r"\bCOM\s+BARRAMENTO\b|\bC/\s*BARRAMENTO\b|\bC\s+BARRAMENTO\b", t):
+        return "COM"
     return None
 
 
+def _reducao_do_texto(texto):
+    t = _normalizar_texto(texto)
+    return bool(re.search(r"\bREDU|\bRED\b|\bRED\.", t))
+
+
+def _curta_longa_do_texto(texto):
+    t = _normalizar_texto(texto)
+    if re.search(r"\bCURT[OA]\b", t):
+        return "CURTA"
+    if re.search(r"\bLONG[OA]\b", t):
+        return "LONGA"
+    return None
+
+
+def extrair_categoria_da_descricao(descricao):
+    texto = _normalizar_texto(descricao)
+    achados = []
+    for ordem, (categoria, padrao) in enumerate(_CATEGORIAS_OC):
+        m = re.search(padrao, texto)
+        if m:
+            achados.append((m.start(), ordem, categoria))
+    return min(achados)[2] if achados else None
+
+
 def extrair_material_da_descricao(descricao):
-    texto = str(descricao or "").upper()
-    if re.search(r"\bPPR\b", texto):        return "PPR"
+    texto = _normalizar_texto(descricao)
+    if re.search(r"\bPPR\b|\bPP[\s-]?R\b", texto): return "PPR"
     if re.search(r"\bCPVC\b", texto):       return "CPVC"
     # linha ULTRATERM do catalogo Krona = CPVC
     if re.search(r"ULTRA[\s\-]?TERM", texto): return "CPVC"
@@ -291,110 +415,371 @@ def extrair_material_da_descricao(descricao):
     return None
 
 
+def _linha_do_texto(texto):
+    """Linha do produto: esgoto, soldavel, roscavel, ultratech/CPVC ou PPR."""
+    t = _normalizar_texto(texto)
+    if re.search(r"\bESGOTO\b|\bESG\.?\b|\bPRIM\.?\b|\bSEC\.?\b|\bSN\b", t):
+        return "ESGOTO"
+    if re.search(r"\bROSC", t):
+        return "ROSCAVEL"
+    if re.search(r"\bSOLD|\bSOLDAVEL\b", t):
+        return "SOLDAVEL"
+    if re.search(r"ULTRA[\s-]?TERM|\bCPVC\b", t):
+        return "ULTRATERM"
+    if re.search(r"\bPPR\b|\bPP[\s-]?R\b", t):
+        return "PPR"
+    if re.search(r"\bPEAD\b", t):
+        return "PEAD"
+    return None
+
+
+def _serie_do_texto(texto):
+    t = _normalizar_texto(texto)
+    # "REFOR" cobre tambem descricoes antigas com acento corrompido no CSV
+    # e o caso "SERIEREFORCADA" (sem espaco antes de REFORCADA)
+    if re.search(r"REFOR|\bSR\b", t):
+        return "REFORCADA"
+    if re.search(r"\bSN\b|\bNORMAL\b|\bPRIM\.?\b|\bSEC\.?\b|\bESGOTO\b|\bESG\.?\b", t):
+        return "NORMAL"
+    return None
+
+
 def extrair_subcategoria_da_descricao(descricao):
     """
     Detecta subcategoria do produto para filtrar candidatos na base Krona.
 
-    Padrão base Krona:
-    - Série Reforçada  → produtos com código 1400+ tem 'SERIE REFORCADA' no nome
-    - Série Normal     → produtos mais antigos usam PRIM (DN>=50) ou SEC (DN40)
-    - Água fria soldável → SOLDAVEL
+    Série Reforçada → REFORCADA/SR
+    Série Normal   → SN, ESGOTO, PRIM (DN>=50) ou SEC (DN40)
+    Água fria      → SOLDAVEL / ROSCAVEL / ULTRATERM
     """
-    texto = str(descricao or "").upper()
+    texto = _normalizar_texto(descricao)
 
-    # serie reforcada (nova linha Krona 1400+)
-    if re.search(r"REFOR[CÇ]", texto):
+    if re.search(r"REFOR|\bSR\b", texto):
         return "REFORCADA"
 
-    # esgoto serie normal → busca PRIM e SEC (ambos usados na Krona)
-    if re.search(r"ESGOTO|\bESG\.?\b|\bPRIM\.?\b|\bSEC\.?\b", texto):
-        return "ESGOTO"
-
-    if re.search(r"\bSOLD[AV]\b|\bSOLDAVEL\b", texto):
-        return "SOLDAVEL"
-    if re.search(r"\bROSC[AV]\b|\bROSCAVEL\b", texto):
-        return "ROSCAVEL"
-    if re.search(r"\bULTRATERM\b", texto):
-        return "ULTRATERM"
+    linha = _linha_do_texto(texto)
+    if linha:
+        return linha
     return None
 
 
-def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None, subcategoria=None, item_descricao=None):
-    MIN_CANDIDATOS = 3
+def _categoria_candidato(cand):
+    for campo in ("categoria_enriquecida", "categoria_detectada"):
+        valor = str(cand.get(campo) or "").strip().upper()
+        if valor and valor not in ("NAN", "NONE"):
+            return valor
+    return extrair_categoria_da_descricao(cand.get("descricao_krona")) or ""
 
-    # filtro mais preciso: categoria + diametro + subcategoria
-    if categoria and diametro_mm is not None and subcategoria:
-        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
-        mask_dia = (
-            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
-            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
-        )
-        # mapeia subcategoria para termos usados na base Krona
-        termos_sub = {
-            "REFORCADA": ["REFORCADA", "REFORC", "REFORÇ"],  # serie reforcada nova
-            "ESGOTO":    ["ESGOTO", "PRIM", "SEC", "ESG"],   # esgoto serie normal
-            "SOLDAVEL":  ["SOLD"],
-            "ROSCAVEL":  ["ROSC"],
-            "ULTRATERM": ["ULTRA"],
-        }.get(subcategoria, [subcategoria[:4]])
 
-        mask_sub = pd.Series([False] * len(base_krona), index=base_krona.index)
-        for termo in termos_sub:
-            mask_sub = mask_sub | base_krona["descricao_krona"].fillna("").str.upper().str.contains(termo)
-        candidatos = base_krona[mask_cat & mask_dia & mask_sub]
-        if len(candidatos) >= 1:
-            return candidatos
+def _familias_compativeis(cat_oc, cat_cand, desc_oc="", desc_cand=""):
+    if not cat_oc or not cat_cand:
+        return True
+    if cat_oc == cat_cand:
+        return True
+    if cat_oc in ("JOELHO", "CURVA") and cat_cand in ("JOELHO", "CURVA"):
+        return True
+    if cat_oc in ("REDUCAO", "BUCHA") and cat_cand in ("REDUCAO", "BUCHA"):
+        return True
+    if {cat_oc, cat_cand} == {"REGISTRO", "VALVULA"}:
+        return "ESFERA" in _normalizar_texto(desc_oc) and "ESFERA" in _normalizar_texto(desc_cand)
+    return False
 
-    # filtro: categoria + diametro + material
-    if categoria and diametro_mm is not None and material:
-        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
-        mask_dia = (
-            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
-            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
-        )
-        mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
-        candidatos = base_krona[mask_cat & mask_dia & mask_mat]
-        if len(candidatos) >= 1:
-            return candidatos
 
-    # filtro: categoria + diametro
-    if categoria and diametro_mm is not None:
-        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
-        mask_dia = (
-            (base_krona["diametro_final_mm"].notna() & (base_krona["diametro_final_mm"] == diametro_mm)) |
-            (base_krona["diametro_mm"].notna() & (base_krona["diametro_mm"] == diametro_mm))
-        )
-        # se tiver material, filtra por ele mesmo com poucos candidatos
-        if material:
-            mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
-            candidatos = base_krona[mask_cat & mask_dia & mask_mat]
-            if len(candidatos) >= 1:
-                return candidatos
-        candidatos = base_krona[mask_cat & mask_dia]
-        if len(candidatos) >= MIN_CANDIDATOS:
-            return candidatos
+def _serie_candidato(cand):
+    texto = " ".join(str(cand.get(c) or "") for c in (
+        "descricao_krona", "descricao_normalizada", "descricao_aliases"))
+    return _serie_do_texto(texto)
 
-    # filtro: so categoria
-    if categoria:
-        mask_cat = base_krona["categoria_detectada"].fillna("").str.upper() == categoria.upper()
-        if material:
-            mask_mat = base_krona["descricao_krona"].fillna("").str.upper().str.contains(material)
-            candidatos = base_krona[mask_cat & mask_mat]
-            if len(candidatos) >= MIN_CANDIDATOS:
-                return candidatos
-        candidatos = base_krona[mask_cat]
-        if len(candidatos) >= MIN_CANDIDATOS:
-            return candidatos
+
+def _angulo_candidato(cand):
+    texto = " ".join(str(cand.get(c) or "") for c in (
+        "descricao_krona", "descricao_normalizada", "descricao_aliases"))
+    return extrair_angulo_da_descricao(texto, _categoria_candidato(cand))
+
+
+def _diametros_candidato(cand):
+    categoria = _categoria_candidato(cand)
+    diametros = set()
+    for campo in ("diametro_final_mm", "diametro_mm", "diametro_pdf_mm", "diametro_pdf_2_mm"):
+        try:
+            valor = float(cand.get(campo))
+        except (TypeError, ValueError):
+            continue
+        if valor > 0:
+            diametros.add(valor)
+    for campo in ("descricao_krona", "descricao_normalizada", "descricao_aliases"):
+        diametros |= extrair_diametros_da_descricao(cand.get(campo), categoria)
+    if categoria in ("JOELHO", "CURVA"):
+        diametros -= {float(a) for a in _ANGULOS}
+    return diametros
+
+
+def _candidato_estrutural(cand, categoria=None, diametros=None, subcategoria=None,
+                          angulo=None, quadro_tamanho=None, descricao_oc=""):
+    """True se o candidato nao contradiz nenhum atributo duro da OC."""
+    cat_cand = _categoria_candidato(cand)
+    desc_cand = str(cand.get("descricao_krona") or "")
+    if not _familias_compativeis(categoria, cat_cand, descricao_oc, desc_cand):
+        return False
+
+    linha_oc = _linha_do_texto(descricao_oc)
+    linha_cand = _linha_do_texto(desc_cand)
+    if linha_oc and linha_cand and linha_oc != linha_cand:
+        return False
+
+    diametros = {float(d) for d in (diametros or set()) if d}
+    if diametros:
+        ds = _diametros_candidato(cand)
+        if len(diametros) >= 2:
+            if not ds or not diametros <= ds:
+                return False
+        elif ds and not (diametros & ds):
+            return False
+
+    if subcategoria in ("ESGOTO", "REFORCADA"):
+        serie = _serie_candidato(cand)
+        if subcategoria == "REFORCADA" and serie != "REFORCADA":
+            return False
+        if subcategoria == "ESGOTO" and serie != "NORMAL":
+            return False
+
+    if angulo is not None and categoria in ("JOELHO", "CURVA"):
+        angulo_cand = _angulo_candidato(cand)
+        if angulo_cand is not None and angulo_cand != angulo:
+            return False
+
+    curta_longa_oc = _curta_longa_do_texto(descricao_oc)
+    if curta_longa_oc:
+        curta_longa_cand = _curta_longa_do_texto(desc_cand)
+        if curta_longa_cand and curta_longa_cand != curta_longa_oc:
+            return False
+
+    if categoria == "QUADRO":
+        texto = " ".join(str(cand.get(c) or "") for c in (
+            "descricao_krona", "descricao_aliases"))
+        if quadro_tamanho is not None:
+            tam_cand = _quadro_tamanho_do_texto(texto)
+            if tam_cand is not None and tam_cand != quadro_tamanho:
+                return False
+        barr_oc = _barramento_do_texto(descricao_oc)
+        barr_cand = _barramento_do_texto(texto)
+        if barr_oc and barr_cand and barr_oc != barr_cand:
+            return False
+
+    return True
+
+
+def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None,
+                             subcategoria=None, item_descricao=None,
+                             diametros=None, angulo=None):
+    if base_krona is None or base_krona.empty:
+        return base_krona
+
+    pool = base_krona.copy()
 
     # segurança: nunca retorna linha PY como candidato
     # a menos que a descricao da OC mencione explicitamente PY
-    _desc_upper = str(item_descricao or "").upper() if item_descricao else ""
-    if "PY" not in _desc_upper:
-        mask_nao_py = ~base_krona["descricao_krona"].fillna("").str.upper().str.contains(r"\bPY\b", na=False, regex=True)
-        if mask_nao_py.sum() > 0:
-            base_krona = base_krona[mask_nao_py]
+    if "PY" not in _normalizar_texto(item_descricao):
+        mask_nao_py = ~pool["descricao_krona"].fillna("").str.upper().str.contains(
+            r"\bPY\b", na=False, regex=True)
+        if mask_nao_py.any():
+            pool = pool[mask_nao_py]
 
-    return base_krona
+    # eletroduto/corrugado so entra quando a OC e eletrica
+    if not re.search(r"ELETROD|ELETR\b|CORRUGAD|CONDULETE", _normalizar_texto(item_descricao)):
+        mask_eletrico = pool["descricao_krona"].fillna("").map(
+            lambda d: bool(re.search(r"ELETROD|ELETR\.?\s*CORRUGAD|CORRUGAD", _normalizar_texto(d))))
+        filtrado = pool[~mask_eletrico]
+        if not filtrado.empty:
+            pool = filtrado
+
+    categoria = str(categoria or "").strip().upper()
+    if categoria:
+        if "categoria_enriquecida" in pool.columns:
+            cats = pool["categoria_enriquecida"].fillna("").astype(str).str.upper().str.strip()
+        else:
+            cats = pool["categoria_detectada"].fillna("").astype(str).str.upper().str.strip()
+        vazias = cats.isin(["", "NAN", "NONE"])
+        if vazias.any():
+            cats = cats.copy()
+            cats.loc[vazias] = pool.loc[vazias, "descricao_krona"].map(
+                lambda d: (extrair_categoria_da_descricao(d) or "").upper())
+
+        compativeis = {categoria}
+        if categoria in ("JOELHO", "CURVA"):
+            compativeis |= {"JOELHO", "CURVA"}
+        if categoria in ("REDUCAO", "BUCHA"):
+            compativeis |= {"REDUCAO", "BUCHA"}
+
+        pool = pool[cats.isin(compativeis)]
+        if pool.empty:
+            return pool
+
+        if categoria in ("REGISTRO", "VALVULA"):
+            exatos = pool[pool["categoria_enriquecida"].fillna("").astype(str).str.upper().str.strip()
+                          == categoria]
+            if not exatos.empty:
+                pool = exatos
+            elif "ESFERA" in _normalizar_texto(item_descricao):
+                pool = pool[pool["descricao_krona"].fillna("").str.upper().str.contains("ESFERA")]
+            if pool.empty:
+                return pool
+
+    if diametros is None:
+        diametros = extrair_diametros_da_descricao(item_descricao, categoria)
+    diametros = {float(d) for d in (diametros or set()) if d}
+    if not diametros and diametro_mm is not None:
+        try:
+            diametros = {float(diametro_mm)}
+        except (TypeError, ValueError):
+            diametros = set()
+
+    if diametros:
+        if len(diametros) >= 2:
+            filtrado = pool[pool.apply(
+                lambda r: diametros <= _diametros_candidato(r), axis=1)]
+        else:
+            filtrado = pool[pool.apply(
+                lambda r: not _diametros_candidato(r) or bool(diametros & _diametros_candidato(r)),
+                axis=1)]
+        if not filtrado.empty:
+            pool = filtrado
+
+        # OC pede medida unica e nao fala em reducao: peca redutora (25x20)
+        # nao substitui a peca reta (25), mesmo com texto parecido
+        if (len(diametros) == 1 and categoria in _CATS_DUPLA_MEDIDA
+                and not _reducao_do_texto(item_descricao)):
+            filtrado = pool[pool.apply(
+                lambda r: len(_diametros_candidato(r)) <= 1, axis=1)]
+            if not filtrado.empty:
+                pool = filtrado
+
+    if material:
+        termos = {"CPVC": r"ULTRA|CPVC", "PEAD": r"PEAD|POLIETILENO"}.get(material, material)
+        filtrado = pool[pool["descricao_krona"].fillna("").str.upper().str.contains(
+            termos, na=False, regex=True)]
+        if not filtrado.empty:
+            pool = filtrado
+
+    if subcategoria in ("ESGOTO", "REFORCADA"):
+        filtrado = pool[pool.apply(
+            lambda r: _serie_candidato(r) == ("REFORCADA" if subcategoria == "REFORCADA" else "NORMAL"),
+            axis=1)]
+        if not filtrado.empty:
+            pool = filtrado
+
+    if angulo is not None and categoria in ("JOELHO", "CURVA"):
+        filtrado = pool[pool.apply(
+            lambda r: _angulo_candidato(r) in (None, angulo), axis=1)]
+        if not filtrado.empty:
+            pool = filtrado
+
+    curta_longa_oc = _curta_longa_do_texto(item_descricao)
+    if curta_longa_oc:
+        filtrado = pool[pool.apply(
+            lambda r: _curta_longa_do_texto(r.get("descricao_krona")) in (None, curta_longa_oc),
+            axis=1)]
+        if not filtrado.empty:
+            pool = filtrado
+
+    if categoria == "QUADRO":
+        tamanho = _quadro_tamanho_do_texto(item_descricao)
+        if tamanho is not None:
+            filtrado = pool[pool.apply(
+                lambda r: _quadro_tamanho_do_texto(
+                    " ".join(str(r.get(c) or "") for c in ("descricao_krona", "descricao_aliases"))
+                ) in (None, tamanho), axis=1)]
+            if not filtrado.empty:
+                pool = filtrado
+
+    return pool
+
+
+def _score_textual_candidato(descricao_limpa, cand):
+    melhor = 0.0
+    for campo in ("descricao_normalizada", "descricao_krona", "descricao_aliases"):
+        texto = _normalizar_texto(cand.get(campo))
+        if not texto:
+            continue
+        score = (
+            rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, texto) / 100.0 * 0.70
+            + rapidfuzz_fuzz.ratio(descricao_limpa, texto) / 100.0 * 0.30
+        )
+        melhor = max(melhor, score)
+    return round(melhor, 4)
+
+
+def _resumo_candidatos(registros, limite=3):
+    if not registros:
+        return ""
+    ordenados = sorted(registros, key=lambda r: r.get("score_total", 0), reverse=True)[:limite]
+    partes = []
+    for r in ordenados:
+        codigo = str(r.get("codigo_krona") or "").strip()
+        descricao = str(r.get("descricao_krona") or "").strip()
+        score = r.get("score_total")
+        try:
+            score = float(score)
+            partes.append(f"{codigo} {descricao} ({score:.2f})")
+        except (TypeError, ValueError):
+            partes.append(f"{codigo} {descricao}")
+    return " | ".join(partes)
+
+
+def _sugerir_composicao_te(base_krona, diametros):
+    """Quando nao existe TE redutor na medida, sugere TE + bucha (nunca aplica)."""
+    diametros = {float(d) for d in (diametros or set()) if d}
+    if base_krona is None or base_krona.empty or len(diametros) < 2:
+        return None
+
+    maior, menor = max(diametros), min(diametros)
+    pool = base_krona.copy()
+    if "categoria_enriquecida" in pool.columns:
+        cats = pool["categoria_enriquecida"].fillna("").astype(str).str.upper().str.strip()
+    else:
+        cats = pool["categoria_detectada"].fillna("").astype(str).str.upper().str.strip()
+    vazias = cats.isin(["", "NAN", "NONE"])
+    if vazias.any():
+        cats = cats.copy()
+        cats.loc[vazias] = pool.loc[vazias, "descricao_krona"].map(
+            lambda d: (extrair_categoria_da_descricao(d) or "").upper())
+
+    tes = []
+    for _, row in pool[cats == "TE"].iterrows():
+        descricao = _normalizar_texto(row.get("descricao_krona"))
+        if re.search(r"\bRED\b|REDU", descricao):
+            continue
+        ds = _diametros_candidato(row)
+        if maior in ds and menor not in ds:
+            tes.append(row)
+
+    buchas = []
+    for _, row in pool[cats == "BUCHA"].iterrows():
+        ds = _diametros_candidato(row)
+        if {maior, menor} <= ds:
+            buchas.append(row)
+
+    if not tes or not buchas:
+        return None
+
+    def _ordem_te(row):
+        descricao = _normalizar_texto(row.get("descricao_krona"))
+        return (0 if "SOLD" in descricao else 1, len(descricao))
+
+    def _ordem_bucha(row):
+        descricao = _normalizar_texto(row.get("descricao_krona"))
+        return (0 if "CURTA" in descricao else 1, len(descricao))
+
+    te = sorted(tes, key=_ordem_te)[0]
+    bucha = sorted(buchas, key=_ordem_bucha)[0]
+    cod_te = str(te.get("codigo_krona") or "").strip()
+    cod_bucha = str(bucha.get("codigo_krona") or "").strip()
+    return {
+        "texto": f"{cod_te} {te.get('descricao_krona')} + {cod_bucha} {bucha.get('descricao_krona')}",
+        "codigos": [cod_te, cod_bucha],
+        "maior": maior,
+        "menor": menor,
+    }
 
 
 def match_por_descricao(item, base_krona):
@@ -418,106 +803,141 @@ def match_por_descricao(item, base_krona):
 
     descricao_limpa = limpar_descricao_para_match(descricao_raw, formato=formato_origem)
     categoria    = extrair_categoria_da_descricao(descricao_limpa)
-    diametro     = extrair_diametro_da_descricao(descricao_limpa)
+    diametros    = extrair_diametros_da_descricao(descricao_limpa, categoria)
+    diametro     = max(diametros) if diametros else None
     material     = extrair_material_da_descricao(descricao_limpa)
     subcategoria = extrair_subcategoria_da_descricao(descricao_limpa)
+    angulo       = extrair_angulo_da_descricao(descricao_limpa, categoria)
+    linha        = _linha_do_texto(descricao_limpa)
+    quadro_tamanho = _quadro_tamanho_do_texto(descricao_limpa) if categoria == "QUADRO" else None
 
-    # score mínimo adaptativo:
-    # descrições curtas/quebradas (< 4 tokens) recebem threshold menor
-    # pois PDFs UAU/SIENGE frequentemente chegam com texto truncado
     tokens_desc = [t for t in descricao_limpa.split() if len(t) > 1]
-    if len(tokens_desc) < 4:
-        SCORE_MINIMO_DESCRICAO = 0.32   # texto curto/quebrado — mais tolerante
-    elif categoria and diametro is not None:
-        SCORE_MINIMO_DESCRICAO = 0.40   # categoria + diâmetro detectados — confiança média
+    ancoras = sum((
+        categoria is not None,
+        bool(diametros),
+        subcategoria is not None,
+        angulo is not None,
+    ))
+
+    candidatos = filtrar_candidatos_krona(
+        base_krona, categoria, diametro, material, subcategoria,
+        descricao_limpa, diametros=diametros, angulo=angulo,
+    )
+    if candidatos is None:
+        candidatos = base_krona.iloc[0:0]
+
+    if candidatos.empty:
+        estruturais = candidatos
     else:
-        SCORE_MINIMO_DESCRICAO = 0.45   # descrição completa — threshold original
+        estruturais = candidatos[candidatos.apply(
+            lambda r: _candidato_estrutural(
+                r, categoria=categoria, diametros=diametros, subcategoria=subcategoria,
+                angulo=angulo, quadro_tamanho=quadro_tamanho, descricao_oc=descricao_limpa,
+            ), axis=1)]
 
-    candidatos = filtrar_candidatos_krona(base_krona, categoria, diametro, material, subcategoria, descricao_limpa)
+    # universo ja restrito pela tabela do cliente: deixa o preco/guarda decidir
+    if estruturais.empty and "preco_tabela" in base_krona.columns:
+        estruturais = base_krona
 
-    # exclui linha PY a menos que a OC peça explicitamente
-    if "PY" not in descricao_limpa:
-        mask_sem_py = ~candidatos["descricao_krona"].fillna("").str.upper().str.contains(r"\bPY\b", na=False, regex=True)
-        if mask_sem_py.sum() > 0:
-            candidatos = candidatos[mask_sem_py]
+    if estruturais.empty:
+        registros_revisao = [
+            {**row.to_dict(), "score_total": _score_textual_candidato(descricao_limpa, row.to_dict())}
+            for _, row in candidatos.head(80).iterrows()
+        ]
+        composicao = None
+        if categoria == "TE" and len(diametros) >= 2:
+            composicao = _sugerir_composicao_te(base_krona, diametros)
 
-    # para JUNCAO com dois diametros (ex: 100X75), diametro_final_mm eh NaN na base
-    # refinar candidatos por texto dos dois numeros da descricao OC
-    if categoria == "JUNCAO" and diametro is not None:
-        nums_oc = re.findall(r"\b(\d{2,3})\b", descricao_limpa)
-        if len(nums_oc) >= 2:
-            mask_sem_diam = candidatos["diametro_final_mm"].isna() & candidatos["diametro_mm"].isna()
-            candidatos_sem_diam = candidatos[mask_sem_diam]
-            candidatos_com_diam = candidatos[~mask_sem_diam]
-            if not candidatos_sem_diam.empty:
-                mask_num = pd.Series([False] * len(candidatos_sem_diam), index=candidatos_sem_diam.index)
-                for num in nums_oc[:2]:
-                    mask_num = mask_num | candidatos_sem_diam["descricao_krona"].fillna("").str.upper().str.contains(rf"\b{num}\b", regex=True, na=False)
-                candidatos_filtrados = candidatos_sem_diam[mask_num]
-                if not candidatos_filtrados.empty:
-                    candidatos = pd.concat([candidatos_com_diam, candidatos_filtrados])
-                elif not candidatos_com_diam.empty:
-                    candidatos = candidatos_com_diam
-
-    if candidatos.empty:
-        return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
-                "motivo_match": "sem_candidatos_krona"}
-
-    # filtro critico: distingue serie REFORCADA vs NORMAL
-    # na base Krona: serie reforcada usa REFORC ou SR (para tubos)
-    # serie normal usa PRIM ou SEC — nunca REFORC nem SR
-    if subcategoria == "REFORCADA":
-        # OC pede REFORCADA — manter apenas produtos com REFORC ou SR no nome
-        mask_ref = (
-            candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False) |
-            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" SR ", na=False, regex=True)
-        )
-        if mask_ref.sum() > 0:
-            candidatos = candidatos[mask_ref]
-    elif subcategoria == "ESGOTO":
-        # OC pede serie NORMAL — excluir produtos com REFORC, SR ou PY no nome
-        mask_nao_ref = ~(
-            candidatos["descricao_krona"].fillna("").str.upper().str.contains("REFORC", na=False) |
-            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" SR ", na=False, regex=True) |
-            candidatos["descricao_krona"].fillna("").str.upper().str.contains(r" PY$", na=False, regex=True)
-        )
-        if mask_nao_ref.sum() > 0:
-            candidatos = candidatos[mask_nao_ref]
-
-    if candidatos.empty:
-        return {"match_encontrado": False, "tipo_match": "SEM_MATCH",
-                "motivo_match": "sem_candidatos_apos_filtro_serie"}
+        resultado = {
+            "match_encontrado": False,
+            "codigo_krona": None,
+            "descricao_krona": None,
+            "descricao_krona_normalizada": None,
+            "linha_krona_match": None,
+            "familia_krona_match": None,
+            "unidade_venda_krona": None,
+            "quantidade_embalagem_krona": None,
+            "score_estrutura": 0,
+            "score_textual": 0,
+            "score_total": 0,
+            "tipo_match": "SEM_MATCH",
+            "revisao_manual": True,
+            "motivo_match": "SEM_CANDIDATOS_ESTRUTURAIS",
+            "categoria_krona": categoria,
+            "eh_tubo_krona": None,
+            "diametro_krona_mm": None,
+            "comprimento_krona_m": None,
+            "categoria_oc": categoria,
+            "diametros_oc": sorted(diametros),
+            "linha_oc": linha,
+            "serie_oc": subcategoria,
+            "angulo_oc": angulo,
+            "quadro_tamanho_oc": quadro_tamanho,
+            "candidatos_revisao": _resumo_candidatos(registros_revisao),
+            "bloquear_fallback": bool(categoria or subcategoria or angulo),
+        }
+        if composicao:
+            resultado.update({
+                "tipo_match": "SUGESTAO_COMPOSICAO",
+                "motivo_match": (
+                    f"SEM_PRODUTO_UNICO_{composicao['maior']:.0f}X{composicao['menor']:.0f}"
+                    "_SUGERIR_COMPOSICAO"
+                ),
+                "sugestao_composicao": composicao["texto"],
+                "candidatos_revisao": composicao["texto"],
+            })
+        return resultado
 
     registros = []
-    for _, row in candidatos.iterrows():
+    for _, row in estruturais.iterrows():
         cand = row.to_dict()
-        desc_krona = str(cand.get("descricao_normalizada") or cand.get("descricao_krona") or "").upper()
+        score_txt = _score_textual_candidato(descricao_limpa, cand)
 
-        score_txt = rapidfuzz_fuzz.token_sort_ratio(descricao_limpa, desc_krona) / 100.0
-        score_str = rapidfuzz_fuzz.ratio(descricao_limpa, desc_krona) / 100.0
-        score_base = round((score_txt * 0.70) + (score_str * 0.30), 4)
-
-        # bônus estrutural: categoria e diâmetro já confirmados pelo filtro
-        # recompensam candidatos que chegaram pela rota mais precisa
         bonus = 0.0
-        if categoria and str(cand.get("categoria_detectada", "")).upper() == categoria.upper():
-            bonus += 0.06
-        if diametro is not None:
-            diam_cand = cand.get("diametro_final_mm") or cand.get("diametro_mm")
-            try:
-                if abs(float(diam_cand) - diametro) < 0.01:
-                    bonus += 0.08
-            except (TypeError, ValueError):
-                pass
-        if subcategoria and subcategoria in str(desc_krona):
+        cat_cand = _categoria_candidato(cand)
+        if categoria and cat_cand == categoria:
+            bonus += 0.08
+        elif categoria and _familias_compativeis(
+                categoria, cat_cand, descricao_limpa,
+                str(cand.get("descricao_krona") or "")):
             bonus += 0.04
+        ds = _diametros_candidato(cand)
+        if diametros:
+            if diametros <= ds:
+                bonus += 0.10 if len(diametros) >= 2 else 0.08
+            elif diametros & ds:
+                bonus += 0.04
+        if angulo is not None and _angulo_candidato(cand) == angulo:
+            bonus += 0.06
+        if subcategoria in ("ESGOTO", "REFORCADA"):
+            serie = _serie_candidato(cand)
+            if (subcategoria == "ESGOTO" and serie == "NORMAL") or (
+                    subcategoria == "REFORCADA" and serie == "REFORCADA"):
+                bonus += 0.04
+        if linha and _linha_do_texto(cand.get("descricao_krona")) == linha:
+            bonus += 0.04
+        if quadro_tamanho is not None:
+            tam = _quadro_tamanho_do_texto(" ".join(str(cand.get(c) or "") for c in (
+                "descricao_krona", "descricao_aliases")))
+            if tam == quadro_tamanho:
+                bonus += 0.08
 
-        score_final = round(min(1.0, score_base + bonus), 4)
+        score_final = round(min(1.0, score_txt + bonus), 4)
         registros.append({**cand, "score_total": score_final, "score_textual": score_txt})
 
     df_scores = pd.DataFrame(registros).sort_values("score_total", ascending=False)
     melhor = df_scores.iloc[0].to_dict()
     score_melhor = melhor.get("score_total", 0)
+    candidato_unico = len(df_scores) == 1
+
+    if candidato_unico and ancoras >= 2:
+        SCORE_MINIMO_DESCRICAO = 0.35
+    elif len(tokens_desc) < 4:
+        SCORE_MINIMO_DESCRICAO = 0.32
+    elif categoria and diametros:
+        SCORE_MINIMO_DESCRICAO = 0.40
+    else:
+        SCORE_MINIMO_DESCRICAO = 0.45
 
     if score_melhor < SCORE_MINIMO_DESCRICAO:
         return {
@@ -539,18 +959,27 @@ def match_por_descricao(item, base_krona):
             "eh_tubo_krona": None,
             "diametro_krona_mm": None,
             "comprimento_krona_m": None,
+            "categoria_oc": categoria,
+            "diametros_oc": sorted(diametros),
+            "linha_oc": linha,
+            "serie_oc": subcategoria,
+            "angulo_oc": angulo,
+            "quadro_tamanho_oc": quadro_tamanho,
+            "candidatos_revisao": _resumo_candidatos(registros),
+            "bloquear_fallback": bool(categoria or subcategoria or angulo),
         }
 
     # verifica se ha empate proximo entre os top candidatos
-    # se a diferenca entre o 1o e o 2o for menor que 0.05, marca para revisao
-    MARGEM_EMPATE = 0.02  # diferenca menor que 2% = empate real
+    MARGEM_EMPATE = 0.02
     revisao_por_empate = False
     if len(df_scores) >= 2:
         segundo = df_scores.iloc[1].to_dict()
-        score_segundo = segundo.get("score_total", 0)
-        diferenca = score_melhor - score_segundo
+        diferenca = score_melhor - segundo.get("score_total", 0)
         if diferenca < MARGEM_EMPATE:
             revisao_por_empate = True
+
+    # quadro eletrico sempre passa por revisao: com/sem barramento e sobrepor/embutir
+    revisao = revisao_por_empate or categoria == "QUADRO"
 
     return {
         "match_encontrado": True,
@@ -564,17 +993,27 @@ def match_por_descricao(item, base_krona):
         "score_estrutura": 0,
         "score_textual": melhor.get("score_textual", 0),
         "score_total": score_melhor,
-        "tipo_match": "MATCH_DESCRICAO" if not revisao_por_empate else "MATCH_DESCRICAO_REVISAR",
-        "revisao_manual": revisao_por_empate,
+        "tipo_match": "MATCH_DESCRICAO_REVISAR" if revisao else "MATCH_DESCRICAO",
+        "revisao_manual": revisao,
         "motivo_match": (
-            f"MATCH_POR_DESCRICAO(cat={categoria},diam={diametro})"
-            if not revisao_por_empate
-            else f"MATCH_EMPATE_PROXIMO(dif={score_melhor - df_scores.iloc[1].get('score_total',0):.2f})"
+            f"MATCH_EMPATE_PROXIMO(dif={score_melhor - df_scores.iloc[1].get('score_total', 0):.2f})"
+            if revisao_por_empate
+            else f"MATCH_POR_DESCRICAO(cat={categoria},diam={sorted(diametros)},serie={subcategoria},ang={angulo})"
         ),
-        "categoria_krona": melhor.get("categoria_detectada"),
+        "categoria_krona": _categoria_candidato(melhor),
         "eh_tubo_krona": melhor.get("eh_tubo"),
         "diametro_krona_mm": obter_diametro_krona(melhor),
         "comprimento_krona_m": obter_comprimento_krona(melhor),
+        "categoria_oc": categoria,
+        "diametros_oc": sorted(diametros),
+        "linha_oc": linha,
+        "serie_oc": subcategoria,
+        "angulo_oc": angulo,
+        "quadro_tamanho_oc": quadro_tamanho,
+        "candidato_unico_estrutural": candidato_unico,
+        "ancoras_estruturais": ancoras,
+        "candidatos_revisao": _resumo_candidatos(registros),
+        "bloquear_fallback": False,
     }
 
 # ============================================================
@@ -664,8 +1103,11 @@ def _diametros_de(texto) -> set:
     return ds
 
 
+_CATS_DUPLA_MEDIDA = {"TE", "REDUCAO", "BUCHA", "LUVA", "ADAPTADOR", "JUNCAO", "JOELHO", "CURVA"}
+
+
 def _conflito_hard(item, res) -> bool:
-    """True se a descricao Krona do resultado contradiz material ou diametro da OC."""
+    """True se o candidato contradiz familia, linha, serie, angulo ou medida da OC."""
     desc_oc = str(
         item.get("descricao_oc")
         or item.get("descricao_reconstruida")
@@ -682,23 +1124,125 @@ def _conflito_hard(item, res) -> bool:
     if mo and mc and not (mo & mc):
         return True
 
-    do, dc = _diametros_de(desc_oc), _diametros_de(desc_cand)
+    cat_oc = extrair_categoria_da_descricao(desc_oc)
+    cat_res = str(res.get("categoria_krona") or "").strip().upper()
+    if cat_res in ("NAN", "NONE", "NAT"):
+        cat_res = ""
+    cat_cand = extrair_categoria_da_descricao(desc_cand) or cat_res
+    if not _familias_compativeis(cat_oc, cat_cand, desc_oc, desc_cand):
+        return True
+
+    linha_oc = _linha_do_texto(desc_oc)
+    linha_cand = _linha_do_texto(desc_cand)
+    if linha_oc and linha_cand and linha_oc != linha_cand:
+        return True
+
+    comp_oc = _curta_longa_do_texto(desc_oc)
+    comp_cand = _curta_longa_do_texto(desc_cand)
+    if comp_oc and comp_cand and comp_oc != comp_cand:
+        return True
+
+    sub_oc = extrair_subcategoria_da_descricao(desc_oc)
+    serie_cand = _serie_do_texto(desc_cand)
+    if sub_oc == "REFORCADA" and serie_cand and serie_cand != "REFORCADA":
+        return True
+    if sub_oc == "ESGOTO" and serie_cand and serie_cand != "NORMAL":
+        return True
+
+    angulo_oc = extrair_angulo_da_descricao(desc_oc, cat_oc)
+    angulo_cand = extrair_angulo_da_descricao(desc_cand, cat_cand)
+    if angulo_oc and angulo_cand and angulo_oc != angulo_cand:
+        return True
+
+    do = extrair_diametros_da_descricao(desc_oc, cat_oc)
+    dc = extrair_diametros_da_descricao(desc_cand, cat_cand)
     if do and dc and not (do & dc):
         return True
+
+    # reducoes: o candidato tem de conter TODOS os diametros pedidos
+    if len(do) >= 2 and cat_oc in _CATS_DUPLA_MEDIDA:
+        if dc:
+            if not {float(d) for d in do} <= {float(d) for d in dc}:
+                return True
+        else:
+            diam_cand_num = res.get("diametro_krona_mm")
+            try:
+                diam_val = float(diam_cand_num)
+                if diam_val != diam_val:
+                    return True
+                if diam_val not in {float(d) for d in do}:
+                    return True
+            except (TypeError, ValueError):
+                return True
 
     # diametro numerico do catalogo (mm) vs conjuntos de diametros da OC
     diam_cand_num = res.get("diametro_krona_mm")
     if do and diam_cand_num not in (None, "", "nan"):
         try:
             dc_val = float(diam_cand_num)
-            if dc_val > 0 and not any(
+            if dc_val == dc_val and dc_val > 0 and not any(
                 abs(dc_val - float(x)) <= max(1.0, 0.05 * float(x)) for x in do
             ):
                 return True
         except Exception:
             pass
 
+    if cat_oc == "QUADRO":
+        tam_oc = _quadro_tamanho_do_texto(desc_oc)
+        tam_cand = _quadro_tamanho_do_texto(desc_cand)
+        if tam_oc and tam_cand and tam_oc != tam_cand:
+            return True
+        barr_oc = _barramento_do_texto(desc_oc)
+        barr_cand = _barramento_do_texto(desc_cand)
+        if barr_oc and barr_cand and barr_oc != barr_cand:
+            return True
+
     return False
+
+
+def _tentar_semantico(item, base_krona):
+    """Motor semantico sempre submetido as travas duras do matcher."""
+    try:
+        from motor_semantico import obter_motor
+        motor = obter_motor()
+        if not motor.pronto:
+            motor.indexar(base_krona)
+        descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+        descricao = str(descricao).replace("\n", " ").strip()
+        if not descricao:
+            return None
+        resultado = motor.match(descricao)
+        if resultado.get("match_encontrado") and not _conflito_hard(item, resultado):
+            resultado["via_motor_semantico"] = True
+            return resultado
+    except Exception as e:
+        print(f"[MATCHER] Motor semantico indisponivel: {e}")
+    return None
+
+
+def _montar_sem_match(motivo="SEM_MATCH", score=0, categoria=None, **extra):
+    resultado = {
+        "match_encontrado": False,
+        "codigo_krona": None,
+        "descricao_krona": None,
+        "descricao_krona_normalizada": None,
+        "linha_krona_match": None,
+        "familia_krona_match": None,
+        "unidade_venda_krona": None,
+        "quantidade_embalagem_krona": None,
+        "score_estrutura": 0,
+        "score_textual": score,
+        "score_total": score,
+        "tipo_match": "SEM_MATCH",
+        "revisao_manual": True,
+        "motivo_match": motivo,
+        "categoria_krona": categoria,
+        "eh_tubo_krona": None,
+        "diametro_krona_mm": None,
+        "comprimento_krona_m": None,
+    }
+    resultado.update(extra)
+    return resultado
 
 
 def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
@@ -867,30 +1411,32 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
     # Usa limpeza de descricao + filtro por categoria e diametro
     # =========================================================
     match_desc = match_por_descricao(item, base_krona)
-    if match_desc.get("match_encontrado") and not _conflito_hard(item, match_desc):
+
+    if match_desc.get("match_encontrado") and _conflito_hard(item, match_desc):
+        return _montar_sem_match(
+            motivo="CONFLITO_ESTRUTURAL_APOS_DESCRICAO",
+            score=match_desc.get("score_total", 0),
+            categoria=match_desc.get("categoria_krona"),
+            candidatos_revisao=match_desc.get("candidatos_revisao", ""),
+            categoria_oc=match_desc.get("categoria_oc"),
+            diametros_oc=match_desc.get("diametros_oc", []),
+            bloquear_fallback=True,
+        )
+
+    if match_desc.get("match_encontrado"):
         score_desc = match_desc.get("score_total", 0)
-        # se score alto, retorna direto
-        if score_desc >= 0.80:
+        # candidato unico ja passou por todas as travas: nao deixa o
+        # motor semantico (que ignora atributos) trocar o resultado
+        if score_desc >= 0.80 or match_desc.get("candidato_unico_estrutural"):
             return match_desc
-        # score baixo — tenta motor semantico antes
-        try:
-            from motor_semantico import obter_motor
-            motor = obter_motor()
-            if not motor.pronto:
-                motor.indexar(base_krona)
-            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
-            descricao = str(descricao).replace("\n", " ").strip()
-            if descricao:
-                resultado_semantico = motor.match(descricao)
-                score_sem = resultado_semantico.get("score_total", 0)
-                # usa semantico se for melhor que o fuzzy
-                if (resultado_semantico.get("match_encontrado") and score_sem > score_desc
-                        and not _conflito_hard(item, resultado_semantico)):
-                    resultado_semantico["via_motor_semantico"] = True
-                    return resultado_semantico
-        except Exception as e:
-            print(f"[MATCHER] Motor semantico indisponivel: {e}")
-        # semantico nao melhorou — retorna fuzzy mesmo
+        resultado_semantico = _tentar_semantico(item, base_krona)
+        score_sem = resultado_semantico.get("score_total", 0) if resultado_semantico else 0
+        if resultado_semantico and score_sem > score_desc:
+            return resultado_semantico
+        return match_desc
+
+    # composicao sugerida ou familia sem candidato: nao cai no fallback cego
+    if match_desc.get("bloquear_fallback"):
         return match_desc
 
     # =========================================================
@@ -900,9 +1446,49 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
     # abaixo disso o item vai para revisao manual sem codigo krona
     SCORE_MINIMO = 0.30
 
+    descricao_limpa = limpar_descricao_para_match(
+        item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+    categoria_trad = extrair_categoria_da_descricao(descricao_limpa)
+    if not categoria_trad:
+        cat_item = item.get("categoria_detectada")
+        if cat_item is not None and str(cat_item).strip().upper() not in ("", "NAN", "NONE"):
+            categoria_trad = str(cat_item).strip().upper()
+
+    diametros_trad = extrair_diametros_da_descricao(descricao_limpa, categoria_trad)
+    if not diametros_trad and item.get("diametro_mm") is not None:
+        try:
+            diametros_trad = {float(item.get("diametro_mm"))}
+        except (TypeError, ValueError):
+            diametros_trad = set()
+    diametro_trad = max(diametros_trad) if diametros_trad else None
+    material_trad = extrair_material_da_descricao(descricao_limpa)
+    subcat_trad = extrair_subcategoria_da_descricao(descricao_limpa)
+    angulo_trad = extrair_angulo_da_descricao(descricao_limpa, categoria_trad)
+
+    candidatos_trad = filtrar_candidatos_krona(
+        base_krona, categoria_trad, diametro_trad, material_trad, subcat_trad,
+        descricao_limpa, diametros=diametros_trad, angulo=angulo_trad,
+    )
+    if candidatos_trad is None or candidatos_trad.empty:
+        resultado_semantico = _tentar_semantico(item, base_krona)
+        if resultado_semantico:
+            return resultado_semantico
+        return _montar_sem_match(
+            motivo="SEM_CANDIDATOS_ESTRUTURAIS",
+            categoria=categoria_trad,
+            categoria_oc=categoria_trad,
+            diametros_oc=sorted(diametros_trad),
+            bloquear_fallback=True,
+        )
+
+    if diametro_trad is not None and not item.get("diametro_mm"):
+        item = {**item, "diametro_mm": diametro_trad}
+    if categoria_trad and not item.get("categoria_detectada"):
+        item = {**item, "categoria_detectada": categoria_trad}
+
     registros = []
 
-    for _, row in base_krona.iterrows():
+    for _, row in candidatos_trad.iterrows():
         cand = row.to_dict()
         scores = score_total(item, cand)
 
@@ -989,21 +1575,9 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
         }
 
         # tenta motor semantico antes de retornar SEM_MATCH
-        try:
-            from motor_semantico import obter_motor
-            motor = obter_motor()
-            if not motor.pronto:
-                motor.indexar(base_krona)
-            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
-            descricao = str(descricao).replace("\n", " ").strip()
-            if descricao:
-                resultado_semantico = motor.match(descricao)
-                if (resultado_semantico.get("match_encontrado")
-                        and not _conflito_hard(item, resultado_semantico)):
-                    resultado_semantico["via_motor_semantico"] = True
-                    return resultado_semantico
-        except Exception as e:
-            print(f"[MATCHER] Motor semantico indisponivel: {e}")
+        resultado_semantico = _tentar_semantico(item, base_krona)
+        if resultado_semantico:
+            return resultado_semantico
 
         # shadow mode (fallback)
         try:
@@ -1036,21 +1610,9 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
 
     # se score baixo, tenta motor semantico antes de retornar TRADICIONAL
     if score_melhor < 0.70:
-        try:
-            from motor_semantico import obter_motor
-            motor = obter_motor()
-            if not motor.pronto:
-                motor.indexar(base_krona)
-            descricao = (item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
-            descricao = str(descricao).replace("\n", " ").strip()
-            if descricao:
-                resultado_semantico = motor.match(descricao)
-                if (resultado_semantico.get("match_encontrado")
-                        and not _conflito_hard(item, resultado_semantico)):
-                    resultado_semantico["via_motor_semantico"] = True
-                    return resultado_semantico
-        except Exception as e:
-            print(f"[MATCHER] Motor semantico indisponivel: {e}")
+        resultado_semantico = _tentar_semantico(item, base_krona)
+        if resultado_semantico:
+            return resultado_semantico
 
     # ultima porta: TRADICIONAL que contradiz material/diametro da OC vira SEM_MATCH
     if _conflito_hard(item, _resultado_tradicional):

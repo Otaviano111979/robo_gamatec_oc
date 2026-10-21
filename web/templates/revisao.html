@@ -83,6 +83,12 @@
                       </div>
                       {% endif %}
                     {% endif %}
+                    {% if item.sugestao_composicao %}
+                      <div class="sugestao-composicao">
+                        <strong>Composição sugerida (não aplicada):</strong>
+                        {{ item.sugestao_composicao }}
+                      </div>
+                    {% endif %}
                     {% if item.alerta_equivalencia %}
                       <div class="alerta-equivalencia">{{ item.alerta_equivalencia }}</div>
                     {% endif %}

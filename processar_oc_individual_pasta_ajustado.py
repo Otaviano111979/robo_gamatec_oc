@@ -608,6 +608,7 @@ def processar_oc(caminho_oc: str) -> dict:
                         tipo_match=tipo,
                         confianca_ia=str(row.get('confianca_ia') or '') or None,
                         justificativa_ia=str(row.get('justificativa_ia') or '') or None,
+                        sugestao_composicao=str(row.get('sugestao_composicao') or '') or None,
                     )
         print(f"[REVISAO] Itens registrados para revisao se necessario.")
     except Exception as _rev_e:
