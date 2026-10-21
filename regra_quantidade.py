@@ -128,6 +128,15 @@ def ajustar_quantidade_tubo(item: Dict[str, Any]) -> Dict[str, Any]:
                 item["fator_conversao_quantidade"] = None
                 return item
 
+            # barra Krona = 6 m; luva/acessorio tem comprimento de peca
+            # (13,4 cm, 8 cm...) e nunca pode servir de divisor de metros
+            if comp_barra < 1.0:
+                item["quantidade_ajustada"] = quantidade_original
+                item["tipo_quantidade"] = "TUBO_COMPRIMENTO_NAO_E_BARRA_REVISAR"
+                item["fator_conversao_quantidade"] = None
+                item["revisao_unidade"] = True
+                return item
+
             qtd_barras_bruta = qtd_metros / comp_barra
             qtd_barras_ceil = math.ceil(qtd_barras_bruta)
 

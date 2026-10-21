@@ -133,7 +133,7 @@ def etapa_unidade(df):
             "quantidade_convertida": quantidade_final,
             "conversao_aplicada": item.get("tipo_quantidade"),
             "observacao_conversao": item.get("tipo_quantidade"),
-            "revisao_unidade": False,
+            "revisao_unidade": item.get("revisao_unidade", False),
             "quantidade_final": quantidade_final,
         })
 
