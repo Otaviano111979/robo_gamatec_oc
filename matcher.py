@@ -53,6 +53,11 @@ CODIGOS_EXCLUIDOS_MATCH = {
 # Ajustar conforme necessário: 80% para mais flexibilidade, 90% para mais rigor.
 THRESHOLD_CORRECAO_APRENDIDA = 85
 
+# correcoes pontuais de comprimento confirmadas contra o catalogo
+COMPRIMENTOS_CORRIGIDOS = {
+    "164": 3.0,  # TUBO PPR PN25 110MMX3M: matriz 2,98 m, catalogo 3 m
+}
+
 
 # ============================================================
 # BASES
@@ -92,6 +97,11 @@ def carregar_base_krona():
         texto_classificacao.loc[sem_texto] = df.loc[sem_texto, "descricao_krona"].fillna("").map(normalizar_descricao)
     df["eh_tubo"] = texto_classificacao.map(detectar_eh_tubo)
     df["categoria_detectada"] = texto_classificacao.map(detectar_categoria)
+
+    # comprimento nominal confirmado no catalogo prevalece sobre a matriz
+    for codigo, comprimento in COMPRIMENTOS_CORRIGIDOS.items():
+        mascara = df["codigo_krona"].astype(str).str.strip().str.lstrip("0").replace("", "0") == codigo
+        df.loc[mascara, "comprimento_final_m"] = comprimento
 
     # correcao em runtime: preencher categoria_detectada para produtos sem categoria
     # JUNCAO nao estava no normalizador original — corrigido aqui sem precisar regenerar a base
