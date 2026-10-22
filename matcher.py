@@ -14,6 +14,7 @@ from matcher_tabela_cliente import (
 )
 from regra_quantidade import ajustar_quantidade_tubo
 from enriquecimento_krona import enriquecer_base_krona
+from normalizador import detectar_categoria, detectar_eh_tubo, normalizar_descricao
 
 # ── IA Helper — fallback seguro se modulo nao disponivel ──────────────────
 try:
@@ -82,6 +83,15 @@ def carregar_base_krona():
         excluidos = antes - len(df)
         if excluidos > 0:
             print(f"[MATCHER] {excluidos} produto(s) excluido(s) do match: {CODIGOS_EXCLUIDOS_MATCH}")
+
+    # a base foi gerada quando qualquer descricao com "TUBO" virava tubo;
+    # recalcula para luvas/acessorios "P/TUBO" nao entrarem na conversao de metros
+    texto_classificacao = df["descricao_normalizada"].fillna("").astype(str)
+    sem_texto = texto_classificacao.str.strip().eq("")
+    if sem_texto.any():
+        texto_classificacao.loc[sem_texto] = df.loc[sem_texto, "descricao_krona"].fillna("").map(normalizar_descricao)
+    df["eh_tubo"] = texto_classificacao.map(detectar_eh_tubo)
+    df["categoria_detectada"] = texto_classificacao.map(detectar_categoria)
 
     # correcao em runtime: preencher categoria_detectada para produtos sem categoria
     # JUNCAO nao estava no normalizador original — corrigido aqui sem precisar regenerar a base
@@ -392,6 +402,10 @@ def _curta_longa_do_texto(texto):
     return None
 
 
+def _correr_do_texto(texto):
+    return bool(re.search(r"\bCORRER\b", _normalizar_texto(texto)))
+
+
 def extrair_categoria_da_descricao(descricao):
     texto = _normalizar_texto(descricao)
     achados = []
@@ -624,6 +638,15 @@ def filtrar_candidatos_krona(base_krona, categoria, diametro_mm, material=None,
                 pool = pool[pool["descricao_krona"].fillna("").str.upper().str.contains("ESFERA")]
             if pool.empty:
                 return pool
+
+    # luva de correr e luva simples sao produtos diferentes; sem "CORRER"
+    # na OC a luva generica/simples e a resposta, nunca a de correr
+    if categoria == "LUVA":
+        quer_correr = _correr_do_texto(item_descricao)
+        tem_correr = pool["descricao_krona"].fillna("").map(_correr_do_texto)
+        filtrado = pool[tem_correr] if quer_correr else pool[~tem_correr]
+        if not filtrado.empty:
+            pool = filtrado
 
     if diametros is None:
         diametros = extrair_diametros_da_descricao(item_descricao, categoria)
@@ -1225,6 +1248,9 @@ def _tentar_semantico(item, base_krona):
                 resultado.setdefault("quantidade_embalagem_krona", cadastro.get("quantidade_embalagem"))
                 resultado["eh_tubo_krona"] = cadastro.get("eh_tubo")
                 resultado["comprimento_krona_m"] = obter_comprimento_krona(cadastro)
+                if cadastro.get("categoria_detectada"):
+                    # o indice FAISS pode ter metadados da classificacao antiga
+                    resultado["categoria_krona"] = cadastro.get("categoria_detectada")
                 if resultado.get("diametro_krona_mm") in (None, ""):
                     resultado["diametro_krona_mm"] = obter_diametro_krona(cadastro)
             resultado["via_motor_semantico"] = True

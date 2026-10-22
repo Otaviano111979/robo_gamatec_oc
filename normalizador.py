@@ -113,20 +113,40 @@ def normalizar_descricao(descricao: str) -> str:
     return texto
 
 
+# palavras que indicam acessorio quando aparecem antes de "TUBO":
+# "LUVA CORRER P/TUBO" e uma luva, nao um tubo
+_RX_ACESSORIO = re.compile(
+    r"\b(?:LUVA|JOELHO|CURVA|TE|CAP|CAPA|BUCHA|ADAPTADOR|UNIAO|JUNCAO|"
+    r"REGISTRO|VALVULA|FLANGE|TAMPA|(?:MULTI)?SIFAO|TESOURA|QUADRO|CAIXA)\b"
+)
+
+
 def detectar_categoria(descricao_normalizada: str):
     texto = str(descricao_normalizada or "")
 
-    for categoria, padroes in PADROES_CATEGORIA:
+    # vale a categoria que aparece primeiro na descricao: "LUVA ... P/TUBO"
+    # e LUVA; "TUBO ... C/CURVA" continua TUBO
+    achados = []
+    for ordem, (categoria, padroes) in enumerate(PADROES_CATEGORIA):
+        inicio = None
         for padrao in padroes:
-            if re.search(padrao, texto):
-                return categoria
+            m = re.search(padrao, texto)
+            if m and (inicio is None or m.start() < inicio):
+                inicio = m.start()
+        if inicio is not None:
+            achados.append((inicio, ordem, categoria))
 
-    return None
+    return min(achados)[2] if achados else None
 
 
 def detectar_eh_tubo(descricao_normalizada: str) -> bool:
     texto = str(descricao_normalizada or "")
-    return bool(re.search(r"\bTUBO\b", texto))
+    m_tubo = re.search(r"\bTUBO\b", texto)
+    if not m_tubo:
+        return False
+
+    m_acessorio = _RX_ACESSORIO.search(texto)
+    return not (m_acessorio and m_acessorio.start() < m_tubo.start())
 
 
 def detectar_diametro_mm(descricao_normalizada: str):

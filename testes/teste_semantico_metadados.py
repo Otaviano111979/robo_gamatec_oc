@@ -20,6 +20,7 @@ BASE_TESTE = pd.DataFrame([
         "unidade_venda": "BR",
         "quantidade_embalagem": 1,
         "eh_tubo": True,
+        "categoria_detectada": "TUBO",
         "comprimento_final_m": 6.0,
         "diametro_final_mm": 25,
     },
@@ -31,6 +32,7 @@ BASE_TESTE = pd.DataFrame([
         "unidade_venda": "PC",
         "quantidade_embalagem": 1,
         "eh_tubo": False,
+        "categoria_detectada": "LUVA",
         "comprimento_final_m": 0.134,
         "diametro_final_mm": 25,
     },
@@ -94,11 +96,13 @@ assert tubo_br["quantidade_ajustada"] == 1200
 assert tubo_br["tipo_quantidade"] == "BARRA_DIRETA_OC_BAR"
 
 # luva matched pelo semantico: nao e tubo, mantem metros e nunca divide por 0,134 m
+# o indice pode trazer categoria antiga (TUBO); o cadastro corrigido manda
 luva_res = tentar(
     "LUVA PVC SOLDAVEL 25MM",
-    resultado_semantico(500, "LUVA PVC SOLDAVEL 25MM", "LUVA", 25),
+    resultado_semantico(500, "LUVA PVC SOLDAVEL 25MM", "TUBO", 25),
 )
 assert luva_res and bool(luva_res["eh_tubo_krona"]) is False
+assert luva_res["categoria_krona"] == "LUVA"
 luva = aplicar({"quantidade": 432, "unidade_oc": "M"}, luva_res)
 assert luva["quantidade_ajustada"] == 432
 assert luva["tipo_quantidade"] == "ORIGINAL_NAO_TUBO_METRO"
