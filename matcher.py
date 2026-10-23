@@ -1357,6 +1357,21 @@ def _codigo_pasta_lubrificante(texto):
     return "677"
 
 
+def _variantes_quadro(base_krona, tamanho):
+    if base_krona is None or base_krona.empty or tamanho is None:
+        return ""
+    partes = []
+    for _, row in base_krona.iterrows():
+        descricao = _normalizar_texto(row.get("descricao_krona"))
+        if not re.search(r"\bQUADRO\s+DISTR", descricao):
+            continue
+        if _quadro_tamanho_do_texto(descricao) != tamanho:
+            continue
+        codigo = str(row.get("codigo_krona") or "").strip()
+        partes.append(f"{codigo} {row.get('descricao_krona')}")
+    return " | ".join(dict.fromkeys(partes))
+
+
 def _resultado_regra_catalogo(cadastro, motivo):
     return {
         "match_encontrado": True,
@@ -1405,6 +1420,24 @@ def _regra_catalogo(item, base_krona):
         familia = "PASTA"
         codigo = _codigo_pasta_lubrificante(texto)
         motivo = "REGRA_CATALOGO_PASTA_LUBRIFICANTE"
+    elif re.search(r"\bQUADRO\b", texto) and re.search(r"DISTRIB|DISTR", texto):
+        # Quadro de distribuicao: a OC quase nunca descreve igual ao catalogo
+        # (com/sem barramento, embutir/sobrepor). Nunca automatico; para 36 DIN
+        # a verdade de negocio e o 1288 (sem barramento), independente do texto.
+        tamanho = _quadro_tamanho_do_texto(texto)
+        if tamanho == 36:
+            cadastro = buscar_cadastro_krona_por_codigo("1288", base_krona)
+            if cadastro:
+                resultado = _resultado_regra_catalogo(
+                    cadastro, "REGRA_CATALOGO_QUADRO_36_SEM_BARRAMENTO")
+                resultado["tipo_match"] = "MATCH_REGRA_CATALOGO_REVISAR"
+                resultado["revisao_manual"] = True
+                resultado["categoria_krona"] = "QUADRO"
+                resultado["categoria_oc"] = "QUADRO"
+                resultado["quadro_tamanho_oc"] = tamanho
+                resultado["candidatos_revisao"] = _variantes_quadro(base_krona, tamanho)
+                return resultado
+        return None
 
     if familia is None:
         return None

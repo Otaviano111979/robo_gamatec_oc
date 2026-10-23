@@ -39,6 +39,12 @@ BASE_TESTE = pd.DataFrame([
     _produto("675", "PASTA LUBRIFICANTE 160 G", categoria="PASTA LUBRIFICANTE", comprimento=0.1),
     _produto("676", "PASTA LUBRIFICANTE 400 G", categoria="PASTA LUBRIFICANTE", comprimento=0.14),
     _produto("677", "PASTA LUBRIFICANTE 1 KG", categoria="PASTA LUBRIFICANTE", comprimento=0.17),
+    _produto("1274", "QUADRO DISTR 24D/18N EMBUTIR SEM BARRAMENTO", familia="QUADRO"),
+    _produto("1275", "QUADRO DISTR 36D/27N EMBUTIR SEM BARRAMENTO", familia="QUADRO"),
+    _produto("1280", "QUADRO DISTR 24D/18N EMBUTIR COM BARRAMENTO", familia="QUADRO"),
+    _produto("1281", "QUADRO DISTR 36D/27N EMBUTIR COM BARRAMENTO", familia="QUADRO"),
+    _produto("1288", "QUADRO DISTR 36D/27N SEM BARRAMENTO", familia="QUADRO"),
+    _produto("1294", "QUADRO DISTR 36D/27N COM BARRAMENTO", familia="QUADRO"),
 ])
 
 
@@ -95,6 +101,17 @@ assert regra("PASTA LUBRIFICANTE 500 G")["_regra_bloqueia"] is True
 # tubo normal nao entra nas regras
 assert regra("TUBO PVC SOLDAVEL 25MM") is None
 
+# QUADRO: a OC quase nunca descreve igual ao catalogo; 36 DIN -> 1288, sempre em revisao
+q = regra("QUADRO DE DISTRIBUIÇÃO PVC 36 DIN C/ BARRAMENTO N/T EMBUTIR 27/36 DISJ - KRONA")
+assert q["codigo_krona"] == "1288"
+assert q["tipo_match"] == "MATCH_REGRA_CATALOGO_REVISAR"
+assert q["revisao_manual"] is True
+assert "1275" in q["candidatos_revisao"]
+assert "1281" in q["candidatos_revisao"]
+assert "1294" in q["candidatos_revisao"]
+assert regra("QUADRO DE DISTRIBUIÇÃO PVC 36 DIN SEM BARRAMENTO")["codigo_krona"] == "1288"
+assert regra("QUADRO DE DISTRIBUIÇÃO PVC 24 DIN") is None
+
 # integracao: codigo, metadados e quantidade intacta
 item, res = match("PLUG PVC SOLDAVEL 3/4` - NBR 5648", 200)
 assert res["codigo_krona"] == "294"
@@ -122,4 +139,18 @@ assert res["match_encontrado"] is False
 assert res["revisao_manual"] is True
 assert res["motivo_match"] == "REGRA_PASTA_TAMANHO_NAO_CADASTRADO"
 
-print("OK: regras de catalogo PLUG/PASTA/SOLUCAO")
+# integracao QUADRO: 36 DIN sugere 1288, sempre em revisao, quantidade intacta
+item, res = match(
+    "QUADRO DE DISTRIBUIÇÃO PVC 36 DIN C/ BARRAMENTO N/T EMBUTIR 27/36 DISJ - KRONA", 2)
+assert res["codigo_krona"] == "1288"
+assert res["categoria_krona"] == "QUADRO"
+assert res["categoria_oc"] == "QUADRO"
+assert res["quadro_tamanho_oc"] == 36
+assert res["tipo_match"] == "MATCH_REGRA_CATALOGO_REVISAR"
+assert res["revisao_manual"] is True
+assert "1275" in res["candidatos_revisao"]
+assert "1281" in res["candidatos_revisao"]
+assert "1294" in res["candidatos_revisao"]
+assert ajustar_quantidade_tubo({**item, **res})["quantidade_ajustada"] == 2
+
+print("OK: regras de catalogo PLUG/PASTA/SOLUCAO/QUADRO")
