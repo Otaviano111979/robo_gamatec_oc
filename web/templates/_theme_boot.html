@@ -1,0 +1,9 @@
+<script>
+(function () {
+  try {
+    if (localStorage.getItem("tema") === "dark") {
+      document.documentElement.classList.add("dark");
+    }
+  } catch (e) {}
+})();
+</script>

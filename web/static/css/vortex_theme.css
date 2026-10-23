@@ -1,7 +1,7 @@
 /* ============================================================
    VORTEX SYNC — Theme Override
    Sobrescreve o ios.css mantendo toda a funcionalidade intacta.
-   Toggle claro/escuro via classe .dark no body (app.js).
+   Toggle claro/escuro via classe .dark no <html> (app.js + _theme_boot.html).
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
@@ -34,7 +34,12 @@ body {
 }
 
 /* ── VARIAVEIS TEMA ESCURO ── */
-body.dark {
+html.dark {
+  background: #0f1117;
+  color-scheme: dark;
+}
+
+html.dark body {
   --vt-bg:        #0f1117;
   --vt-surface:   #161b2e;
   --vt-raised:    #1e2540;

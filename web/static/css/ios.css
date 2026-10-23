@@ -62,7 +62,7 @@ html, body {
   --processing-ring: rgba(0, 212, 255, 0.22);
 }
 
-body.dark {
+html.dark body {
   --bg: #080810;
   --bg-secondary: #0c0c18;
   --surface: #0e0e1a;
@@ -202,7 +202,7 @@ a {
   -webkit-backdrop-filter: blur(20px);
 }
 
-body.dark .topbar-vortex {
+html.dark body .topbar-vortex {
   background: rgba(14, 14, 26, 0.82);
   border-color: rgba(0, 212, 255, 0.10);
 }
@@ -339,12 +339,12 @@ body.dark .topbar-vortex {
   transition: opacity 0.22s ease;
 }
 
-body:not(.dark) .ios-card.live-card:hover::before {
+html:not(.dark) body .ios-card.live-card:hover::before {
   background: var(--live-glow);
   opacity: 1;
 }
 
-body.dark .ios-card.live-card:hover::before {
+html.dark body .ios-card.live-card:hover::before {
   background: var(--live-glow-dark);
   opacity: 1;
 }
@@ -933,12 +933,12 @@ body.dark .ios-card.live-card:hover::before {
   transition: opacity 0.22s ease;
 }
 
-body:not(.dark) .status-card:hover::before {
+html:not(.dark) body .status-card:hover::before {
   background: var(--live-glow);
   opacity: 1;
 }
 
-body.dark .status-card:hover::before {
+html.dark body .status-card:hover::before {
   background: var(--live-glow-dark);
   opacity: 1;
 }
@@ -1284,7 +1284,7 @@ tr.oc-row-archived td {
   backdrop-filter: blur(20px);
 }
 
-body.dark .aep-bar {
+html.dark body .aep-bar {
   background: rgba(14,14,26,0.95);
   border-bottom: 1px solid rgba(0,212,255,0.08);
 }

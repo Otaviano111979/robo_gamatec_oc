@@ -3,11 +3,9 @@
   const toggle = document.getElementById("themeToggle");
 
   function aplicarTema(tema) {
-    if (tema === "dark") {
-      document.body.classList.add("dark");
-    } else {
-      document.body.classList.remove("dark");
-    }
+    const dark = tema === "dark";
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
   }
 
   function obterTemaAtual() {

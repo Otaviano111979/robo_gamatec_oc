@@ -38,7 +38,12 @@
   --vortex-blue: var(--accent);
 }
 
-body.dark {
+html.dark {
+  background: #111316;
+  color-scheme: dark;
+}
+
+html.dark body {
   --bg: #111316;
   --surface: #181b1f;
   --surface-2: #1e2226;
@@ -167,7 +172,7 @@ code, pre, kbd, .mono { font-family: var(--mono); font-size: 12px; }
 .btn-primary, .ios-button.primary {
   background: var(--accent); border-color: var(--accent); color: #fff;
 }
-body.dark .btn-primary, body.dark .ios-button.primary { color: #0d1117; }
+html.dark body .btn-primary, html.dark body .ios-button.primary { color: #0d1117; }
 .btn-primary:hover, .ios-button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-ghost, .ios-button.ghost, .ios-button.secondary.ghost {
   background: transparent; border-color: transparent; color: var(--text-2);
@@ -203,7 +208,7 @@ body.dark .btn-primary, body.dark .ios-button.primary { color: #0d1117; }
 textarea.input { height: auto; padding: 8px 10px; line-height: 1.45; }
 .input::placeholder { color: var(--text-3); }
 .input:focus, .ios-field-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
-body.dark input[type="date"] { color-scheme: dark; }
+html.dark body input[type="date"] { color-scheme: dark; }
 .input-search { position: relative; }
 .input-search svg {
   position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
@@ -336,7 +341,7 @@ a.kpi:hover { background: var(--surface-2); }
   max-height: 260px; overflow: auto;
 }
 .out-dark { background: #0f1215; color: #c9d1d9; border-color: #0f1215; }
-body.dark .out-dark { background: #0b0d10; border-color: var(--border); }
+html.dark body .out-dark { background: #0b0d10; border-color: var(--border); }
 
 /* ── menu de ações ────────────────────────────────────── */
 .menu-wrap, .acoes-menu-wrap { position: relative; display: inline-block; }
