@@ -2323,11 +2323,11 @@ def api_agente_email_config_post():
 # REVISAO DE ITENS
 # =================================================================
 
-def regenerar_planilha_com_correcoes(arquivo: str) -> bool:
+def regenerar_planilha_com_correcoes(arquivo: str) -> tuple[bool, str]:
     """
     Relê o resultado_processado.csv do arquivo, aplica correções já resolvidas
     na revisão e regrava a planilha .xlsx/.csv com os códigos corrigidos.
-    Retorna True se conseguiu regenerar, False caso contrário.
+    Retorna (True, "") em caso de sucesso ou (False, motivo) caso contrário.
     """
     try:
         import pandas as pd
@@ -2342,7 +2342,7 @@ def regenerar_planilha_com_correcoes(arquivo: str) -> bool:
 
         if not os.path.exists(caminho_resultado):
             print(f"[REVISAO] resultado_processado.csv não encontrado para {arquivo}")
-            return False
+            return False, "resultado_processado.csv não encontrado para este ficheiro"
 
         df = pd.read_csv(caminho_resultado, sep=";", encoding="utf-8-sig")
 
@@ -2373,11 +2373,11 @@ def regenerar_planilha_com_correcoes(arquivo: str) -> bool:
         df.to_csv(caminho_resultado, index=False, sep=";", encoding="utf-8-sig")
         gerar_planilha_enxuta_individual(df, caminho_csv, caminho_xlsx)
         print(f"[REVISAO] Planilha regenerada para {arquivo} — {aplicadas} correção(ões) aplicada(s).")
-        return True
+        return True, ""
 
     except Exception as exc:
         print(f"[REVISAO] Erro ao regenerar planilha para {arquivo}: {exc}")
-        return False
+        return False, f"erro ao regenerar a planilha: {exc}"
 
 
 @app.route("/revisao")
@@ -2451,13 +2451,15 @@ def api_revisao_resolver():
 
         # regenera a planilha aplicando todas as correções acumuladas para este arquivo
         planilha_ok = False
+        planilha_motivo = "ficheiro da OC não identificado"
         if arquivo_da_oc:
-            planilha_ok = regenerar_planilha_com_correcoes(arquivo_da_oc)
+            planilha_ok, planilha_motivo = regenerar_planilha_com_correcoes(arquivo_da_oc)
 
         return jsonify({
             "ok": True,
             "mensagem": "Item resolvido com sucesso.",
             "planilha_regenerada": planilha_ok,
+            "planilha_motivo": "" if planilha_ok else planilha_motivo,
         })
     
     except Exception as e:

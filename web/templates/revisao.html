@@ -34,6 +34,26 @@
           </div>
         </div>
         {% if itens %}
+        <div class="toolbar revisao-filtros">
+          <div class="input-search revisao-filtro-busca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input type="text" id="filtro-texto" class="input"
+                   placeholder="Filtrar por descrição, código ou ficheiro"
+                   autocomplete="off" oninput="aplicarFiltros(true)">
+          </div>
+          <select id="filtro-tipo" class="input revisao-filtro-select" onchange="aplicarFiltros(true)">
+            <option value="">Todos os tipos</option>
+          </select>
+          <select id="filtro-arquivo" class="input revisao-filtro-select" onchange="aplicarFiltros(true)">
+            <option value="">Todos os ficheiros</option>
+          </select>
+          <label class="revisao-check">
+            <input type="checkbox" id="filtro-alerta" onchange="aplicarFiltros(true)">
+            Com alerta
+          </label>
+          <span class="toolbar-spacer"></span>
+          <span class="muted small" id="filtro-contagem">{{ itens|length }} itens</span>
+        </div>
         <div class="table-wrap">
           <table class="table revisao-table">
             <colgroup>
@@ -53,6 +73,9 @@
             <tbody>
               {% for item in itens %}
               <tr data-item-id="{{ item.id }}"
+                  data-tipo="{{ item.tipo_match or '' }}"
+                  data-arquivo="{{ item.arquivo }}"
+                  data-alerta="{{ '1' if item.alerta_equivalencia else '0' }}"
                   data-codigo-sugerido="{{ item.codigo_krona_sugerido or '' }}"
                   data-descricao-sugerida="{{ item.descricao_krona_sugerida or '' }}"
                   data-descricao-oc="{{ item.descricao_oc }}">
@@ -129,8 +152,18 @@
                 </td>
               </tr>
               {% endfor %}
+              <tr id="filtro-vazio" hidden>
+                <td colspan="4" class="empty-cell">Nenhum item corresponde aos filtros.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+        <div class="panel-foot revisao-paginacao">
+          <span class="muted small" id="paginacao-info"></span>
+          <div class="revisao-pag-acoes">
+            <button type="button" class="btn btn-sm" id="pag-anterior" onclick="mudarPagina(-1)">Anterior</button>
+            <button type="button" class="btn btn-sm" id="pag-proxima" onclick="mudarPagina(1)">Seguinte</button>
+          </div>
         </div>
         {% else %}
         <div class="revisao-vazio">
@@ -292,6 +325,111 @@
   <script>
     let debounceTimer = null;
 
+    // ── filtros e paginação da fila ─────────────────────
+    const POR_PAGINA = 25;
+    const TIPO_LABEL = {
+      MATCH_CODIGO_MRV: 'Código MRV',
+      MATCH_SEMANTICO_REVISAR: 'Semântico (revisar)',
+      MATCH_SEMANTICO: 'Semântico',
+      MATCH_IA: 'IA',
+      SEM_MATCH: 'Sem match',
+    };
+
+    let paginaAtual = 1;
+    let linhasFiltradas = [];
+
+    function popularFiltros() {
+      const linhas = [...document.querySelectorAll('.revisao-table tbody tr[data-item-id]')];
+      const porTipo = new Map();
+      const porArquivo = new Map();
+      linhas.forEach(tr => {
+        const tipo = tr.dataset.tipo || '';
+        const arquivo = tr.dataset.arquivo || '';
+        porTipo.set(tipo, (porTipo.get(tipo) || 0) + 1);
+        porArquivo.set(arquivo, (porArquivo.get(arquivo) || 0) + 1);
+      });
+
+      const selTipo = document.getElementById('filtro-tipo');
+      [...porTipo.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([tipo, n]) => {
+        const opt = document.createElement('option');
+        opt.value = tipo;
+        opt.textContent = `${TIPO_LABEL[tipo] || tipo || 'Sem tipo'} (${n})`;
+        selTipo.appendChild(opt);
+      });
+
+      const selArquivo = document.getElementById('filtro-arquivo');
+      [...porArquivo.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([arquivo, n]) => {
+        const opt = document.createElement('option');
+        opt.value = arquivo;
+        opt.textContent = `${arquivo} (${n})`;
+        selArquivo.appendChild(opt);
+      });
+    }
+
+    function aplicarFiltros(resetPagina) {
+      if (resetPagina) paginaAtual = 1;
+
+      const texto = document.getElementById('filtro-texto').value.trim().toLowerCase();
+      const tipo = document.getElementById('filtro-tipo').value;
+      const arquivo = document.getElementById('filtro-arquivo').value;
+      const soAlerta = document.getElementById('filtro-alerta').checked;
+
+      linhasFiltradas = [...document.querySelectorAll('.revisao-table tbody tr[data-item-id]')].filter(tr => {
+        if (tipo && tr.dataset.tipo !== tipo) return false;
+        if (arquivo && tr.dataset.arquivo !== arquivo) return false;
+        if (soAlerta && tr.dataset.alerta !== '1') return false;
+        if (texto && !tr.textContent.toLowerCase().includes(texto)) return false;
+        return true;
+      });
+
+      renderizarPagina();
+    }
+
+    function renderizarPagina() {
+      const todas = [...document.querySelectorAll('.revisao-table tbody tr[data-item-id]')];
+      const totalPaginas = Math.max(1, Math.ceil(linhasFiltradas.length / POR_PAGINA));
+      if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+      if (paginaAtual < 1) paginaAtual = 1;
+
+      todas.forEach(tr => { tr.hidden = true; });
+      const inicio = (paginaAtual - 1) * POR_PAGINA;
+      linhasFiltradas.slice(inicio, inicio + POR_PAGINA).forEach(tr => { tr.hidden = false; });
+
+      document.getElementById('filtro-vazio').hidden = linhasFiltradas.length !== 0;
+      document.getElementById('filtro-contagem').textContent =
+        `${linhasFiltradas.length} de ${todas.length} itens`;
+      document.getElementById('paginacao-info').textContent =
+        linhasFiltradas.length ? `Página ${paginaAtual} de ${totalPaginas}` : 'Sem itens';
+      document.getElementById('pag-anterior').disabled = paginaAtual <= 1;
+      document.getElementById('pag-proxima').disabled = paginaAtual >= totalPaginas;
+    }
+
+    function mudarPagina(delta) {
+      paginaAtual += delta;
+      renderizarPagina();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!document.querySelector('.revisao-table tbody tr[data-item-id]')) return;
+      popularFiltros();
+      aplicarFiltros(true);
+    });
+
+    function tratarResolucao(data) {
+      if (!data.ok) {
+        alert('Erro: ' + (data.mensagem || data.erro));
+        return;
+      }
+      if (data.planilha_regenerada === false) {
+        alert(
+          'Item resolvido, mas a planilha da OC não foi regenerada.\n\n' +
+          (data.planilha_motivo || 'Motivo não informado.') +
+          '\n\nA correção ficou registada no histórico, mas ainda não está na planilha.'
+        );
+      }
+      location.reload();
+    }
+
     function debounceSearch(termo) {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -389,11 +527,7 @@
         });
 
         const data = await r.json();
-        if (data.ok) {
-          location.reload();
-        } else {
-          alert('Erro: ' + (data.mensagem || data.erro));
-        }
+        tratarResolucao(data);
       } catch (err) {
         alert('Erro ao confirmar correção: ' + err.message);
       }
@@ -441,11 +575,11 @@
       const row = document.querySelector(`tr[data-item-id="${id}"]`);
       if (!row) return;
 
-      const codigo = row.dataset.codigoSugerido;
+      const codigo = (row.dataset.codigoSugerido || '').trim();
       const descricao = row.dataset.descricaoSugerida;
       const descricao_oc = row.dataset.descricaoOc;
 
-      if (!codigo) {
+      if (!codigo || ['nan', 'none', 'nat'].includes(codigo.toLowerCase())) {
         alert('Não há match sugerido para confirmar.');
         return;
       }
@@ -463,11 +597,7 @@
         });
 
         const data = await r.json();
-        if (data.ok) {
-          location.reload();
-        } else {
-          alert('Erro: ' + (data.mensagem || data.erro));
-        }
+        tratarResolucao(data);
       } catch (err) {
         alert('Erro ao confirmar: ' + err.message);
       }

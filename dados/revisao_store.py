@@ -6,10 +6,27 @@ Utiliza SQLite para persistência de itens pendentes e suas resoluções.
 
 import sqlite3
 import json
+import math
 import os
 from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "revisoes.db")
+
+
+def _texto(valor) -> str:
+    """Normaliza valores do pandas (NaN/None) para texto vazio."""
+    if valor is None:
+        return ""
+    texto = str(valor).strip()
+    return "" if texto.lower() in {"nan", "none", "nat"} else texto
+
+
+def _score(valor) -> float:
+    try:
+        numero = float(valor)
+        return 0.0 if math.isnan(numero) else numero
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def init_db():
@@ -73,7 +90,23 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
             de adesivo MRV) ou None. Se o item já estiver pendente na fila (por outro
             motivo, ex: score baixo), o alerta é adicionado à linha existente via UPDATE
             em vez de ser descartado pela deduplicação.
+        sugestao_composicao: composição sugerida ou None.
+
+    Returns:
+        ID da linha (existente ou recém-criada).
     """
+    arquivo = _texto(arquivo)
+    num_item = _texto(num_item)
+    descricao_oc = _texto(descricao_oc)
+    codigo_sugerido = _texto(codigo_sugerido)
+    descricao_sugerida = _texto(descricao_sugerida)
+    tipo_match = _texto(tipo_match)
+    confianca_ia = _texto(confianca_ia) or None
+    justificativa_ia = _texto(justificativa_ia) or None
+    alerta_equivalencia = _texto(alerta_equivalencia) or None
+    sugestao_composicao = _texto(sugestao_composicao) or None
+    score = _score(score)
+
     init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -87,24 +120,40 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
     existente = c.fetchone()
 
     if existente:
-        # item já pendente — anexa alerta/composição novos à linha existente
-        campos = []
-        valores = []
+        # item já pendente — atualiza a sugestão técnica (pode ter mudado desde o
+        # último processamento) e anexa alerta/composição novos
+        campos = [
+            "num_item=?",
+            "codigo_krona_sugerido=?",
+            "descricao_krona_sugerida=?",
+            "score_total=?",
+            "tipo_match=?",
+            "confianca_ia=?",
+            "justificativa_ia=?",
+        ]
+        valores = [
+            num_item,
+            codigo_sugerido,
+            descricao_sugerida,
+            score,
+            tipo_match,
+            confianca_ia,
+            justificativa_ia,
+        ]
         if alerta_equivalencia:
             campos.append("alerta_equivalencia=?")
             valores.append(alerta_equivalencia)
         if sugestao_composicao:
             campos.append("sugestao_composicao=?")
             valores.append(sugestao_composicao)
-        if campos:
-            valores.append(existente[0])
-            c.execute(
-                f"UPDATE itens_revisao SET {', '.join(campos)} WHERE id=?",
-                valores,
-            )
-            conn.commit()
+        valores.append(existente[0])
+        c.execute(
+            f"UPDATE itens_revisao SET {', '.join(campos)} WHERE id=?",
+            valores,
+        )
+        conn.commit()
         conn.close()
-        return
+        return existente[0]
 
     c.execute("""
         INSERT INTO itens_revisao
@@ -115,11 +164,13 @@ def salvar_item_revisao(arquivo, num_item, descricao_oc,
         VALUES (?,?,?,?,?,?,?,?,?,?,?)
     """, (arquivo, num_item, descricao_oc, codigo_sugerido,
           descricao_sugerida, score, tipo_match,
-          confianca_ia or None, justificativa_ia or None,
-          alerta_equivalencia or None, sugestao_composicao or None))
+          confianca_ia, justificativa_ia,
+          alerta_equivalencia, sugestao_composicao))
 
+    novo_id = c.lastrowid
     conn.commit()
     conn.close()
+    return novo_id
 
 
 def listar_pendentes(limite=None):
@@ -280,18 +331,57 @@ def listar_resolvidos_por_arquivo(arquivo: str):
     return rows
 
 
-def limpar_resolvidos():
-    """Remove itens resolvidos mais antigos de 30 dias (limpeza)."""
+def limpar_resolvidos(dias: int = 180):
+    """Remove itens resolvidos com mais de `dias` dias (limpeza)."""
     init_db()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
         DELETE FROM itens_revisao
         WHERE status='resolvido' 
-        AND datetime(resolvido_em) < datetime('now', '-30 days')
-    """)
+        AND datetime(resolvido_em) < datetime('now', ?)
+    """, (f"-{int(dias)} days",))
     conn.commit()
     conn.close()
+
+
+def remover_pendentes_obsoletos(arquivo, ids_mantidos):
+    """
+    Remove pendentes de um arquivo que já não são gerados pelo processamento
+    atual (itens que passaram a ter match automático ou que deixaram de existir).
+
+    Só deve ser chamada no fim de um processamento bem-sucedido, com os IDs
+    efetivamente gravados nessa execução.
+
+    Args:
+        arquivo: nome do arquivo OC
+        ids_mantidos: IDs de linhas que continuam válidas
+
+    Returns:
+        Número de linhas removidas.
+    """
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    ids = sorted({int(i) for i in ids_mantidos if i is not None})
+    if ids:
+        placeholders = ",".join("?" * len(ids))
+        c.execute(
+            f"""
+            DELETE FROM itens_revisao
+            WHERE arquivo=? AND status='pendente' AND id NOT IN ({placeholders})
+            """,
+            (_texto(arquivo), *ids),
+        )
+    else:
+        c.execute(
+            "DELETE FROM itens_revisao WHERE arquivo=? AND status='pendente'",
+            (_texto(arquivo),),
+        )
+    removidos = c.rowcount
+    conn.commit()
+    conn.close()
+    return removidos
 
 
 def listar_resolvidos(limite=50):

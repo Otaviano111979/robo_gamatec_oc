@@ -78,6 +78,23 @@ def normalizar_codigo(v) -> str:
         return texto.lstrip("0") or "0"
 
 
+def texto_limpo(v) -> str:
+    """Converte valores do pandas em texto, tratando NaN/None como vazio."""
+    if v is None or pd.isna(v):
+        return ""
+
+    texto = str(v).strip()
+    return "" if texto.lower() in {"nan", "none", "nat"} else texto
+
+
+def float_seguro(v) -> float:
+    try:
+        if v is None or pd.isna(v):
+            return 0.0
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
 
 def montar_saida_oc(nome_base: str) -> dict[str, str]:
     pasta_oc = os.path.join(PASTA_SAIDA_INDIVIDUAL, nome_base)
@@ -645,31 +662,34 @@ def processar_oc(caminho_oc: str) -> dict:
     # ── fim CRM ──────────────────────────────────────────────
 
     # ── REVISAO: registra itens com score baixo para revisão humana ─────
+    nome_arquivo = os.path.basename(caminho_oc)
+    ids_revisao: set[int] = set()
+    revisao_falhou = False
     try:
         from dados.revisao_store import salvar_item_revisao
         THRESHOLD_REVISAO = 0.75
-        nome_arquivo = os.path.basename(caminho_oc)
         if not df_final.empty:
             for _, row in df_final.iterrows():
-                score = float(row.get('score_total', 0) or 0)
+                score = float_seguro(row.get('score_total', 0))
                 tipo = str(row.get('tipo_match', '') or '')
                 revisao = bool(row.get('revisao_manual', False))
                 if score < THRESHOLD_REVISAO or tipo == 'SEM_MATCH' or revisao:
-                    salvar_item_revisao(
+                    ids_revisao.add(salvar_item_revisao(
                         arquivo=nome_arquivo,
-                        num_item=str(row.get('idx_item', '') or ''),
-                        descricao_oc=str(row.get('descricao_oc', '') or
-                                        row.get('descricao_original', '') or ''),
-                        codigo_sugerido=str(row.get('codigo_krona', '') or ''),
-                        descricao_sugerida=str(row.get('descricao_krona', '') or ''),
+                        num_item=texto_limpo(row.get('idx_item')),
+                        descricao_oc=texto_limpo(row.get('descricao_oc')) or
+                                     texto_limpo(row.get('descricao_original')),
+                        codigo_sugerido=texto_limpo(row.get('codigo_krona')),
+                        descricao_sugerida=texto_limpo(row.get('descricao_krona')),
                         score=score,
                         tipo_match=tipo,
-                        confianca_ia=str(row.get('confianca_ia') or '') or None,
-                        justificativa_ia=str(row.get('justificativa_ia') or '') or None,
-                        sugestao_composicao=str(row.get('sugestao_composicao') or '') or None,
-                    )
+                        confianca_ia=texto_limpo(row.get('confianca_ia')) or None,
+                        justificativa_ia=texto_limpo(row.get('justificativa_ia')) or None,
+                        sugestao_composicao=texto_limpo(row.get('sugestao_composicao')) or None,
+                    ))
         print(f"[REVISAO] Itens registrados para revisao se necessario.")
     except Exception as _rev_e:
+        revisao_falhou = True
         print(f"[REVISAO] Aviso (nao critico): {_rev_e}")
     # ── fim REVISAO ──────────────────────────────────────────────────
 
@@ -685,30 +705,44 @@ def processar_oc(caminho_oc: str) -> dict:
                 "⚠️ EQUIVALÊNCIA DE ADESIVO — VERIFICAR\n"
                 "1116962 (azul) ↔ 1123161 (extra forte/vermelho)\n"
                 "Confirme com o cliente qual adesivo enviar.\n"
-                "A partir do próximo mês: adesivo azul disponível."
+                "Em fase de transição."
             )
-            nome_arquivo = os.path.basename(caminho_oc)
             alertas_gerados = 0
             for _, row in df_final.iterrows():
                 codigo_oc_item = normalizar_codigo(row.get('codigo_oc') or row.get('codigo_interno_oc'))
                 if codigo_oc_item in CODIGOS_ADESIVO_EQUIVALENTE:
-                    salvar_item_revisao(
+                    ids_revisao.add(salvar_item_revisao(
                         arquivo=nome_arquivo,
-                        num_item=str(row.get('idx_item', '') or ''),
-                        descricao_oc=str(row.get('descricao_oc', '') or
-                                        row.get('descricao_original', '') or ''),
-                        codigo_sugerido=str(row.get('codigo_krona', '') or ''),
-                        descricao_sugerida=str(row.get('descricao_krona', '') or ''),
-                        score=float(row.get('score_total', 0) or 0),
+                        num_item=texto_limpo(row.get('idx_item')),
+                        descricao_oc=texto_limpo(row.get('descricao_oc')) or
+                                     texto_limpo(row.get('descricao_original')),
+                        codigo_sugerido=texto_limpo(row.get('codigo_krona')),
+                        descricao_sugerida=texto_limpo(row.get('descricao_krona')),
+                        score=float_seguro(row.get('score_total', 0)),
                         tipo_match=str(row.get('tipo_match', '') or ''),
                         alerta_equivalencia=MSG_ALERTA_ADESIVO,
-                    )
+                    ))
                     alertas_gerados += 1
             if alertas_gerados:
                 print(f"[ALERTA MRV] {alertas_gerados} item(ns) com alerta de equivalencia de adesivo.")
     except Exception as _alerta_e:
+        revisao_falhou = True
         print(f"[ALERTA MRV] Aviso (nao critico): {_alerta_e}")
     # ── fim ALERTA MRV ─────────────────────────────────────────────────
+
+    # ── LIMPEZA: pendentes antigos deste ficheiro que já não são gerados ──
+    # Só corre após uma gravação bem-sucedida, para nunca perder a fila por falha
+    # de processamento. Também faz a manutenção de resolvidos com mais de 180 dias.
+    try:
+        if not revisao_falhou and not df_final.empty:
+            from dados.revisao_store import remover_pendentes_obsoletos, limpar_resolvidos
+            removidos = remover_pendentes_obsoletos(nome_arquivo, ids_revisao)
+            if removidos:
+                print(f"[REVISAO] {removidos} pendente(s) obsoleto(s) removido(s) de {nome_arquivo}.")
+            limpar_resolvidos()
+    except Exception as _limpeza_e:
+        print(f"[REVISAO] Aviso na limpeza (nao critico): {_limpeza_e}")
+    # ── fim LIMPEZA ────────────────────────────────────────────────────
 
     print("\n[4/4] GERANDO SAÍDAS INDIVIDUAIS...")
     salvar_resultado_processado_individual(df_final, caminhos["resultado_processado"])
