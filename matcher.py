@@ -1295,6 +1295,138 @@ def _montar_sem_match(motivo="SEM_MATCH", score=0, categoria=None, **extra):
     return resultado
 
 
+# ============================================================
+# REGRAS DETERMINISTAS DE CATALOGO
+# Verdades de negocio confirmadas para qualquer cliente:
+# - PLUG PVC soldavel usa o cadastro PLUG ROSCAVEL (nome difere).
+# - SOLUCAO LIMPADORA sem tamanho = 521 (1000 ml); 200 ml = 520.
+# - PASTA LUBRIFICANTE sem tamanho = 677 (1 kg); 160 g = 675, 400 g = 676.
+# Tamanho/bitola fora da tabela nao cai em fallback: vai para revisao.
+# ============================================================
+
+_BITOLAS_PLUG = {
+    "1/2": "293",
+    "3/4": "294",
+    "1": "295",
+    "1.1/2": "296",
+    "1.1/4": "297",
+    "2": "298",
+}
+
+
+def _normalizar_bitola_plug(texto):
+    t = _normalizar_texto(texto)
+    t = re.sub(r"\b1\s*[-.]?\s*1\s*/\s*2\b", "1.1/2", t)
+    t = re.sub(r"\b1\s*[-.]?\s*1\s*/\s*4\b", "1.1/4", t)
+    return re.sub(r"\s*/\s*", "/", t)
+
+
+def _bitola_plug_do_texto(texto):
+    t = _normalizar_bitola_plug(texto)
+    for bitola in ("1.1/2", "1.1/4", "3/4", "1/2", "2", "1"):
+        if re.search(rf"(?<![\d.]){re.escape(bitola)}(?![\d/])", t):
+            return bitola
+    return None
+
+
+def _codigo_solucao_limpadora(texto):
+    t = _normalizar_texto(texto)
+    if re.search(r"\b200\s*(?:ML|CM\s*[3³]|CC)(?!\w)", t):
+        return "520"
+    if re.search(r"\b(?:1000|1\.000)\s*(?:ML|CM\s*[3³]|CC)(?!\w)", t):
+        return "521"
+    if re.search(r"\b1\s*L\b", t):
+        return "521"
+    if re.search(r"\b\d+(?:[.,]\d+)?\s*(?:ML|L|CM\s*[3³]|CC)(?!\w)", t):
+        return None
+    return "521"
+
+
+def _codigo_pasta_lubrificante(texto):
+    t = _normalizar_texto(texto)
+    if re.search(r"\b160\s*G\b", t):
+        return "675"
+    if re.search(r"\b400\s*G\b", t):
+        return "676"
+    if re.search(r"\b(?:1000|1\.000)\s*(?:G|KG)\b", t):
+        return "677"
+    if re.search(r"\b1\s*KG\b", t):
+        return "677"
+    if re.search(r"\b\d+(?:[.,]\d+)?\s*(?:G|KG)\b", t):
+        return None
+    return "677"
+
+
+def _resultado_regra_catalogo(cadastro, motivo):
+    return {
+        "match_encontrado": True,
+        "codigo_krona": str(cadastro.get("codigo_krona")),
+        "descricao_krona": cadastro.get("descricao_krona"),
+        "descricao_krona_normalizada": cadastro.get("descricao_normalizada"),
+        "linha_krona_match": cadastro.get("linha_krona"),
+        "familia_krona_match": cadastro.get("familia_krona"),
+        "unidade_venda_krona": cadastro.get("unidade_venda"),
+        "quantidade_embalagem_krona": cadastro.get("quantidade_embalagem"),
+        "score_estrutura": 1.0,
+        "score_textual": 1.0,
+        "score_total": 1.0,
+        "tipo_match": "MATCH_REGRA_CATALOGO",
+        "revisao_manual": False,
+        "motivo_match": motivo,
+        "categoria_krona": cadastro.get("categoria_detectada"),
+        "eh_tubo_krona": cadastro.get("eh_tubo"),
+        "diametro_krona_mm": obter_diametro_krona(cadastro),
+        "comprimento_krona_m": obter_comprimento_krona(cadastro),
+    }
+
+
+def _regra_catalogo(item, base_krona):
+    texto = _normalizar_texto(
+        item.get("descricao_oc") or item.get("descricao_reconstruida") or "")
+    if not texto:
+        return None
+
+    familia = None
+    codigo = None
+    motivo = None
+
+    if (re.search(r"\bPLUG\b", texto)
+            and not re.search(r"\bPPR\b", texto)
+            and re.search(r"\bPVC\b|\bSOLD|\bROSC", texto)):
+        familia = "PLUG"
+        bitola = _bitola_plug_do_texto(texto)
+        codigo = _BITOLAS_PLUG.get(bitola) if bitola else None
+        motivo = f"REGRA_CATALOGO_PLUG_{bitola}" if bitola else None
+    elif re.search(r"\bSOLUCAO\b", texto) and re.search(r"LIMP|PREPARADORA", texto):
+        familia = "SOLUCAO"
+        codigo = _codigo_solucao_limpadora(texto)
+        motivo = "REGRA_CATALOGO_SOLUCAO_LIMPADORA"
+    elif re.search(r"\bPASTA\b", texto) and re.search(r"\bLUBRIFICANTE\b", texto):
+        familia = "PASTA"
+        codigo = _codigo_pasta_lubrificante(texto)
+        motivo = "REGRA_CATALOGO_PASTA_LUBRIFICANTE"
+
+    if familia is None:
+        return None
+
+    if not codigo:
+        return {
+            "_regra_bloqueia": True,
+            "familia": familia,
+            "motivo": f"REGRA_{familia}_TAMANHO_NAO_CADASTRADO",
+        }
+
+    cadastro = buscar_cadastro_krona_por_codigo(codigo, base_krona)
+    if not cadastro:
+        return {
+            "_regra_bloqueia": True,
+            "familia": familia,
+            "motivo": f"REGRA_{familia}_CODIGO_AUSENTE",
+        }
+
+    return _resultado_regra_catalogo(cadastro, motivo or f"REGRA_CATALOGO_{familia}")
+
+
 def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
                   indice_tabela=None, fator_preco=None):
     if base_krona is None:
@@ -1454,6 +1586,21 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
                         }
     except Exception:
         pass  # nao bloqueia o fluxo principal
+
+    # ── REGRAS DETERMINISTAS DE CATALOGO (verdades de negocio) ──
+    # Depois de codigo/DE-PARA/tabela/correcao aprendida e antes do
+    # match por descricao. Tamanho/bitola fora da tabela nao cai em
+    # fallback: devolve SEM_MATCH para revisao humana.
+    regra_catalogo = _regra_catalogo(item, base_krona)
+    if regra_catalogo:
+        if regra_catalogo.get("_regra_bloqueia"):
+            return _montar_sem_match(
+                motivo=regra_catalogo["motivo"],
+                categoria=regra_catalogo["familia"],
+                categoria_oc=regra_catalogo["familia"],
+                bloquear_fallback=True,
+            )
+        return regra_catalogo
 
     # =========================================================
     # PRIORIDADE 2 — MATCH POR DESCRICAO
