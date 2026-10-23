@@ -46,6 +46,14 @@
   --vortex-blue: var(--accent);
 }
 
+/* crossfade entre páginas/reloads (Chrome 126+; ignorado nos restantes) */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(.2, 0, 0, 1);
+}
+
 html.dark {
   background: #111316;
   color-scheme: dark;
@@ -652,6 +660,9 @@ html.dark body .out-dark { background: #0b0d10; border-color: var(--border); }
 
 /* ── acessibilidade: menos movimento ───────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation: none !important;
+  }
   *, *::before, *::after {
     transition-duration: .01ms !important;
     animation-duration: .01ms !important;
