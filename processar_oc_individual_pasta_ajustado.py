@@ -694,8 +694,8 @@ def processar_oc(caminho_oc: str) -> dict:
     # ── fim REVISAO ──────────────────────────────────────────────────
 
     # ── ALERTA MRV: equivalência de adesivo (1116962 azul ↔ 1123161 extra forte) ─
-    # Regra pontual: os dois códigos MRV mapeiam para o mesmo código Krona (523),
-    # então o operador precisa confirmar com o cliente qual adesivo enviar.
+    # Regra pontual: 1116962 (azul) → 519 e 1123161 (extra forte) → 523.
+    # O alerta pede confirmação com o cliente sobre qual adesivo enviar.
     # Aditivo — não altera match nem planilha; falha aqui nunca interrompe o processamento.
     try:
         if _is_mrv and not df_final.empty:
