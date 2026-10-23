@@ -1357,6 +1357,40 @@ def _codigo_pasta_lubrificante(texto):
     return "677"
 
 
+def _peso_adesivo_g(texto):
+    m = re.search(r"(\d{2,4})\s*(?:G|GR|GRS|GRAMAS?)\b", texto)
+    return int(m.group(1)) if m else None
+
+
+def _resolver_adesivo_pvc(texto):
+    """Linha ADESIVO PVC: 519 padrao 850 g; 523 extraforte 850 g; 522 extraforte 175 g c/ pincel.
+
+    Devolve (codigo, motivo, bloquear). codigo None e bloquear False significa
+    que a regra nao opina e o caminho normal segue (17 g, 75 g, 175 g padrao).
+    """
+    extra = bool(re.search(r"\bEXTRA\s*FORTE\b", texto))
+    pincel = bool(re.search(r"\bPINCEL\b", texto))
+    peso = _peso_adesivo_g(texto)
+
+    if extra:
+        if pincel:
+            if peso in (None, 175):
+                return "522", "REGRA_CATALOGO_ADESIVO_EXTRAFORTE_175_PINCEL", False
+            return None, "REGRA_ADESIVO_TAMANHO_NAO_CADASTRADO", True
+        if peso in (None, 850):
+            return "523", "REGRA_CATALOGO_ADESIVO_EXTRAFORTE_850", False
+        return None, "REGRA_ADESIVO_TAMANHO_NAO_CADASTRADO", True
+
+    if pincel:
+        if peso in (None, 175):
+            return None, None, False
+        return None, "REGRA_ADESIVO_TAMANHO_NAO_CADASTRADO", True
+
+    if peso is None or peso == 850:
+        return "519", "REGRA_CATALOGO_ADESIVO_850", False
+    return None, None, False
+
+
 def _variantes_quadro(base_krona, tamanho):
     if base_krona is None or base_krona.empty or tamanho is None:
         return ""
@@ -1420,6 +1454,19 @@ def _regra_catalogo(item, base_krona):
         familia = "PASTA"
         codigo = _codigo_pasta_lubrificante(texto)
         motivo = "REGRA_CATALOGO_PASTA_LUBRIFICANTE"
+    elif (re.search(r"\bADESIVO\b", texto)
+          and re.search(r"PVC|PLASTIC", texto)
+          and not re.search(r"CPVC|ULTRATERM", texto)):
+        codigo, motivo, bloquear = _resolver_adesivo_pvc(texto)
+        if bloquear:
+            return {
+                "_regra_bloqueia": True,
+                "familia": "ADESIVO",
+                "motivo": motivo,
+            }
+        if not codigo:
+            return None
+        familia = "ADESIVO"
     elif re.search(r"\bQUADRO\b", texto) and re.search(r"DISTRIB|DISTR", texto):
         # Quadro de distribuicao: a OC quase nunca descreve igual ao catalogo
         # (com/sem barramento, embutir/sobrepor). Nunca automatico; para 36 DIN

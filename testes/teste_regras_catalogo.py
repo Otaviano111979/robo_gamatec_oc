@@ -39,6 +39,16 @@ BASE_TESTE = pd.DataFrame([
     _produto("675", "PASTA LUBRIFICANTE 160 G", categoria="PASTA LUBRIFICANTE", comprimento=0.1),
     _produto("676", "PASTA LUBRIFICANTE 400 G", categoria="PASTA LUBRIFICANTE", comprimento=0.14),
     _produto("677", "PASTA LUBRIFICANTE 1 KG", categoria="PASTA LUBRIFICANTE", comprimento=0.17),
+    _produto("516", "ADESIVO PLASTICO 17G.", categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("517", "ADESIVO PLASTICO 75G.", categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("518", "ADESIVO PLASTICO 175G C/ PINCEL", categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("519", "ADESIVO FRASCO 850 G", categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("522", "ADESIVO PLÁSTICO EXTRAFORTE PARA PVC 175g C/ PINCEL APLICADOR",
+             categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("523", "ADESIVO PLÁSTICO EXTRAFORTE PARA PVC 850g",
+             categoria="ADESIVOS E COMPLEMENTOS"),
+    _produto("1389", "ADESIVO PLASTICO ULTRATERM - FRASCO 850G",
+             categoria="ADESIVOS E COMPLEMENTOS"),
     _produto("1274", "QUADRO DISTR 24D/18N EMBUTIR SEM BARRAMENTO", familia="QUADRO"),
     _produto("1275", "QUADRO DISTR 36D/27N EMBUTIR SEM BARRAMENTO", familia="QUADRO"),
     _produto("1280", "QUADRO DISTR 24D/18N EMBUTIR COM BARRAMENTO", familia="QUADRO"),
@@ -101,6 +111,28 @@ assert regra("PASTA LUBRIFICANTE 500 G")["_regra_bloqueia"] is True
 # tubo normal nao entra nas regras
 assert regra("TUBO PVC SOLDAVEL 25MM") is None
 
+# ADESIVO PVC: sem qualificador -> 519 (850 g); extraforte 850 -> 523; extraforte 175 c/ pincel -> 522
+assert codigo("ADESIVO PVC 850GR") == "519"
+assert codigo("ADESIVO PLASTICO PARA PVC 850G") == "519"
+assert codigo("ADESIVO PVC") == "519"
+assert codigo("ADESIVO EXTRAFORTE PVC 850GR") == "523"
+assert codigo("ADESIVO PVC EXTRA FORTE 850 G") == "523"
+assert codigo("ADESIVO EXTRAFORTE PVC 175G C/ PINCEL") == "522"
+
+# combinacoes que nao existem no catalogo vao a revisao, sem fallback
+assert regra("ADESIVO EXTRAFORTE PVC 175G")["_regra_bloqueia"] is True
+assert regra("ADESIVO EXTRAFORTE PVC 850G C/ PINCEL")["_regra_bloqueia"] is True
+assert regra("ADESIVO PVC 850G C/ PINCEL")["_regra_bloqueia"] is True
+
+# 17/75/175 g padrao seguem o caminho normal
+assert regra("ADESIVO PVC 17G") is None
+assert regra("ADESIVO PVC 75G") is None
+assert regra("ADESIVO PVC 175G C/ PINCEL") is None
+
+# CPVC / ULTRATERM sao outra linha de produto (adesivo para agua quente)
+assert regra("ADESIVO PLASTICO PARA LINHA CPVC FRASCO 850G") is None
+assert regra("ADESIVO PLASTICO ULTRATERM FRASCO 850G") is None
+
 # QUADRO: a OC quase nunca descreve igual ao catalogo; 36 DIN -> 1288, sempre em revisao
 q = regra("QUADRO DE DISTRIBUIÇÃO PVC 36 DIN C/ BARRAMENTO N/T EMBUTIR 27/36 DISJ - KRONA")
 assert q["codigo_krona"] == "1288"
@@ -133,6 +165,14 @@ assert res["codigo_krona"] == "521"
 assert res["revisao_manual"] is False
 assert ajustar_quantidade_tubo({**item, **res})["quantidade_ajustada"] == 5
 
+item, res = match("ADESIVO PVC 850GR", 5)
+assert res["codigo_krona"] == "519"
+assert res["tipo_match"] == "MATCH_REGRA_CATALOGO"
+assert res["motivo_match"] == "REGRA_CATALOGO_ADESIVO_850"
+assert res["revisao_manual"] is False
+assert res["unidade_venda_krona"] == "PC"
+assert ajustar_quantidade_tubo({**item, **res})["quantidade_ajustada"] == 5
+
 # tamanho nao cadastrado nao cai em fallback: SEM_MATCH para revisao
 _, res = match("PASTA LUBRIFICANTE 500 G", 5)
 assert res["match_encontrado"] is False
@@ -153,4 +193,4 @@ assert "1281" in res["candidatos_revisao"]
 assert "1294" in res["candidatos_revisao"]
 assert ajustar_quantidade_tubo({**item, **res})["quantidade_ajustada"] == 2
 
-print("OK: regras de catalogo PLUG/PASTA/SOLUCAO/QUADRO")
+print("OK: regras de catalogo PLUG/PASTA/SOLUCAO/ADESIVO/QUADRO")
