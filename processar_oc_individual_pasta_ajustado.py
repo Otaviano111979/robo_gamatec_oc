@@ -230,9 +230,35 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
 
 
 
+def _flag_verdadeira(valor) -> bool:
+    if isinstance(valor, bool):
+        return valor
+    return str(valor).strip().lower() in ("true", "1", "sim", "yes")
+
+
+def _texto(valor) -> str:
+    if valor is None:
+        return ""
+    try:
+        if pd.isna(valor):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(valor).strip()
+
+
+def _codigos_composicao(texto) -> str:
+    codigos = []
+    for parte in _texto(texto).split("+"):
+        tokens = parte.split()
+        if tokens and tokens[0].isdigit():
+            codigos.append(tokens[0])
+    return " + ".join(codigos)
+
+
 def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho_xlsx: str) -> pd.DataFrame:
     """
-    Gera planilha enxuta com TODOS os itens, marcando itens sem match com código vazio.
+    Gera planilha enxuta com TODOS os itens, distinguindo sem match, em revisao e match confirmado.
     """
     registros = []
 
@@ -243,6 +269,12 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
         match_encontrado = item.get("match_encontrado", False)
         tipo_match = str(item.get("tipo_match", "")).strip().upper()
         tem_codigo = item.get("codigo_krona") and str(item.get("codigo_krona")).strip()
+        revisao = _flag_verdadeira(item.get("revisao_manual", False))
+
+        composicao = _texto(item.get("sugestao_composicao"))
+        if not composicao and tipo_match == "SUGESTAO_COMPOSICAO":
+            composicao = _texto(item.get("candidatos_revisao"))
+        codigos_composicao = _codigos_composicao(composicao) if composicao else ""
 
         # ─── Para itens COM MATCH: preenche descricao e codigo ───
         if match_encontrado and tem_codigo:
@@ -253,6 +285,15 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
                 or ""
             )
             codigo = normalizar_codigo(item.get("codigo_krona"))
+        # ─── Composicao sugerida: mostra os codigos, sempre em revisao ───
+        elif tipo_match == "SUGESTAO_COMPOSICAO" and codigos_composicao:
+            descricao = (
+                item.get("descricao_oc")
+                or item.get("descricao_reconstruida")
+                or ""
+            )
+            codigo = codigos_composicao
+            revisao = True
         # ─── Para itens SEM MATCH: deixa codigo vazio, mas preserva descricao da OC ───
         else:
             descricao = (
@@ -268,6 +309,7 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
         if quantidade is None or str(quantidade).strip() == "":
             quantidade = item.get("quantidade_oc")
 
+        unidade_venda = ""
         # detecta preço não confirmado: match via MRV/CODIGO mas sem valor unitário
         if match_encontrado and tem_codigo:
             valor_unit = item.get("valor_unitario") or item.get("preco_unit")
@@ -277,18 +319,31 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
             )
             via_mrv = 'MRV' in tipo_match or 'CODIGO' in tipo_match
             preco_nao_confirmado = via_mrv and sem_preco
+            unidade_venda = _texto(item.get("unidade_venda_krona")).upper()
+            if unidade_venda in ("", "PC", "UN", "NAN", "NONE"):
+                unidade_venda = ""
         else:
             preco_nao_confirmado = False
+
+        if not codigo:
+            status = "SEM_MATCH"
+        elif revisao or tipo_match.endswith("REVISAR") or tipo_match == "SUGESTAO_COMPOSICAO":
+            status = "REVISAR"
+        else:
+            status = "COM_MATCH"
 
         registros.append({
             "DESCRICAO": descricao,
             "CODIGO": codigo,
             "QUANTIDADE": quantidade,
-            "STATUS": "SEM_MATCH" if not codigo else "COM_MATCH",  # auxiliar para identificar visualmente
+            "STATUS": status,
             "PRECO_NAO_CONFIRMADO": preco_nao_confirmado,
+            "UNIDADE_VENDA": unidade_venda,
         })
 
-    df_saida = pd.DataFrame(registros, columns=["DESCRICAO", "CODIGO", "QUANTIDADE", "STATUS", "PRECO_NAO_CONFIRMADO"])
+    df_saida = pd.DataFrame(registros, columns=[
+        "DESCRICAO", "CODIGO", "QUANTIDADE", "STATUS", "PRECO_NAO_CONFIRMADO", "UNIDADE_VENDA",
+    ])
     
     # Salva sem a coluna STATUS (apenas DESCRICAO, CODIGO, QUANTIDADE)
     df_saida_final = df_saida[["DESCRICAO", "CODIGO", "QUANTIDADE"]]
@@ -296,50 +351,53 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
     df_saida_final.to_csv(caminho_csv, index=False, sep=";", encoding="utf-8-sig")
     df_saida_final.to_excel(caminho_xlsx, index=False)
 
-    # destacar linhas SEM_MATCH em amarelo no XLSX
+    # destaque visual no XLSX: amarelo sem match, azul em revisao, laranja preco nao confirmado
     try:
         from openpyxl import load_workbook
-        from openpyxl.styles import PatternFill
-        fill_amarelo = PatternFill(start_color="FFFF99", end_color="FFFF99", fill_type="solid")
-        wb = load_workbook(caminho_xlsx)
-        ws = wb.active
-        for i, status_val in enumerate(df_saida["STATUS"], start=2):
-            if status_val == "SEM_MATCH":
-                for cell in ws[i]:
-                    cell.fill = fill_amarelo
-        wb.save(caminho_xlsx)
-    except Exception as _e_xlsx:
-        print(f"  [PLANILHA] Aviso: destaque amarelo nao aplicado ({_e_xlsx})")
-
-    # ── DESTAQUE LARANJA para precos nao confirmados ──
-    try:
         from openpyxl.styles import PatternFill, Font
+        fill_amarelo = PatternFill(start_color="FFFF99", end_color="FFFF99", fill_type="solid")
+        fill_azul = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
         fill_laranja = PatternFill(start_color="FFB347", end_color="FFB347", fill_type="solid")
         font_bold = Font(bold=True)
-        wb2 = load_workbook(caminho_xlsx)
-        ws2 = wb2.active
-        for i, (status_val, sem_preco_val) in enumerate(
-            zip(df_saida["STATUS"], df_saida["PRECO_NAO_CONFIRMADO"]), start=2
-        ):
-            if status_val != "SEM_MATCH" and sem_preco_val:
-                for cell in ws2[i]:
-                    cell.fill = fill_laranja
-                # col 1 = DESCRICAO: anexa aviso visual (xlsx apenas, CSV já salvo)
-                desc_cell = ws2.cell(row=i, column=1)
-                desc_cell.value = str(desc_cell.value or '') + "  ⚠️ Verificar preço"
+        wb = load_workbook(caminho_xlsx)
+        ws = wb.active
+        for i, row in enumerate(df_saida.itertuples(index=False), start=2):
+            sufixos = []
+            fill = None
+            if row.STATUS == "SEM_MATCH":
+                fill = fill_amarelo
+            elif row.STATUS == "REVISAR":
+                fill = fill_azul
+                sufixos.append("⚠️ Revisar")
+            elif row.PRECO_NAO_CONFIRMADO:
+                fill = fill_laranja
+            if row.STATUS != "SEM_MATCH" and row.PRECO_NAO_CONFIRMADO:
+                sufixos.append("⚠️ Verificar preço")
+            if row.UNIDADE_VENDA:
+                sufixos.append(f"⚠️ Vendido em {row.UNIDADE_VENDA}")
+            if fill is not None:
+                for cell in ws[i]:
+                    cell.fill = fill
+            if sufixos:
+                desc_cell = ws.cell(row=i, column=1)
+                desc_cell.value = str(desc_cell.value or "") + "  " + "  ".join(sufixos)
                 desc_cell.font = font_bold
-        wb2.save(caminho_xlsx)
-        laranja_count = df_saida[(df_saida["STATUS"] != "SEM_MATCH") & df_saida["PRECO_NAO_CONFIRMADO"]].shape[0]
+        wb.save(caminho_xlsx)
+        laranja_count = int(((df_saida["STATUS"] != "SEM_MATCH") & df_saida["PRECO_NAO_CONFIRMADO"]).sum())
         if laranja_count > 0:
-            print(f"  [PLANILHA] {laranja_count} item(ns) com destaque laranja (preco nao confirmado)")
-    except Exception as _e_laranja:
-        print(f"  [PLANILHA] Aviso: destaque laranja nao aplicado ({_e_laranja})")
+            print(f"  [PLANILHA] {laranja_count} item(ns) com preco nao confirmado")
+    except Exception as _e_xlsx:
+        print(f"  [PLANILHA] Aviso: destaque nao aplicado ({_e_xlsx})")
 
     # Log informativo
     sem_match_count = (df_saida["STATUS"] == "SEM_MATCH").sum()
+    revisar_count = (df_saida["STATUS"] == "REVISAR").sum()
     com_match_count = (df_saida["STATUS"] == "COM_MATCH").sum()
-    if sem_match_count > 0:
-        print(f"  [PLANILHA] {com_match_count} item(ns) com match + {sem_match_count} item(ns) SEM MATCH")
+    if sem_match_count > 0 or revisar_count > 0:
+        print(
+            f"  [PLANILHA] {com_match_count} item(ns) com match"
+            f" + {revisar_count} em revisao + {sem_match_count} sem match"
+        )
     
     return df_saida_final
 
