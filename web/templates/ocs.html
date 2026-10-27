@@ -104,6 +104,63 @@
         </div>
       </section>
 
+      {% if cotacoes %}
+      <section class="panel cotacoes-card" id="cotacoes-card" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <div>
+            <h2>Cotações de preços</h2>
+            <p>Chegam sem preço: geram a planilha (descrição, código, quantidade) para o sistema cotar.</p>
+          </div>
+          <span class="chip chip-warn plain">{{ cotacoes|length }}</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Arquivo</th><th>Tipo</th><th>Estado</th><th class="t-right">Ações</th></tr>
+            </thead>
+            <tbody id="cotacoes-table-body">
+              {% for c in cotacoes %}
+              <tr data-cotacao-row="{{ c.nome }}">
+                <td><div class="arquivo-nome" title="{{ c.nome }}">{{ c.nome }}</div></td>
+                <td>
+                  {% if c.motivo == 'definido manualmente' %}
+                    <span class="chip chip-warn plain" title="Escolha feita por você para este arquivo">Definido por você</span>
+                  {% elif c.tipo == 'UI' %}
+                    <span class="chip chip-warn plain" title="{{ c.motivo }}">Indefinido</span>
+                  {% else %}
+                    <span class="chip chip-ok plain" title="{{ c.motivo }}">Cotação</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if c.processando %}Processando
+                  {% elif c.origem == 'processados' %}Processada
+                  {% elif c.tem_planilha %}Planilha pronta
+                  {% else %}Na entrada{% endif %}
+                </td>
+                <td class="t-right">
+                  <div class="acoes-grupo">
+                    {% if c.tem_planilha %}
+                      <a class="btn btn-sm" href="/baixar-planilha-cotacao/{{ c.nome }}">Planilha</a>
+                    {% endif %}
+                    {% if c.pode_processar and c.tipo == 'COTACAO' %}
+                      <button class="btn btn-sm btn-primary" type="button" onclick="processarCotacao(this, '{{ c.nome }}')">Processar cotação</button>
+                    {% endif %}
+                    {% if c.tipo == 'UI' and c.origem == 'entrada' %}
+                      <button class="btn btn-sm btn-primary" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'COTACAO')">É cotação</button>
+                      <button class="btn btn-sm" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'OC')">É OC</button>
+                    {% elif c.tipo == 'COTACAO' and c.origem == 'entrada' and c.motivo != 'definido manualmente' %}
+                      <button class="btn btn-sm btn-ghost" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'OC')" title="O classificador errou: tratar este PDF como OC">É OC</button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
       <div class="ocs-grid">
         <section class="panel list-card">
           <div class="toolbar">
@@ -466,6 +523,41 @@
         document.querySelectorAll('#ordenar-recente, #ordenar-antigo').forEach((x) => x.classList.toggle('is-on', x === b));
       });
     });
+
+    async function acaoCotacao(btn, url, corpo) {
+      const linha = btn.closest('tr');
+      const botoes = linha ? linha.querySelectorAll('button') : [btn];
+      botoes.forEach((b) => { b.disabled = true; });
+      try {
+        const resp = await fetch(url, { method: 'POST', body: corpo });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.mensagem || data.erro || 'Falha ao processar');
+        if (linha) linha.dataset.aguardando = '1';
+        setTimeout(() => location.reload(), 1200);
+      } catch (e) {
+        alert(e.message);
+        botoes.forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    function processarCotacao(btn, nome) {
+      acaoCotacao(btn, `/api/processar-cotacao/${encodeURIComponent(nome)}`);
+    }
+
+    function definirTipo(btn, nome, tipo) {
+      const corpo = new FormData();
+      corpo.append('tipo', tipo);
+      acaoCotacao(btn, `/api/definir-tipo/${encodeURIComponent(nome)}`, corpo);
+    }
+
+    (function acompanharCotacoes() {
+      const card = document.getElementById('cotacoes-card');
+      if (!card) return;
+      const emAndamento = card.querySelector('[data-cotacao-row][data-aguardando]')
+        || card.textContent.includes('Processando');
+      if (!emAndamento) return;
+      setTimeout(() => location.reload(), 5000);
+    })();
   </script>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
