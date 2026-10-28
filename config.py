@@ -55,7 +55,7 @@ def _resolver_base_dir():
     configurado = os.environ.get("GAMATEC_BASE_DIR", "").strip().strip('"')
     if not configurado:
         return pasta_projeto
-    if not os.path.isdir(configurado):
+    if not os.path.isabs(configurado) or not os.path.isdir(configurado):
         print(
             f"[CONFIG] GAMATEC_BASE_DIR='{configurado}' nao existe nesta maquina "
             f"— usando a pasta do projeto: {pasta_projeto}"
