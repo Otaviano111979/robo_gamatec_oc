@@ -120,7 +120,7 @@
             </thead>
             <tbody id="cotacoes-table-body">
               {% for c in cotacoes %}
-              <tr data-cotacao-row="{{ c.nome }}">
+              <tr data-cotacao-row="{{ c.nome }}" data-processando="{{ 'true' if c.processando else 'false' }}">
                 <td><div class="arquivo-nome" title="{{ c.nome }}">{{ c.nome }}</div></td>
                 <td>
                   {% if c.motivo == 'definido manualmente' %}
@@ -131,25 +131,26 @@
                     <span class="chip chip-ok plain" title="{{ c.motivo }}">Cotação</span>
                   {% endif %}
                 </td>
-                <td>
-                  {% if c.processando %}Processando
-                  {% elif c.origem == 'processados' %}Processada
-                  {% elif c.tem_planilha %}Planilha pronta
-                  {% else %}Na entrada{% endif %}
+                <td data-cotacao-status role="status" aria-live="polite">
+                  <span class="{{ 'chip chip-err' if c.erro_processamento else '' }}">{{ 'Erro: ' if c.erro_processamento else '' }}{{ c.mensagem }}</span>
                 </td>
                 <td class="t-right">
-                  <div class="acoes-grupo">
+                  <div class="acoes-grupo" data-cotacao-acoes>
                     {% if c.tem_planilha %}
-                      <a class="btn btn-sm" href="/baixar-planilha-cotacao/{{ c.nome }}">Planilha</a>
+                      <a class="btn btn-sm" href="/baixar-planilha-cotacao/{{ c.nome|urlencode }}">Planilha</a>
                     {% endif %}
-                    {% if c.pode_processar and c.tipo == 'COTACAO' %}
-                      <button class="btn btn-sm btn-primary" type="button" onclick="processarCotacao(this, '{{ c.nome }}')">Processar cotação</button>
+                    {% if c.tipo == 'COTACAO' and c.origem == 'entrada' %}
+                      <button class="btn btn-sm btn-primary" type="button" onclick="processarCotacao(this)" {{ 'disabled' if c.processando else '' }}>{{ 'Processando…' if c.processando else 'Processar cotação' }}</button>
                     {% endif %}
                     {% if c.tipo == 'UI' and c.origem == 'entrada' %}
-                      <button class="btn btn-sm btn-primary" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'COTACAO')">É cotação</button>
-                      <button class="btn btn-sm" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'OC')">É OC</button>
+                      <button class="btn btn-sm btn-primary" type="button" onclick="definirTipo(this, 'COTACAO')" {{ 'disabled' if c.processando else '' }}>É cotação</button>
+                      <button class="btn btn-sm" type="button" onclick="definirTipo(this, 'OC')" {{ 'disabled' if c.processando else '' }}>É OC</button>
                     {% elif c.tipo == 'COTACAO' and c.origem == 'entrada' and c.motivo != 'definido manualmente' %}
-                      <button class="btn btn-sm btn-ghost" type="button" onclick="definirTipo(this, '{{ c.nome }}', 'OC')" title="O classificador errou: tratar este PDF como OC">É OC</button>
+                      <button class="btn btn-sm btn-ghost" type="button" onclick="definirTipo(this, 'OC')" title="O classificador errou: tratar este PDF como OC" {{ 'disabled' if c.processando else '' }}>É OC</button>
+                    {% endif %}
+                    <a class="btn btn-sm btn-ghost" href="/logs/{{ c.nome|urlencode }}" target="_blank" rel="noopener">Log</a>
+                    {% if c.erro_processamento and c.origem == 'entrada' %}
+                      <button class="btn btn-sm btn-danger" type="button" onclick="excluirErro(this.closest('tr').dataset.cotacaoRow, this)">Excluir</button>
                     {% endif %}
                   </div>
                 </td>
@@ -524,40 +525,112 @@
       });
     });
 
-    async function acaoCotacao(btn, url, corpo) {
-      const linha = btn.closest('tr');
-      const botoes = linha ? linha.querySelectorAll('button') : [btn];
+    function atualizarEstadoCotacao(linha, data) {
+      const nome = linha.dataset.cotacaoRow;
+      linha.dataset.processando = String(data.processando);
+      const status = linha.querySelector('[data-cotacao-status]');
+      status.textContent = (data.erro_processamento ? 'Erro: ' : '') + data.mensagem;
+      status.classList.toggle('status-error', Boolean(data.erro_processamento));
+      const acoes = linha.querySelector('[data-cotacao-acoes]');
+      acoes.replaceChildren();
+      function link(texto, url, novaAba = false) {
+        const a = document.createElement('a');
+        a.className = 'btn btn-sm';
+        a.textContent = texto;
+        a.href = url;
+        if (novaAba) { a.target = '_blank'; a.rel = 'noopener'; }
+        acoes.appendChild(a);
+      }
+      function botao(texto, classe, acao) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-sm ' + classe;
+        b.textContent = texto;
+        b.disabled = Boolean(data.processando);
+        b.addEventListener('click', () => acao(b));
+        acoes.appendChild(b);
+      }
+      if (data.tem_planilha) link('Planilha', '/baixar-planilha-cotacao/' + encodeURIComponent(nome));
+      if (data.processando || data.pode_processar) {
+        botao(data.processando ? 'Processando…' : 'Processar cotação', 'btn-primary', processarCotacao);
+      }
+      link('Log', '/logs/' + encodeURIComponent(nome), true);
+      if (data.erro_processamento && data.pode_processar) {
+        botao('Excluir', 'btn-danger', (b) => excluirErro(nome, b));
+      }
+    }
+
+    async function acompanharCotacao(linha) {
+      if (linha.dataset.monitorando === 'true') return;
+      linha.dataset.monitorando = 'true';
+      const nome = linha.dataset.cotacaoRow;
+      let consultasSemProcesso = 0;
+      async function consultar() {
+        try {
+          const resp = await fetch('/api/status-cotacao/' + encodeURIComponent(nome), { cache: 'no-store' });
+          const data = await resp.json();
+          if (!resp.ok || !data.ok) throw new Error(data.erro || 'Não foi possível consultar o estado.');
+          atualizarEstadoCotacao(linha, data);
+          if (data.estado === 'processando') consultasSemProcesso = 0;
+          if (data.estado === 'processando' || (data.estado === 'aguardando' && ++consultasSemProcesso < 3)) {
+            setTimeout(consultar, 2000);
+          } else {
+            linha.dataset.monitorando = 'false';
+            if (data.estado === 'aguardando') {
+              linha.querySelector('[data-cotacao-status]').textContent = 'Processamento não está ativo e a planilha não foi gerada. Pode tentar novamente ou consultar o log.';
+            }
+            carregarPainelErros();
+          }
+        } catch (e) {
+          linha.dataset.monitorando = 'false';
+          linha.querySelector('[data-cotacao-status]').textContent = e.message + ' Recarregue para acompanhar.';
+        }
+      }
+      await consultar();
+    }
+
+    async function acaoCotacao(btn, url, corpo, tipo) {
+      const linha = btn.closest('[data-cotacao-row]');
+      const botoes = linha.querySelectorAll('button');
       botoes.forEach((b) => { b.disabled = true; });
+      const status = linha.querySelector('[data-cotacao-status]');
+      status.textContent = tipo ? 'A guardar escolha…' : 'A iniciar processamento…';
       try {
         const resp = await fetch(url, { method: 'POST', body: corpo });
         const data = await resp.json();
-        if (!data.ok) throw new Error(data.mensagem || data.erro || 'Falha ao processar');
-        if (linha) linha.dataset.aguardando = '1';
-        setTimeout(() => location.reload(), 1200);
+        if (!resp.ok || !data.ok) throw new Error(data.mensagem || data.erro || 'Falha ao iniciar processamento.');
+        if (tipo === 'OC') {
+          status.textContent = data.mensagem;
+          setTimeout(() => location.reload(), 1200);
+          return;
+        }
+        if (tipo === 'COTACAO') linha.cells[1].textContent = 'Definido por você';
+        atualizarEstadoCotacao(linha, {
+          processando: true, pode_processar: false, tem_planilha: false,
+          mensagem: 'Processando cotação…', erro_processamento: false,
+        });
+        await acompanharCotacao(linha);
       } catch (e) {
-        alert(e.message);
+        status.textContent = e.message;
         botoes.forEach((b) => { b.disabled = false; });
       }
     }
 
-    function processarCotacao(btn, nome) {
+    function processarCotacao(btn) {
+      const nome = btn.closest('[data-cotacao-row]').dataset.cotacaoRow;
       acaoCotacao(btn, `/api/processar-cotacao/${encodeURIComponent(nome)}`);
     }
 
-    function definirTipo(btn, nome, tipo) {
+    function definirTipo(btn, tipo) {
+      const nome = btn.closest('[data-cotacao-row]').dataset.cotacaoRow;
       const corpo = new FormData();
       corpo.append('tipo', tipo);
-      acaoCotacao(btn, `/api/definir-tipo/${encodeURIComponent(nome)}`, corpo);
+      acaoCotacao(btn, `/api/definir-tipo/${encodeURIComponent(nome)}`, corpo, tipo);
     }
 
-    (function acompanharCotacoes() {
-      const card = document.getElementById('cotacoes-card');
-      if (!card) return;
-      const emAndamento = card.querySelector('[data-cotacao-row][data-aguardando]')
-        || card.textContent.includes('Processando');
-      if (!emAndamento) return;
-      setTimeout(() => location.reload(), 5000);
-    })();
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-cotacao-row][data-processando="true"]').forEach(acompanharCotacao);
+    });
   </script>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

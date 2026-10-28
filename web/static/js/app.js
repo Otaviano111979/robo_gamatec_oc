@@ -1821,7 +1821,9 @@ async function carregarPainelErros() {
       const tr = document.createElement("tr");
 
       const tdNome = document.createElement("td");
-      tdNome.innerHTML = `<strong>${arq.nome}</strong>`;
+      const nome = document.createElement("strong");
+      nome.textContent = arq.nome;
+      tdNome.appendChild(nome);
 
       const tdData = document.createElement("td");
       tdData.textContent = arq.data_ref || "-";
@@ -1848,7 +1850,13 @@ async function carregarPainelErros() {
         excluirErro(this.dataset.nome, this);
       });
 
-      tdAcoes.appendChild(btnReenviar);
+      if (arq.origem !== "entrada") {
+        tdAcoes.appendChild(btnReenviar);
+      } else {
+        const local = document.createElement("span");
+        local.textContent = "Na entrada — pode processar de novo. ";
+        tdAcoes.appendChild(local);
+      }
       tdAcoes.appendChild(btnExcluir);
 
       tr.appendChild(tdNome);
@@ -1905,6 +1913,7 @@ async function excluirErro(nomeArquivo, btn) {
     const data = await resp.json();
 
     if (data.ok) {
+      document.querySelector(`[data-cotacao-row="${CSS.escape(nomeArquivo)}"]`)?.remove();
       await carregarPainelErros();
     } else {
       alert(data.mensagem || "Falha ao excluir.");

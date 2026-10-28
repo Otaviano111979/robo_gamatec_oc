@@ -20,7 +20,9 @@ import pandas as pd
 
 from app import etapa_matching, etapa_unidade
 from config import BASE_DIR
-from extracao_oc.classificador_documento import COTACAO, UI, classificar_documento
+from extracao_oc.classificador_documento import (
+    COTACAO, UI, classificar_documento, tipo_definido_manualmente,
+)
 from extracao_oc.extrator_cotacao import extrair_cotacao
 from processar_oc_individual_pasta_ajustado import (
     gerar_planilha_enxuta_individual,
@@ -84,12 +86,13 @@ def _escrever_resumo(caminho: str, extra: dict, df_final: pd.DataFrame, nome_arq
 def processar_cotacao_individual(caminho: str, cliente_tabela: str = None) -> dict:
     nome_arquivo = os.path.basename(caminho)
     classificacao = classificar_documento(caminho)
-    if classificacao.tipo != COTACAO:
-        motivo = "CLASSIFICACAO_PENDENTE" if classificacao.tipo == UI else "NAO_E_COTACAO"
+    tipo = tipo_definido_manualmente(nome_arquivo) or classificacao.tipo
+    if tipo != COTACAO:
+        motivo = "CLASSIFICACAO_PENDENTE" if tipo == UI else "NAO_E_COTACAO"
         return {
             "ok": False,
             "motivo": motivo,
-            "classificacao": classificacao.tipo,
+            "classificacao": tipo,
             "detalhe": classificacao.motivo,
             "itens": 0,
         }
@@ -98,7 +101,7 @@ def processar_cotacao_individual(caminho: str, cliente_tabela: str = None) -> di
         return {
             "ok": False,
             "motivo": "SEM_TEXTO",
-            "classificacao": classificacao.tipo,
+            "classificacao": tipo,
             "detalhe": "PDF digitalizado (só imagem) — precisa de OCR para extrair os itens",
             "itens": 0,
         }
@@ -132,7 +135,7 @@ def processar_cotacao_individual(caminho: str, cliente_tabela: str = None) -> di
     return {
         "ok": True,
         "motivo": "",
-        "classificacao": classificacao.tipo,
+        "classificacao": tipo,
         "layout": extra.get("layout"),
         "cliente": extra.get("cliente"),
         "numero": extra.get("numero_oc"),

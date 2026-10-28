@@ -21,23 +21,23 @@ if not defined PY (
 )
 
 echo.
-echo Verificando atualizacoes...
-%PY% "%~dp0instalador\atualizador.py"
+%PY% "%~dp0iniciar_sistema.py" --preflight --abrir-navegador
+if errorlevel 1 (
+    pause
+    exit /b 1
+)
 
 echo.
 echo ==========================================
 echo   INICIANDO SISTEMA GAMATEC
 echo ==========================================
 echo.
-echo Abrindo navegador em 5 segundos...
-start "" cmd /c "timeout /t 5 >nul && start http://127.0.0.1:5000/ocs"
-
-echo.
-echo Iniciando servidor...
-%PY% "%~dp0iniciar_sistema.py"
+%PY% "%~dp0iniciar_sistema.py" --atualizar --abrir-navegador
+set "RESULTADO=%ERRORLEVEL%"
 
 echo.
 echo ==========================================
 echo   SISTEMA ENCERRADO
 echo ==========================================
 pause
+exit /b %RESULTADO%

@@ -1098,6 +1098,59 @@ def localizar_planilha_cotacao(nome_arquivo):
     return None
 
 
+def erro_processamento_arquivo(nome_arquivo):
+    log_file = caminho_log(nome_arquivo)
+    if not os.path.isfile(log_file):
+        return ""
+    entrada = os.path.join(PASTA_ENTRADA, nome_arquivo)
+    if os.path.isfile(entrada) and os.path.getmtime(entrada) > os.path.getmtime(log_file):
+        return ""
+    with open(log_file, encoding="utf-8", errors="replace") as f:
+        linhas = f.readlines()[-80:]
+    texto = "".join(linhas).lower()
+    if not any(m in texto for m in (
+        "cotacao nao processada:", "[web] processo finalizado com erro",
+        "encerrado por timeout", "traceback (most recent call last)",
+    )):
+        return ""
+    detalhe = next((l.partition(":")[2].strip() for l in linhas if l.startswith("Detalhe:")), "")
+    motivo = next((l.partition(":")[2].strip() for l in linhas if l.startswith("COTACAO NAO PROCESSADA:")), "")
+    return detalhe or motivo or "Processamento falhou. Consulte o log."
+
+
+def montar_status_cotacao(nome_arquivo):
+    processando = esta_processando(nome_arquivo)
+    tem_planilha = bool(localizar_planilha_cotacao(nome_arquivo))
+    em_entrada = arquivo_em_entrada(nome_arquivo)
+    em_processados = os.path.isfile(os.path.join(PASTA_PROCESSADOS_COTACAO, nome_arquivo))
+    erro = erro_processamento_arquivo(nome_arquivo) if not processando else ""
+    if processando:
+        estado, mensagem = "processando", "Processando cotação…"
+    elif erro:
+        estado, mensagem = "erro", erro
+    elif tem_planilha:
+        estado, mensagem = "concluido", "Planilha gerada. Pode descarregar."
+    elif not em_entrada and not em_processados:
+        estado, mensagem = "ausente", "PDF não encontrado; pode ter sido removido."
+    else:
+        estado, mensagem = "aguardando", "Na entrada" if em_entrada else "Sem planilha"
+    return {
+        "nome": nome_arquivo,
+        "estado": estado,
+        "mensagem": mensagem,
+        "processando": processando,
+        "tem_planilha": tem_planilha,
+        "erro_processamento": bool(erro),
+        "pode_processar": em_entrada and not processando,
+    }
+
+
+def nome_pdf_valido(nome):
+    return isinstance(nome, str) and nome.lower().endswith(".pdf") and not any(
+        c in nome for c in ("/", "\\", ":", "\x00")
+    )
+
+
 def listar_cotacoes():
     itens = []
     for pasta, origem in ((PASTA_ENTRADA, "entrada"), (PASTA_PROCESSADOS_COTACAO, "processados")):
@@ -1109,20 +1162,18 @@ def listar_cotacoes():
             tipo, motivo = tipo_documento_arquivo(nome)
             if tipo not in ("COTACAO", "UI"):
                 continue
-            processando = esta_processando(nome)
             itens.append({
-                "nome": nome,
+                **montar_status_cotacao(nome),
                 "tipo": tipo,
                 "motivo": motivo,
                 "origem": origem,
-                "processando": processando,
-                "tem_planilha": bool(localizar_planilha_cotacao(nome)),
-                "pode_processar": origem == "entrada" and not processando,
             })
     return itens
 
 
 def iniciar_processamento_cotacao(nome_arquivo):
+    if not nome_pdf_valido(nome_arquivo):
+        return False, "Nome de PDF inválido."
     if esta_processando(nome_arquivo):
         return False, "Arquivo já está em processamento."
 
@@ -1131,17 +1182,24 @@ def iniciar_processamento_cotacao(nome_arquivo):
         return False, "Arquivo não encontrado na pasta de entrada."
 
     os.makedirs(PASTA_PROCESSADOS_COTACAO, exist_ok=True)
-    log_file = caminho_log(nome_arquivo)
-    log_handle = open(log_file, "w", encoding="utf-8", errors="ignore")
-
-    processo = subprocess.Popen(
-        [sys.executable, os.path.join(BASE_DIR, "processar_cotacao.py"), "--arquivo", caminho],
-        stdout=log_handle,
-        stderr=log_handle,
-        text=True,
-    )
-
     with LOCK_PROCESSOS:
+        atual = PROCESSOS_ATIVOS.get(nome_arquivo)
+        if atual and atual.poll() is None:
+            return False, "Arquivo já está em processamento."
+        if not os.path.isfile(caminho):
+            return False, "Arquivo não encontrado na pasta de entrada."
+        log_handle = open(caminho_log(nome_arquivo), "w", encoding="utf-8", errors="ignore")
+        try:
+            processo = subprocess.Popen(
+                [sys.executable, "-u", os.path.join(BASE_DIR, "processar_cotacao.py"), "--arquivo", caminho],
+                stdout=log_handle,
+                stderr=log_handle,
+                text=True,
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            )
+        except OSError as e:
+            log_handle.close()
+            return False, f"Não foi possível iniciar o processamento: {e}"
         PROCESSOS_ATIVOS[nome_arquivo] = processo
 
     threading.Thread(
@@ -1169,8 +1227,12 @@ def api_definir_tipo(arquivo):
         return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
 
     tipo = (request.form.get("tipo") or "").strip().upper()
-    if tipo not in ("OC", "COTACAO"):
-        return jsonify({"ok": False, "erro": "Tipo inválido."}), 400
+    if tipo not in ("OC", "COTACAO") or not nome_pdf_valido(arquivo):
+        return jsonify({"ok": False, "erro": "Tipo ou nome de PDF inválido."}), 400
+    if esta_processando(arquivo):
+        return jsonify({"ok": False, "erro": "Arquivo já está em processamento."}), 409
+    if not arquivo_em_entrada(arquivo):
+        return jsonify({"ok": False, "erro": "Arquivo não encontrado na entrada."}), 404
 
     tipos = carregar_tipos_documento()
     tipos[arquivo] = tipo
@@ -1189,6 +1251,15 @@ def api_cotacoes():
     if not usuario_logado():
         return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
     return jsonify({"ok": True, "itens": listar_cotacoes()})
+
+
+@app.route("/api/status-cotacao/<path:arquivo>")
+def api_status_cotacao(arquivo):
+    if not usuario_logado():
+        return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
+    if not nome_pdf_valido(arquivo):
+        return jsonify({"ok": False, "erro": "Nome de PDF inválido."}), 400
+    return jsonify({"ok": True, **montar_status_cotacao(arquivo)})
 
 
 @app.route("/baixar-planilha-cotacao/<path:arquivo>")
@@ -2009,18 +2080,14 @@ def api_listar_erros():
 
     pasta_erro = os.path.join(BASE_DIR, "erro_oc")
 
-    if not os.path.exists(pasta_erro):
-        return jsonify({"ok": True, "arquivos": []})
-
-    arquivos = sorted([
-        nome for nome in os.listdir(pasta_erro)
-        if os.path.isfile(os.path.join(pasta_erro, nome))
-        and nome.lower().endswith(".pdf")
-    ])
+    arquivos = {nome: (os.path.join(pasta_erro, nome), "erro")
+                for nome in listar_arquivos_pasta(pasta_erro) if nome_pdf_valido(nome)}
+    for nome in listar_arquivos_pasta(PASTA_ENTRADA):
+        if nome_pdf_valido(nome) and not esta_processando(nome) and erro_processamento_arquivo(nome):
+            arquivos.setdefault(nome, (os.path.join(PASTA_ENTRADA, nome), "entrada"))
 
     resultado = []
-    for nome in arquivos:
-        caminho = os.path.join(pasta_erro, nome)
+    for nome, (caminho, origem) in sorted(arquivos.items()):
         try:
             ts = int(os.path.getmtime(caminho))
             data = time.strftime("%d/%m/%Y %H:%M", time.localtime(ts))
@@ -2030,6 +2097,7 @@ def api_listar_erros():
 
         resultado.append({
             "nome": nome,
+            "origem": origem,
             "data_ref": data,
             "timestamp_ref": ts,
         })
@@ -2074,24 +2142,29 @@ def api_excluir_erro():
     if not usuario_logado():
         return jsonify({"ok": False, "mensagem": "Acesso negado."}), 403
 
-    # recebe o nome via JSON no body — evita problemas com pontos e caracteres especiais na URL
     dados = request.get_json(silent=True) or {}
-    arquivo = dados.get("arquivo", "").strip()
+    arquivo = dados.get("arquivo", "")
+    if not nome_pdf_valido(arquivo):
+        return jsonify({"ok": False, "mensagem": "Nome de PDF inválido."}), 400
 
-    if not arquivo:
-        return jsonify({"ok": False, "mensagem": "Nome do arquivo não informado."}), 400
-
-    pasta_erro = os.path.join(BASE_DIR, "erro_oc")
-    caminho = os.path.join(pasta_erro, arquivo)
-
-    if not os.path.exists(caminho):
-        return jsonify({"ok": False, "mensagem": "Arquivo não encontrado."}), 404
-
-    try:
-        os.remove(caminho)
-        return jsonify({"ok": True, "mensagem": f"{arquivo} excluído permanentemente."})
-    except Exception as e:
-        return jsonify({"ok": False, "mensagem": f"Falha ao excluir: {e}"}), 500
+    with LOCK_PROCESSOS:
+        processo = PROCESSOS_ATIVOS.get(arquivo)
+        if processo and processo.poll() is None:
+            return jsonify({"ok": False, "mensagem": "Arquivo ainda está em processamento."}), 409
+        caminho = os.path.join(BASE_DIR, "erro_oc", arquivo)
+        if not os.path.isfile(caminho):
+            caminho = os.path.join(PASTA_ENTRADA, arquivo)
+            if not os.path.isfile(caminho):
+                return jsonify({"ok": True, "mensagem": "Arquivo já não está na entrada nem na pasta de erros."})
+            if not erro_processamento_arquivo(arquivo):
+                return jsonify({"ok": False, "mensagem": "Arquivo não está em erro; exclusão recusada."}), 409
+        if os.path.islink(caminho):
+            return jsonify({"ok": False, "mensagem": "Exclusão de atalho recusada."}), 400
+        try:
+            os.remove(caminho)
+            return jsonify({"ok": True, "mensagem": f"{arquivo} excluído permanentemente."})
+        except Exception as e:
+            return jsonify({"ok": False, "mensagem": f"Falha ao excluir: {e}"}), 500
 
 
 # =========================
