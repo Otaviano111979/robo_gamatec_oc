@@ -34,8 +34,10 @@ def _txt(valor) -> str:
 def _num(valor) -> float:
     if valor is None or valor == "":
         return 0.0
+    # Células estreitas quebram o número em duas linhas ("1.100,00000" + "0").
+    texto = re.sub(r"\s+", "", str(valor))
     try:
-        return float(str(valor).replace(".", "").replace(",", "."))
+        return float(texto.replace(".", "").replace(",", "."))
     except Exception:
         return 0.0
 
@@ -190,8 +192,11 @@ def _limpar_descricao_uau(texto: str) -> str:
 def _itens_uau_coleta(tabelas) -> tuple:
     """Item | Insumo | Descrição | Unid | Quant + colunas de fornecedor.
 
-    O cabeçalho repete, no início de cada página, o último item da página
-    anterior (célula mesclada) — por isso a deduplicação por nº de item.
+    O mesmo relatório sai em duas variantes:
+      - com coluna Item: o cabeçalho do início de cada página repete o último
+        item da página anterior (célula mesclada) — deduplicação pelo nº;
+      - sem coluna Item (a tabela começa no Insumo): deduplicação por
+        insumo + quantidade, que é o que o cabeçalho repetido duplicaria.
     Devolve (itens, linhas descartadas por não terem quantidade).
     """
     itens = []
@@ -203,13 +208,13 @@ def _itens_uau_coleta(tabelas) -> tuple:
             c = [_txt(x).lower() for x in (row or [])]
             if any("insumo" in x for x in c) and any("quant" in x for x in c):
                 colunas = {
-                    "item": next((k for k, v in enumerate(c) if v.startswith("item")), 0),
-                    "insumo": next((k for k, v in enumerate(c) if "insumo" in v), 1),
-                    "desc": next((k for k, v in enumerate(c) if "descri" in v), 2),
+                    "item": next((k for k, v in enumerate(c) if v.startswith("item")), None),
+                    "insumo": next((k for k, v in enumerate(c) if "insumo" in v), None),
+                    "desc": next((k for k, v in enumerate(c) if "descri" in v), None),
                     "un": next((k for k, v in enumerate(c) if v.startswith("unid")), None),
                     "qtd": next((k for k, v in enumerate(c) if "quant" in v), None),
                 }
-                if colunas["un"] is None or colunas["qtd"] is None:
+                if any(colunas[k] is None for k in ("insumo", "desc", "un", "qtd")):
                     colunas = None
                 continue
             if not colunas:
@@ -218,26 +223,26 @@ def _itens_uau_coleta(tabelas) -> tuple:
             linha = [_txt(x) for x in (row or [])]
             if len(linha) <= max(colunas["qtd"], colunas["un"], colunas["desc"]):
                 continue
-            numero = linha[colunas["item"]]
-            if not re.fullmatch(r"\d{1,4}", numero):
-                continue
             insumo = linha[colunas["insumo"]]
             descricao = _limpar_descricao_uau(linha[colunas["desc"]])
-            unidade = _unidade(linha[colunas["un"]])
-            quantidade = _num(linha[colunas["qtd"]])
             if not descricao or not insumo:
                 continue
+            numero = linha[colunas["item"]] if colunas["item"] is not None else ""
+            if numero and not re.fullmatch(r"\d{1,4}", numero):
+                continue
+            quantidade = _num(linha[colunas["qtd"]])
             if quantidade <= 0:
                 sem_quantidade += 1
                 continue
-            if numero in vistos:
+            chave = numero or f"{insumo}|{quantidade}"
+            if chave in vistos:
                 continue
-            vistos.add(numero)
+            vistos.add(chave)
             itens.append({
                 "codigo_cliente": insumo,
                 "descricao": descricao,
                 "quantidade": quantidade,
-                "unidade": unidade,
+                "unidade": _unidade(linha[colunas["un"]]),
                 "data_entrega": "",
             })
     return itens, sem_quantidade
@@ -270,6 +275,12 @@ def _metadados(tabelas, texto_pagina1: str) -> dict:
                     numero = s
                 if not cliente and _RE_CLIENTE.search(s) and len(s) > 8:
                     cliente = _limpar_cliente(s)
+    if not cliente:
+        # Na variante sem coluna Item o bloco do cliente fica fora da tabela.
+        for linha in (texto_pagina1 or "").splitlines():
+            if _RE_CLIENTE.search(linha) and len(linha.strip()) > 8:
+                cliente = _limpar_cliente(linha)
+                break
     m = re.search(r"\d{2}/\d{2}/\d{4}", texto_pagina1 or "")
     return {"numero_oc": numero, "data": m.group(0) if m else "", "cliente": cliente}
 
