@@ -67,11 +67,14 @@ PASTA_LOGS = os.path.join(BASE_DIR_WEB, "logs")
 PASTA_TMP_SESSION = os.path.join(BASE_DIR_WEB, "tmp_session")
 PASTA_PROCESSADOS = os.path.join(BASE_DIR, "processados_oc")
 PASTA_SAIDA_OCS = os.path.join(BASE_DIR, "saida", "ocs_individuais")
+PASTA_PROCESSADOS_COTACAO = os.path.join(BASE_DIR, "processados_cotacao")
+PASTA_SAIDA_COTACAO = os.path.join(BASE_DIR, "saida", "cotacoes_individuais")
 PASTA_DADOS = os.path.join(BASE_DIR, "dados")
 
 USUARIOS_FILE = os.path.join(PASTA_DADOS, "usuarios.json")
 CLIENTES_FILE = os.path.join(PASTA_DADOS, "clientes.json")
 OCS_REMOVIDAS_FILE = os.path.join(PASTA_DADOS, "ocs_removidas.json")
+TIPOS_DOCUMENTO_FILE = os.path.join(PASTA_DADOS, "tipos_documentos.json")
 OCS_REMOVIDAS_FILE_LEGADO = os.path.join(PASTA_DADOS, "ocs_removidas_dashboard.json")
 
 os.makedirs(PASTA_LOGS, exist_ok=True)
@@ -974,7 +977,14 @@ def ocs():
     if not usuario_logado():
         return redirect("/")
 
-    arquivos = [montar_status_oc(nome) for nome in listar_todos_arquivos()]
+    cotacoes = listar_cotacoes()
+    nomes_cotacao = {c["nome"] for c in cotacoes}
+
+    arquivos = [
+        montar_status_oc(nome)
+        for nome in listar_todos_arquivos()
+        if nome not in nomes_cotacao
+    ]
     arquivos.sort(key=lambda x: x.get("timestamp_ref", 0), reverse=True)
 
     # contadores para os cartoes de resumo no topo
@@ -992,6 +1002,7 @@ def ocs():
     return render_template(
         "ocs.html",
         arquivos=arquivos,
+        cotacoes=cotacoes,
         total_entrada=total_entrada,
         total_processando=total_processando,
         total_concluidos=total_concluidos,
@@ -1003,6 +1014,193 @@ def ocs():
 def dashboard_compatibilidade():
     # rota antiga — manter bookmarks/atalhos vivos
     return redirect("/ocs", code=302)
+
+
+# =========================
+# COTAÇÕES DE PREÇOS
+# =========================
+_CACHE_TIPO_DOCUMENTO = {}
+
+
+def carregar_tipos_documento():
+    dados = carregar_json(TIPOS_DOCUMENTO_FILE, {})
+    return dados if isinstance(dados, dict) else {}
+
+
+def salvar_tipos_documento(tipos):
+    salvar_json(TIPOS_DOCUMENTO_FILE, tipos)
+
+
+def tipo_documento_arquivo(nome_arquivo):
+    """Devolve (tipo, motivo): COTACAO, OC ou UI.
+
+    O conteúdo decide; se o documento não se identifica, o nome do arquivo decide;
+    se continuar ambíguo, fica UI até o utilizador escolher na tela — a escolha
+    é gravada em dados/tipos_documentos.json e passa a valer para esse arquivo.
+    """
+    from extracao_oc.classificador_documento import (
+        COTACAO,
+        UI,
+        classificar_documento,
+        tipo_definido_manualmente,
+    )
+
+    forcado = tipo_definido_manualmente(nome_arquivo)
+    if forcado:
+        return forcado, "definido manualmente"
+
+    caminho = os.path.join(PASTA_ENTRADA, nome_arquivo)
+    if not os.path.exists(caminho):
+        caminho = os.path.join(PASTA_PROCESSADOS_COTACAO, nome_arquivo)
+    if not os.path.exists(caminho):
+        return "OC", ""
+
+    try:
+        chave = os.path.getmtime(caminho)
+    except OSError:
+        chave = None
+
+    cache = _CACHE_TIPO_DOCUMENTO.get(caminho)
+    if cache and cache[0] == chave:
+        tipo, motivo = cache[1], cache[2]
+    else:
+        try:
+            resultado = classificar_documento(caminho, nome_arquivo)
+            tipo, motivo = resultado.tipo, resultado.motivo
+        except Exception as e:
+            return "OC", f"classificação indisponível ({e})"
+        _CACHE_TIPO_DOCUMENTO[caminho] = (chave, tipo, motivo)
+
+    if tipo == UI:
+        escolha = carregar_tipos_documento().get(nome_arquivo)
+        if escolha in ("OC", COTACAO):
+            return escolha, f"definido na tela como {escolha}"
+    return tipo, motivo
+
+
+def pasta_saida_cotacao(nome_arquivo):
+    try:
+        from processar_oc_individual_pasta_ajustado import limpar_nome_arquivo
+        base = limpar_nome_arquivo(os.path.splitext(nome_arquivo)[0])
+    except Exception:
+        base = nome_base_arquivo(nome_arquivo)
+    return os.path.join(PASTA_SAIDA_COTACAO, base)
+
+
+def localizar_planilha_cotacao(nome_arquivo):
+    pasta = pasta_saida_cotacao(nome_arquivo)
+    if not os.path.isdir(pasta):
+        return None
+    for nome in sorted(os.listdir(pasta)):
+        if nome.lower().endswith(".xlsx"):
+            return os.path.join(pasta, nome)
+    return None
+
+
+def listar_cotacoes():
+    itens = []
+    for pasta, origem in ((PASTA_ENTRADA, "entrada"), (PASTA_PROCESSADOS_COTACAO, "processados")):
+        if not os.path.isdir(pasta):
+            continue
+        for nome in listar_arquivos_pasta(pasta):
+            if not nome.lower().endswith(".pdf"):
+                continue
+            tipo, motivo = tipo_documento_arquivo(nome)
+            if tipo not in ("COTACAO", "UI"):
+                continue
+            processando = esta_processando(nome)
+            itens.append({
+                "nome": nome,
+                "tipo": tipo,
+                "motivo": motivo,
+                "origem": origem,
+                "processando": processando,
+                "tem_planilha": bool(localizar_planilha_cotacao(nome)),
+                "pode_processar": origem == "entrada" and not processando,
+            })
+    return itens
+
+
+def iniciar_processamento_cotacao(nome_arquivo):
+    if esta_processando(nome_arquivo):
+        return False, "Arquivo já está em processamento."
+
+    caminho = os.path.join(PASTA_ENTRADA, nome_arquivo)
+    if not os.path.exists(caminho):
+        return False, "Arquivo não encontrado na pasta de entrada."
+
+    os.makedirs(PASTA_PROCESSADOS_COTACAO, exist_ok=True)
+    log_file = caminho_log(nome_arquivo)
+    log_handle = open(log_file, "w", encoding="utf-8", errors="ignore")
+
+    processo = subprocess.Popen(
+        ["python", os.path.join(BASE_DIR, "processar_cotacao.py"), "--arquivo", caminho],
+        stdout=log_handle,
+        stderr=log_handle,
+        text=True,
+    )
+
+    with LOCK_PROCESSOS:
+        PROCESSOS_ATIVOS[nome_arquivo] = processo
+
+    threading.Thread(
+        target=registrar_fim_processo,
+        args=(nome_arquivo, processo, log_handle),
+        daemon=True,
+    ).start()
+
+    escrever_log(nome_arquivo, "[WEB] Processamento de cotação iniciado.")
+    return True, "Processamento da cotação iniciado com sucesso."
+
+
+@app.route("/api/processar-cotacao/<path:arquivo>", methods=["POST"])
+def api_processar_cotacao(arquivo):
+    if not usuario_logado():
+        return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
+
+    ok, mensagem = iniciar_processamento_cotacao(arquivo)
+    return jsonify({"ok": ok, "mensagem": mensagem}), (200 if ok else 409)
+
+
+@app.route("/api/definir-tipo/<path:arquivo>", methods=["POST"])
+def api_definir_tipo(arquivo):
+    if not usuario_logado():
+        return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
+
+    tipo = (request.form.get("tipo") or "").strip().upper()
+    if tipo not in ("OC", "COTACAO"):
+        return jsonify({"ok": False, "erro": "Tipo inválido."}), 400
+
+    tipos = carregar_tipos_documento()
+    tipos[arquivo] = tipo
+    salvar_tipos_documento(tipos)
+    _CACHE_TIPO_DOCUMENTO.clear()
+
+    if tipo == "COTACAO":
+        ok, mensagem = iniciar_processamento_cotacao(arquivo)
+        return jsonify({"ok": ok, "mensagem": mensagem}), (200 if ok else 409)
+
+    return jsonify({"ok": True, "mensagem": "Marcado como OC. Use Processar na lista de OCs."})
+
+
+@app.route("/api/cotacoes")
+def api_cotacoes():
+    if not usuario_logado():
+        return jsonify({"ok": False, "erro": "Sessão expirada."}), 401
+    return jsonify({"ok": True, "itens": listar_cotacoes()})
+
+
+@app.route("/baixar-planilha-cotacao/<path:arquivo>")
+def baixar_planilha_cotacao(arquivo):
+    if not usuario_logado():
+        return redirect("/")
+
+    caminho = localizar_planilha_cotacao(arquivo)
+    if not caminho:
+        flash("error:Planilha da cotação ainda não foi gerada.")
+        return redirect("/ocs")
+
+    return send_file(caminho, as_attachment=True)
 
 
 
@@ -1239,7 +1437,14 @@ def upload():
 
         caminho = os.path.join(PASTA_ENTRADA, nome_seguro)
         file.save(caminho)
-        flash(f"ok:{nome_seguro} enviado com sucesso para a fila.")
+
+        tipo, _ = tipo_documento_arquivo(nome_seguro)
+        if tipo == "COTACAO":
+            flash(f"ok:{nome_seguro} é uma cotação de preços — use Processar cotação na lista de cotações.")
+        elif tipo == "UI":
+            flash(f"ok:{nome_seguro} precisa de confirmação: escolha Cotação ou OC na lista de cotações.")
+        else:
+            flash(f"ok:{nome_seguro} enviado com sucesso para a fila.")
     else:
         flash("error:Nenhum arquivo selecionado.")
 

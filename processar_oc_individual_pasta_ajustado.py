@@ -119,6 +119,24 @@ def oc_ja_processada(caminho_oc: str) -> bool:
 
 
 
+def _e_cotacao(caminho: str) -> bool:
+    try:
+        from extracao_oc.classificador_documento import (
+            COTACAO,
+            OC,
+            classificar_documento,
+            tipo_definido_manualmente,
+        )
+        forcado = tipo_definido_manualmente(os.path.basename(caminho))
+        if forcado == OC:
+            return False
+        if forcado == COTACAO:
+            return True
+        return classificar_documento(caminho, os.path.basename(caminho)).tipo == COTACAO
+    except Exception:
+        return False
+
+
 def escolher_proxima_oc() -> Optional[str]:
     arquivos = []
     for nome in os.listdir(PASTA_OC_ENTRADA):
@@ -129,6 +147,9 @@ def escolher_proxima_oc() -> Optional[str]:
             continue
         if oc_ja_processada(caminho):
             # já gerou saída individual dessa OC; evita reprocessamento se o PDF ficou travado na entrada
+            continue
+        if _e_cotacao(caminho):
+            # cotação tem fluxo próprio (planilha sem preço), não entra na fila de OC
             continue
         arquivos.append(caminho)
 
@@ -146,12 +167,18 @@ def extrair_individual(caminho_oc: str, caminho_debug: str) -> pd.DataFrame:
     if not os.path.exists(caminho_oc):
         raise FileNotFoundError(f"Arquivo da OC não encontrado: {caminho_oc}")
 
-    # detecta antecipadamente se e uma cotacao de precos (nao e OC)
+    # recusa cotacao de precos: e outro fluxo (planilha sem preco), nao e OC
     try:
-        import pdfplumber
-        with pdfplumber.open(caminho_oc) as pdf:
-            texto = (pdf.pages[0].extract_text() or "").lower()
-            if "cotação de preços" in texto or "cotacao de precos" in texto:
+        from extracao_oc.classificador_documento import (
+            COTACAO,
+            OC,
+            classificar_documento,
+            tipo_definido_manualmente,
+        )
+        forcado = tipo_definido_manualmente(os.path.basename(caminho_oc))
+        if forcado != OC:
+            tipo = forcado or classificar_documento(caminho_oc, os.path.basename(caminho_oc)).tipo
+            if tipo == COTACAO:
                 raise ValueError(
                     "DOCUMENTO REJEITADO: Este PDF é uma Cotação de Preços, "
                     "não uma Ordem de Compra. Envie apenas OCs para processamento."
@@ -273,7 +300,8 @@ def _codigos_composicao(texto) -> str:
     return " + ".join(codigos)
 
 
-def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho_xlsx: str) -> pd.DataFrame:
+def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho_xlsx: str,
+                                     modo_cotacao: bool = False) -> pd.DataFrame:
     """
     Gera planilha enxuta com TODOS os itens, distinguindo sem match, em revisao e match confirmado.
     """
@@ -335,7 +363,7 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
                 str(valor_unit).strip() in ('', '0', '0.0', 'nan')
             )
             via_mrv = 'MRV' in tipo_match or 'CODIGO' in tipo_match
-            preco_nao_confirmado = via_mrv and sem_preco
+            preco_nao_confirmado = via_mrv and sem_preco and not modo_cotacao
             unidade_venda = _texto(item.get("unidade_venda_krona")).upper()
             if unidade_venda in ("", "PC", "UN", "NAN", "NONE"):
                 unidade_venda = ""
@@ -390,7 +418,7 @@ def gerar_planilha_enxuta_individual(df: pd.DataFrame, caminho_csv: str, caminho
                 fill = fill_laranja
             if row.STATUS != "SEM_MATCH" and row.PRECO_NAO_CONFIRMADO:
                 sufixos.append("⚠️ Verificar preço")
-            if row.UNIDADE_VENDA:
+            if row.UNIDADE_VENDA and not modo_cotacao:
                 sufixos.append(f"⚠️ Vendido em {row.UNIDADE_VENDA}")
             if fill is not None:
                 for cell in ws[i]:
