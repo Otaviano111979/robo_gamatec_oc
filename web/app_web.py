@@ -1135,7 +1135,7 @@ def iniciar_processamento_cotacao(nome_arquivo):
     log_handle = open(log_file, "w", encoding="utf-8", errors="ignore")
 
     processo = subprocess.Popen(
-        ["python", os.path.join(BASE_DIR, "processar_cotacao.py"), "--arquivo", caminho],
+        [sys.executable, os.path.join(BASE_DIR, "processar_cotacao.py"), "--arquivo", caminho],
         stdout=log_handle,
         stderr=log_handle,
         text=True,
