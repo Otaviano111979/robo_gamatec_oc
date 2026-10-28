@@ -1,6 +1,6 @@
 @echo off
 title Status rapido - robo_gamatec_oc
-cd /d C:\robo_gamatec_oc
+cd /d "%~dp0"
 
 echo.
 echo ==========================================

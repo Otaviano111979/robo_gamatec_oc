@@ -5,8 +5,10 @@ from difflib import SequenceMatcher
 
 import pandas as pd
 
+from config import BASE_DIR
 
-CAMINHO_DB = r"C:\robo_gamatec_oc\dados\historico_aprendizado.db"
+
+CAMINHO_DB = os.path.join(BASE_DIR, "dados", "historico_aprendizado.db")
 
 
 def garantir_pasta():

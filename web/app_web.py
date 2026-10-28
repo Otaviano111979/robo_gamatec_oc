@@ -49,11 +49,12 @@ try:
 except ImportError:
     print("[COMPARADOR] comparador_bp.py não encontrado — módulo desativado")
 
-# diretorio raiz do projeto — lido do .env, com fallback para a pasta pai deste arquivo
-BASE_DIR = os.environ.get(
-    "GAMATEC_BASE_DIR",
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+# diretorio raiz do projeto — resolvido pelo config (GAMATEC_BASE_DIR se
+# existir; senao a pasta do projeto). Fallback local se o config falhar.
+try:
+    from config import BASE_DIR
+except Exception:
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 # sessao expira apos 8 horas de inatividade
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
@@ -475,7 +476,7 @@ def iniciar_processamento(nome_arquivo):
     log_handle = open(log_file, "w", encoding="utf-8", errors="ignore")
 
     processo = subprocess.Popen(
-        ["python", os.path.join(BASE_DIR, "processar_oc_individual_pasta_ajustado.py"), "--arquivo", caminho],
+        [sys.executable, os.path.join(BASE_DIR, "processar_oc_individual_pasta_ajustado.py"), "--arquivo", caminho],
         stdout=log_handle,
         stderr=log_handle,
         text=True
@@ -1698,7 +1699,7 @@ def iniciar_agente_email():
         try:
             log_handle = open(log_path, "a", encoding="utf-8", errors="ignore")
             _agente_email_proc = _subprocess_email.Popen(
-                ["python", script],
+                [sys.executable, script],
                 stdout=log_handle,
                 stderr=log_handle,
                 text=True,
@@ -1939,7 +1940,7 @@ def api_iniciar_automacao(arquivo):
     try:
         log_handle = open(log_automacao, "w", encoding="utf-8", errors="ignore")
         processo = subprocess.Popen(
-            ["python", script, "--planilha", planilha, "--oc", arquivo],
+            [sys.executable, script, "--planilha", planilha, "--oc", arquivo],
             stdout=log_handle,
             stderr=log_handle,
             text=True
@@ -2784,4 +2785,5 @@ if __name__ == "__main__":
     else:
         print("[AGENTE EMAIL] Token não encontrado — autentique primeiro com: python rodar_agente_email.py")
 
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    porta = int(os.environ.get("GAMATEC_PORT", "5000"))
+    app.run(host="0.0.0.0", port=porta, debug=False, threaded=True)

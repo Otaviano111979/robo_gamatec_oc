@@ -48,15 +48,17 @@ cd robo_gamatec_oc
 pip install -r requirements.txt
 ```
 
-**3. Criar `.env`:**
+**3. Criar `.env` (opcional):**
 ```
 GAMATEC_SECRET_KEY=gere_com_python_-c_"import secrets; print(secrets.token_hex(32))"
-GAMATEC_BASE_DIR=C:\robo_gamatec_oc
 ```
+O `rodar_gamatec.bat` cria este arquivo sozinho no primeiro arranque. Não defina
+`GAMATEC_BASE_DIR` — o sistema usa a pasta onde está instalado.
 
 **4. Rodar:**
+Duplo clique em `rodar_gamatec.bat` (funciona em qualquer pasta), ou:
 ```bash
-python web/app_web.py
+python iniciar_sistema.py
 ```
 Acesse **http://localhost:5000** — login padrão: `admin` / `admin123`
 

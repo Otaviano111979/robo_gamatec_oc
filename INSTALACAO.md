@@ -75,12 +75,13 @@ Aguarde terminar — pode demorar alguns minutos.
 
 ## ⚙️ CONFIGURAR O ARQUIVO .ENV
 
-O arquivo `.env` guarda informações sensíveis do sistema (chave de segurança e caminho da pasta).
-**Ele nunca vai para o GitHub** — precisa ser criado manualmente em cada máquina.
+O arquivo `.env` guarda informações sensíveis do sistema (chave de segurança).
+**Ele nunca vai para o GitHub** e é criado automaticamente no primeiro arranque
+pelo `rodar_gamatec.bat`. Só precisa de mexer nele se quiser definir a chave à mão.
 
 ### 1. Gerar a chave de segurança
 
-No CMD, dentro da pasta `C:\robo_gamatec_oc`, execute:
+No CMD, dentro da pasta do projeto, execute:
 ```
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
@@ -92,33 +93,25 @@ a3f8c2e1b7d94f05e6a1c3b2d8f74e90a1b2c3d4e5f67890abcdef1234567890
 
 **Copie esse valor** — você vai usar no próximo passo.
 
-### 2. Criar o arquivo .env
+### 2. Criar o arquivo .env (opcional)
 
-Ainda no CMD, execute:
+O sistema funciona sem `.env`: o `rodar_gamatec.bat` cria um automaticamente
+no primeiro arranque, já com a chave de sessão gerada. Se preferir fazer à mão:
 ```
 copy .env.example .env
 ```
 
-### 3. Editar o arquivo .env
+### 3. Editar o arquivo .env (só se criou à mão)
 
 Abra o arquivo com o Bloco de Notas:
 ```
 notepad .env
 ```
 
-O arquivo vai abrir assim:
-```
-GAMATEC_SECRET_KEY=coloque_aqui_uma_chave_longa_e_aleatoria
-GAMATEC_BASE_DIR=C:\robo_gamatec_oc
-```
-
 **Substitua** `coloque_aqui_uma_chave_longa_e_aleatoria` pela chave que você gerou no passo anterior.
 
-O arquivo final deve ficar assim (com a sua chave):
-```
-GAMATEC_SECRET_KEY=a3f8c2e1b7d94f05e6a1c3b2d8f74e90a1b2c3d4e5f67890abcdef1234567890
-GAMATEC_BASE_DIR=C:\robo_gamatec_oc
-```
+A linha `GAMATEC_BASE_DIR` **não precisa existir** — o sistema usa a pasta onde
+está instalado. Deixe-a comentada (com `#` à frente).
 
 **Salve o arquivo** (Ctrl+S) e feche o Bloco de Notas.
 
@@ -126,9 +119,13 @@ GAMATEC_BASE_DIR=C:\robo_gamatec_oc
 
 ## ▶️ RODAR O SISTEMA
 
-No CMD, dentro de `C:\robo_gamatec_oc`:
+**Duplo clique em `rodar_gamatec.bat`** — funciona em qualquer pasta onde o
+sistema esteja instalado. O atalho faz tudo: atualiza, abre o navegador e sobe
+o servidor.
+
+Se preferir pelo CMD, dentro da pasta do sistema:
 ```
-python web/app_web.py
+python iniciar_sistema.py
 ```
 
 Deve aparecer:

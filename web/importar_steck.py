@@ -1,4 +1,4 @@
-"""
+r"""
 importar_steck.py — Importa catálogo Steck/Schneider para o SQLite do Vortex
 Usa DUAS fontes de dados e cruza pelo SKU:
 
@@ -19,9 +19,11 @@ import pandas as pd
 from pathlib import Path
 import unicodedata
 
-XLSX1 = Path(r"C:\robo_gamatec_oc\instance\catalogo_steck_raw.xlsx")
-XLSX2 = Path(r"C:\robo_gamatec_oc\instance\catalogo_steck_lote.xlsx")
-DB    = Path(r"C:\robo_gamatec_oc\instance\catalogo_steck.db")
+_INSTANCE = Path(__file__).resolve().parent.parent / "instance"
+
+XLSX1 = _INSTANCE / "catalogo_steck_raw.xlsx"
+XLSX2 = _INSTANCE / "catalogo_steck_lote.xlsx"
+DB    = _INSTANCE / "catalogo_steck.db"
 
 
 def norm(v):

@@ -151,13 +151,14 @@ class AgenteGamatec:
         exigir_preco_final: bool = True,
         exigir_ult_preco: bool = False,
         debug: bool = True,
-        pasta_debug: str = r"C:\robo_gamatec_oc\saida"
+        pasta_debug: str = ""
     ):
         self.tolerancia_preco = tolerancia_preco
         self.exigir_preco_final = exigir_preco_final
         self.exigir_ult_preco = exigir_ult_preco
         self.debug = debug
-        self.pasta_debug = pasta_debug
+        from config import BASE_DIR as _base
+        self.pasta_debug = pasta_debug or os.path.join(_base, "saida")
         os.makedirs(self.pasta_debug, exist_ok=True)
 
     # =========================

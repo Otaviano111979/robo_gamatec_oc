@@ -44,6 +44,26 @@ def _carregar_config_empresa(empresa_id):
 # RESOLVER BASE_DIR
 # ============================================================
 
+def _resolver_base_dir():
+    """GAMATEC_BASE_DIR se existir; senao a pasta deste arquivo.
+
+    Uma maquina instalada noutra pasta pode ter um .env copiado de outra
+    maquina apontando para um caminho inexistente — nesse caso avisa e usa
+    a pasta do proprio projeto, em vez de falhar ou escrever no lugar errado.
+    """
+    pasta_projeto = os.path.abspath(os.path.dirname(__file__))
+    configurado = os.environ.get("GAMATEC_BASE_DIR", "").strip().strip('"')
+    if not configurado:
+        return pasta_projeto
+    if not os.path.isdir(configurado):
+        print(
+            f"[CONFIG] GAMATEC_BASE_DIR='{configurado}' nao existe nesta maquina "
+            f"— usando a pasta do projeto: {pasta_projeto}"
+        )
+        return pasta_projeto
+    return os.path.abspath(configurado)
+
+
 if EMPRESA_ID:
     _cfg = _carregar_config_empresa(EMPRESA_ID)
     BASE_DIR        = os.path.join(VORTEX_ROOT, "empresas", EMPRESA_ID)
@@ -53,10 +73,7 @@ if EMPRESA_ID:
     _VERSAO_SISTEMA = _cfg.get("versao", "1.0")
 else:
     # MODO LEGADO — compativel com estrutura atual
-    BASE_DIR = os.environ.get(
-        "GAMATEC_BASE_DIR",
-        os.path.abspath(os.path.dirname(__file__))
-    )
+    BASE_DIR = _resolver_base_dir()
     _EMPRESA_NOME   = "UNE Representacoes"
     _MODULOS_ATIVOS = ["oc", "email"]
     _MODULOS_TRIAL  = []

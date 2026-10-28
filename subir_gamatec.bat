@@ -2,7 +2,7 @@
 title Subir atualizacoes - robo_gamatec_oc
 setlocal
 
-cd /d C:\robo_gamatec_oc
+cd /d "%~dp0"
 
 echo.
 echo ==========================================

@@ -24,6 +24,8 @@ import time
 from dataclasses import dataclass, asdict
 from typing import Optional, List, Tuple, Dict, Any
 
+from config import BASE_DIR
+
 import pyautogui
 import pytesseract
 
@@ -40,7 +42,7 @@ TESSERACT_CMD_PADRAO = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 if os.path.exists(TESSERACT_CMD_PADRAO):
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD_PADRAO
 
-DEBUG_DIR = r"C:\robo_gamatec_oc\saida\debug_percepcao"
+DEBUG_DIR = os.path.join(BASE_DIR, "saida", "debug_percepcao")
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
 pyautogui.FAILSAFE = True

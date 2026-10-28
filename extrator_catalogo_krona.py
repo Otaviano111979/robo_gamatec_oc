@@ -11,9 +11,11 @@ import pandas as pd
 
 from normalizador import enriquecer_descricao
 
+from config import PASTA_DADOS, PASTA_SAIDA
 
-CAMINHO_PDF = r"C:\robo_gamatec_oc\dados\Krona cataologo KRONA - GERAL.pdf"
-CAMINHO_SAIDA_CSV = r"C:\robo_gamatec_oc\saida\base_catalogo_krona.csv"
+
+CAMINHO_PDF = os.path.join(PASTA_DADOS, "Krona cataologo KRONA - GERAL.pdf")
+CAMINHO_SAIDA_CSV = os.path.join(PASTA_SAIDA, "base_catalogo_krona.csv")
 
 
 # Silencia parte do barulho do parser PDF

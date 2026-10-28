@@ -2,8 +2,9 @@
 #   CRIAR ATALHO - SISTEMA GAMATEC
 # ==========================================
 
-$BatPath  = "C:\robo_gamatec_oc\rodar_gamatec.bat"
-$IcoPath  = "C:\robo_gamatec_oc\gamatec.ico"
+$Raiz     = $PSScriptRoot
+$BatPath  = Join-Path $Raiz "rodar_gamatec.bat"
+$IcoPath  = Join-Path $Raiz "gamatec.ico"
 
 # Detecta o caminho real da area de trabalho (funciona com OneDrive/PT-BR)
 $Desktop  = [Environment]::GetFolderPath("Desktop")
@@ -16,7 +17,7 @@ $WshShell = New-Object -ComObject WScript.Shell
 $Lnk = $WshShell.CreateShortcut($Shortcut)
 
 $Lnk.TargetPath       = $BatPath
-$Lnk.WorkingDirectory = "C:\robo_gamatec_oc"
+$Lnk.WorkingDirectory = $Raiz
 $Lnk.WindowStyle      = 7
 $Lnk.Description      = "Iniciar Sistema GAMATEC"
 $Lnk.IconLocation     = "$IcoPath, 0"
@@ -35,11 +36,11 @@ Write-Host ""
 
 if (-Not (Test-Path $BatPath)) {
     Write-Warning "ATENCAO: o arquivo .bat nao foi encontrado em $BatPath"
-    Write-Host "  -> Coloque o rodar_gamatec.bat em C:\robo_gamatec_oc\" -ForegroundColor Yellow
+    Write-Host "  -> execute este script a partir da pasta do sistema (onde esta o rodar_gamatec.bat)" -ForegroundColor Yellow
 }
 if (-Not (Test-Path $IcoPath)) {
     Write-Warning "ATENCAO: o arquivo .ico nao foi encontrado em $IcoPath"
-    Write-Host "  -> Coloque o gamatec.ico em C:\robo_gamatec_oc\" -ForegroundColor Yellow
+    Write-Host "  -> coloque o gamatec.ico na mesma pasta do rodar_gamatec.bat" -ForegroundColor Yellow
 }
 
 pause
