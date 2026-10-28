@@ -68,6 +68,10 @@
 
 .cmp-obs { margin-left: 4px; background: var(--surface-3); color: var(--text-2); }
 
+.is-precificado .cmp-filtros { flex-wrap: wrap; }
+.is-precificado .panel-foot { flex-wrap: wrap; }
+.is-precificado .cmp-meta { overflow-wrap: anywhere; }
+
 @media (max-width: 1280px) {
   .cmp-table .td-desc { max-width: 220px; }
   .cmp-table th, .cmp-table td { padding-left: 10px; padding-right: 10px; }

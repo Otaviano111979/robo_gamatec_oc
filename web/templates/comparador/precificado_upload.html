@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento precificado | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+</head>
+<body class="page-comparador">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
+    <main class="main">
+      <div class="cmp-narrow">
+        <header class="page-head">
+          <div>
+            <h1>Comparar documento precificado</h1>
+            <p>Compare os preços do documento com o orçamento Gamatec, sem processar uma OC.</p>
+          </div>
+          <div class="page-actions"><a href="/ocs" class="btn">Voltar às OCs</a></div>
+        </header>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-wrap" role="alert">
+              {% for message in messages %}<div class="flash-msg flash-erro">{{ message }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <section class="panel">
+          <div class="panel-head"><h2>Enviar os dois PDFs</h2></div>
+          <form class="panel-body form-stack" id="precificadoForm" method="post" enctype="multipart/form-data"
+                action="{{ url_for('comparador.precificado_processar') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            {% for campo, titulo, ajuda in [
+              ('documento', '1. Documento já precificado', 'Layout COD KRONA, descrição, VALOR unit, qnd e TOTAL, como AREIAL KRONA.'),
+              ('orcamento', '2. Orçamento Gamatec', 'PDF do orçamento que será comparado com os preços do documento.')
+            ] %}
+              <div class="cmp-drop" id="drop-{{ campo }}">
+                <div class="cmp-drop-label">{{ titulo }}</div>
+                <div class="cmp-drop-hint">{{ ajuda }}</div>
+                <input type="file" id="{{ campo }}Input" name="{{ campo }}" accept=".pdf,application/pdf" required>
+                <button class="btn btn-sm" type="button" aria-controls="{{ campo }}Input"
+                        onclick="document.getElementById('{{ campo }}Input').click()">Selecionar PDF</button>
+                <div class="cmp-drop-file" id="nome-{{ campo }}"></div>
+              </div>
+            {% endfor %}
+            <p class="muted small">Preços, quantidades e totais originais são preservados; diferenças nos totais são mostradas, não corrigidas automaticamente.</p>
+            <div class="cmp-form-foot">
+              <span class="muted small" id="precificadoStatus" role="status" aria-live="polite">Selecione os dois PDFs para continuar.</span>
+              <button class="btn btn-primary" id="compararBtn" type="submit" disabled>Comparar documentos</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    const campos = ['documento', 'orcamento'];
+    const botao = document.getElementById('compararBtn');
+    const status = document.getElementById('precificadoStatus');
+    campos.forEach(campo => {
+      document.getElementById(campo + 'Input').addEventListener('change', event => {
+        const arquivo = event.target.files[0];
+        const nome = document.getElementById('nome-' + campo);
+        nome.textContent = arquivo ? arquivo.name : '';
+        nome.style.display = arquivo ? 'block' : 'none';
+        document.getElementById('drop-' + campo).classList.toggle('is-selected', !!arquivo);
+        botao.disabled = !campos.every(c => document.getElementById(c + 'Input').files.length);
+        status.textContent = botao.disabled ? 'Selecione os dois PDFs para continuar.' : 'Pronto para comparar.';
+      });
+    });
+    document.getElementById('precificadoForm').addEventListener('submit', () => {
+      botao.disabled = true;
+      botao.textContent = 'Comparando…';
+      status.textContent = 'A ler os PDFs e comparar os preços…';
+    });
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

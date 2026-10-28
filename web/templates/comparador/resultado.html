@@ -4,11 +4,11 @@
   {% include '_theme_boot.html' %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comparação de descontos | Vortex Sync</title>
+  <title>{{ 'Comparação do documento precificado' if precificado else 'Comparação de descontos' }} | Vortex Sync</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
 </head>
-<body class="page-comparador">
+<body class="page-comparador{{ ' is-precificado' if precificado else '' }}">
   <div class="app">
     {% set nav_ativo = 'ocs' %}
     {% include '_sidebar.html' %}
@@ -16,19 +16,23 @@
     <main class="main">
       <header class="page-head">
         <div>
-          <h1>Comparação de descontos</h1>
+          <h1>{{ 'Comparação do documento precificado' if precificado else 'Comparação de descontos' }}</h1>
           <p class="cmp-meta">
-            <span>OC <span class="mono cmp-oc-id">{{ oc_id }}</span></span>
-            <span>Orçamento <strong>{{ dados.numero_orcamento }}</strong></span>
+            {% if precificado %}
+              <span>Documento <strong>{{ dados.nome_documento }}</strong></span>
+            {% else %}
+              <span>OC <span class="mono cmp-oc-id">{{ oc_id }}</span></span>
+            {% endif %}
+            <span>Orçamento <strong>{{ (dados.numero_orcamento or 'Sem número') if precificado else dados.numero_orcamento }}</strong></span>
             <span>Emissão <strong>{{ dados.emissao }}</strong></span>
           </p>
         </div>
         <div class="page-actions">
           <a href="/ocs" class="btn btn-ghost">Voltar às OCs</a>
-          <a href="{{ url_for('comparador.upload_page', oc_id=oc_id) }}" class="btn">Novo orçamento</a>
-          <a href="{{ url_for('comparador.download', oc_id=oc_id) }}" class="btn btn-primary">
+          <a href="{{ url_for('comparador.precificado_upload') if precificado else url_for('comparador.upload_page', oc_id=oc_id) }}" class="btn">{{ 'Nova comparação' if precificado else 'Novo orçamento' }}</a>
+          <a href="{{ url_for('comparador.precificado_download', id=file_id) if precificado else url_for('comparador.download', oc_id=oc_id) }}" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
-            Baixar planilha GAMATEC
+            {{ 'Descarregar comparação' if precificado else 'Baixar planilha GAMATEC' }}
           </a>
         </div>
       </header>
@@ -43,13 +47,23 @@
         {% endif %}
       {% endwith %}
 
+      {% if precificado %}
+        <div class="flash-wrap" role="status">
+          <div class="alert {{ 'alert-warn' if dados.diferencas_totais else '' }}">
+            Total original preservado: R$ {{ "%.2f"|format(dados.total_documento|float) }}.
+            {{ dados.diferencas_totais }} itens com diferença entre o total impresso e preço × quantidade; nenhum valor foi corrigido automaticamente.
+          </div>
+          {% if stats.sem_preco %}<div class="alert alert-warn">{{ stats.sem_preco }} itens sem preço comparável; confira-os antes de usar a planilha.</div>{% endif %}
+        </div>
+      {% endif %}
+
       <section class="kpis">
         <div class="kpi is-ok">
           <div class="kpi-label">Com desconto</div>
           <div class="kpi-value">{{ stats.ok }}</div>
         </div>
         <div class="kpi">
-          <div class="kpi-label">Já abaixo da OC</div>
+          <div class="kpi-label">{{ 'Já abaixo do documento' if precificado else 'Já abaixo da OC' }}</div>
           <div class="kpi-value">{{ stats.abaixo }}</div>
         </div>
         <div class="kpi {{ 'is-warn' if stats.sem_orc }}">
@@ -57,7 +71,7 @@
           <div class="kpi-value">{{ stats.sem_orc }}</div>
         </div>
         <div class="kpi {{ 'is-err' if stats.sem_oc }}">
-          <div class="kpi-label">Fora da OC</div>
+          <div class="kpi-label">{{ 'Fora do documento' if precificado else 'Fora da OC' }}</div>
           <div class="kpi-value">{{ stats.sem_oc }}</div>
         </div>
         <div class="kpi is-run">
@@ -73,7 +87,7 @@
             <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('OK', this)">Com desconto <span class="cmp-count">{{ stats.ok }}</span></button>
             <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('ABAIXO', this)">Já abaixo <span class="cmp-count">{{ stats.abaixo }}</span></button>
             <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM_ORC', this)">Sem orçamento <span class="cmp-count">{{ stats.sem_orc }}</span></button>
-            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM_OC', this)">Fora da OC <span class="cmp-count">{{ stats.sem_oc }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM_OC', this)">{{ 'Fora do documento' if precificado else 'Fora da OC' }} <span class="cmp-count">{{ stats.sem_oc }}</span></button>
           </div>
           <div class="spacer"></div>
           <div class="input-search cmp-search">
@@ -89,8 +103,12 @@
                 <th>Código</th>
                 <th>Descrição</th>
                 <th class="t-right">Qtde</th>
-                <th class="t-right th-preco-oc">Preço OC</th>
-                <th class="t-right th-total-oc">Total OC</th>
+                <th class="t-right th-preco-oc">{{ 'Preço documento' if precificado else 'Preço OC' }}</th>
+                <th class="t-right th-total-oc">{{ 'Total documento' if precificado else 'Total OC' }}</th>
+                {% if precificado %}
+                  <th class="t-right">Total calculado</th>
+                  <th class="t-right">Diferença total</th>
+                {% endif %}
                 <th class="t-right th-preco-orc">Preço orç.</th>
                 <th class="t-right th-desconto">Desconto %</th>
                 <th class="t-right">Preço final</th>
@@ -100,17 +118,29 @@
             <tbody>
               {% for r in registros %}
               {% set qtde = r.QUANTIDADE if r.QUANTIDADE else 0 %}
-              {% set total_oc = (qtde * r.PRECO_OC) if (r.PRECO_OC and qtde) else None %}
+              {% if precificado %}
+                {% set total_oc = r.TOTAL_DOCUMENTO|float if r.TOTAL_DOCUMENTO is not none else none %}
+              {% else %}
+                {% set total_oc = (qtde * r.PRECO_OC) if (r.PRECO_OC and qtde) else None %}
+              {% endif %}
               <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO }} {{ r.DESCRICAO }}">
                 <td class="td-cod">{{ r.CODIGO }}</td>
                 <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
                 <td class="td-num">{{ qtde if qtde else '—' }}</td>
                 <td class="td-num td-preco-oc">
-                  {% if r.PRECO_OC %}R$ {{ "%.3f"|format(r.PRECO_OC) }}{% else %}—{% endif %}
+                  {% if r.PRECO_OC is not none and (precificado or r.PRECO_OC) %}R$ {{ "%.3f"|format(r.PRECO_OC) }}{% else %}—{% endif %}
                 </td>
                 <td class="td-num td-total-oc">
-                  {% if total_oc %}R$ {{ "%.2f"|format(total_oc) }}{% else %}—{% endif %}
+                  {% if total_oc is not none and (precificado or total_oc) %}R$ {{ "%.2f"|format(total_oc) }}{% else %}—{% endif %}
                 </td>
+                {% if precificado %}
+                  <td class="td-num">{% if r.TOTAL_CALCULADO is not none %}R$ {{ "%.2f"|format(r.TOTAL_CALCULADO|float) }}{% else %}—{% endif %}</td>
+                  <td class="td-num">
+                    {% if r.DIFERENCA_TOTAL is not none %}
+                      <span class="{{ 'chip chip-warn' if r.DIFERENCA_TOTAL|float != 0 else '' }}">R$ {{ "%.2f"|format(r.DIFERENCA_TOTAL|float) }}</span>
+                    {% else %}—{% endif %}
+                  </td>
+                {% endif %}
                 <td class="td-num td-preco-orc">
                   {% if r.PRECO_ORCAMENTO %}R$ {{ "%.3f"|format(r.PRECO_ORCAMENTO) }}{% else %}—{% endif %}
                 </td>
@@ -136,7 +166,7 @@
                   {% elif r.STATUS == 'SEM_ORC' %}
                     <span class="chip chip-warn">Sem orç.</span>
                   {% elif r.STATUS == 'SEM_OC' %}
-                    <span class="chip chip-err">Fora da OC</span>
+                    <span class="chip chip-err">{{ 'Fora do documento' if precificado else 'Fora da OC' }}</span>
                   {% else %}
                     <span class="chip chip-warn">{{ r.STATUS }}</span>
                   {% endif %}
@@ -146,7 +176,7 @@
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="9" class="empty">Nenhum item encontrado.</td></tr>
+              <tr><td colspan="{{ 11 if precificado else 9 }}" class="empty">Nenhum item encontrado.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -154,7 +184,7 @@
 
         <div class="panel-foot">
           <span><span id="cmpVisiveis">{{ registros|length }}</span> de {{ registros|length }} itens visíveis</span>
-          <span>A planilha GAMATEC inclui apenas os itens com desconto ou já abaixo da OC.</span>
+          <span>{{ 'A folha comparação inclui todos os itens; a folha GAMATEC inclui apenas os itens com preço comparável.' if precificado else 'A planilha GAMATEC inclui apenas os itens com desconto ou já abaixo da OC.' }}</span>
         </div>
       </section>
     </main>

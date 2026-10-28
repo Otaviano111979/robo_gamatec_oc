@@ -206,6 +206,36 @@ def comparar_oc_orcamento(
     return pd.DataFrame(registros)
 
 
+def comparar_documento_precificado(
+    pdf_bytes: bytes,
+    itens_orcamento: list[dict],
+) -> pd.DataFrame:
+    from extrator_documento_precificado import extrair_documento_precificado
+
+    df_documento = extrair_documento_precificado(pdf_bytes)
+    df_comparacao = comparar_oc_orcamento(df_documento, itens_orcamento)
+    totais = {}
+    for item in df_documento.to_dict('records'):
+        total_documento = item['total_documento']
+        total_calculado = (
+            item['quantidade_final'] * item['valor_unitario_oc']
+        ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        totais[item['codigo_krona']] = (
+            total_documento,
+            total_calculado,
+            total_documento - total_calculado,
+        )
+
+    for indice, coluna in enumerate(('TOTAL_DOCUMENTO', 'TOTAL_CALCULADO', 'DIFERENCA_TOTAL')):
+        df_comparacao[coluna] = pd.Series(
+            [totais.get(codigo, (None, None, None))[indice] for codigo in df_comparacao['CODIGO']],
+            index=df_comparacao.index,
+            dtype=object,
+        )
+
+    return df_comparacao
+
+
 def gerar_planilha_desconto(
     df_comparacao: pd.DataFrame,
     caminho_xlsx: str,

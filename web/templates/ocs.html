@@ -26,6 +26,7 @@
         <div>
           <h1>OCs</h1>
           <p>Ordens de compra, pedidos e cotações recebidos para processamento.</p>
+          <a class="btn btn-sm" href="{{ url_for('comparador.precificado_upload') }}">Comparar documento precificado</a>
         </div>
         <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form compact-card" id="upload-form">
           <label class="btn" for="file" id="upload-label">

@@ -15,6 +15,11 @@ Rotas:
 import os
 import io
 import json
+import math
+import re
+import secrets
+import tempfile
+import uuid
 import pandas as pd
 from pathlib import Path
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, InvalidOperation
@@ -24,7 +29,9 @@ from flask import (
 )
 
 from extrator_orcamento_gamatec import extrair_orcamento_gamatec
-from comparador_oc_orcamento import comparar_oc_orcamento, gerar_planilha_desconto
+from comparador_oc_orcamento import (
+    comparar_documento_precificado, comparar_oc_orcamento, gerar_planilha_desconto,
+)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 _HERE     = os.path.dirname(os.path.abspath(__file__))
@@ -79,6 +86,177 @@ comparador_bp = Blueprint(
     template_folder=os.path.join(_HERE, 'templates', 'comparador'),
     static_folder=os.path.join(_HERE, 'static', 'comparador'),
 )
+
+@comparador_bp.before_request
+def autenticar_precificado():
+    if request.endpoint and request.endpoint.startswith('comparador.precificado_'):
+        if 'user' not in session:
+            return redirect('/')
+
+
+@comparador_bp.errorhandler(413)
+def precificado_upload_grande(erro):
+    if request.endpoint and request.endpoint.startswith('comparador.precificado_'):
+        return _precificado_erro('Os dois PDFs ultrapassam o limite de upload. Envie arquivos menores.', 413)
+    return redirect('/ocs?erro=arquivo_grande')
+
+
+def _precificado_erro(mensagem: str, status: int = 422):
+    flash(mensagem)
+    return render_template(
+        'precificado_upload.html', csrf_token=session.get('precificado_csrf', ''),
+    ), status
+
+
+def _dados_precificados():
+    file_id = request.args.get('id', '')
+    if file_id != session.get('comparador_precificado'):
+        return None
+    if not re.fullmatch(r'sess_precificado_[0-9a-f]{32}\.json', file_id):
+        return None
+    return _load_session_data(file_id)
+
+
+@comparador_bp.get('/documento-precificado')
+def precificado_upload():
+    if 'precificado_csrf' not in session:
+        session['precificado_csrf'] = secrets.token_urlsafe(32)
+    return render_template('precificado_upload.html', csrf_token=session['precificado_csrf'])
+
+
+@comparador_bp.post('/documento-precificado/processar')
+def precificado_processar():
+    token = session.get('precificado_csrf', '')
+    recebido = request.form.get('_csrf', '')
+    if not token or not secrets.compare_digest(token.encode('utf-8'), recebido.encode('utf-8')):
+        return _precificado_erro('Atualize a página e tente novamente: validação da sessão falhou.', 400)
+
+    for campo, nome in (('documento', 'documento já precificado'), ('orcamento', 'orçamento Gamatec')):
+        arquivo = request.files.get(campo)
+        if not arquivo or not arquivo.filename:
+            return _precificado_erro(f'Selecione o PDF do {nome}.')
+        if not arquivo.filename.lower().endswith('.pdf'):
+            return _precificado_erro(f'O {nome} deve ser um arquivo PDF.')
+
+    try:
+        orcamento = extrair_orcamento_gamatec(request.files['orcamento'].read())
+        if not orcamento['itens']:
+            return _precificado_erro('Nenhum item encontrado no PDF do orçamento Gamatec.')
+        if any(not math.isfinite(item[chave]) for item in orcamento['itens']
+               for chave in ('preco_orcamento', 'qtde')):
+            return _precificado_erro('O orçamento contém preços ou quantidades inválidos.')
+        codigos = [item['codigo'] for item in orcamento['itens']]
+        if len(codigos) != len(set(codigos)):
+            return _precificado_erro('O orçamento contém código repetido; confira os itens antes de comparar.')
+        df = comparar_documento_precificado(request.files['documento'].read(), orcamento['itens'])
+    except Exception as erro:
+        return _precificado_erro(f'Não foi possível comparar os documentos: {erro}')
+
+    registros = df.to_dict('records')
+    for registro in registros:
+        for chave, valor in registro.items():
+            if isinstance(valor, Decimal):
+                registro[chave] = str(valor)
+            elif isinstance(valor, float) and valor != valor:
+                registro[chave] = None
+
+    stats = {status.lower(): sum(r['STATUS'] == status for r in registros)
+             for status in ('OK', 'ABAIXO', 'SEM_ORC', 'SEM_OC', 'SEM_PRECO')}
+    stats['total'] = len(registros)
+    stats['para_gamatec'] = stats['ok'] + stats['abaixo']
+    dados = {
+        'nome_documento': request.files['documento'].filename,
+        'numero_orcamento': orcamento['numero_orcamento'],
+        'emissao': orcamento['emissao'],
+        'registros': registros,
+        'stats': stats,
+        'diferencas_totais': sum(
+            r['DIFERENCA_TOTAL'] is not None and Decimal(r['DIFERENCA_TOTAL']) != 0
+            for r in registros
+        ),
+        'total_documento': str(sum(
+            Decimal(r['TOTAL_DOCUMENTO']) for r in registros if r['TOTAL_DOCUMENTO'] is not None
+        )),
+    }
+    file_id = f'sess_precificado_{uuid.uuid4().hex}.json'
+    temporario = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='w', encoding='utf-8', dir=SESSION_TMP_DIR, suffix='.tmp', delete=False,
+        ) as arquivo:
+            temporario = Path(arquivo.name)
+            json.dump(dados, arquivo, ensure_ascii=False, allow_nan=False)
+        os.replace(temporario, os.path.join(SESSION_TMP_DIR, file_id))
+    except OSError:
+        return _precificado_erro('Não foi possível guardar o resultado. Tente novamente.', 503)
+    finally:
+        if temporario is not None:
+            temporario.unlink(missing_ok=True)
+    session['comparador_precificado'] = file_id
+    return redirect(url_for('comparador.precificado_resultado', id=file_id), code=303)
+
+
+@comparador_bp.get('/documento-precificado/resultado')
+def precificado_resultado():
+    dados = _dados_precificados()
+    if not dados:
+        flash('Comparação indisponível ou sessão expirada. Envie os dois PDFs novamente.')
+        return redirect(url_for('comparador.precificado_upload'))
+    return render_template(
+        'resultado.html', precificado=True, dados=dados, registros=dados['registros'],
+        stats=dados['stats'], file_id=request.args['id'],
+    )
+
+
+@comparador_bp.get('/documento-precificado/download')
+def precificado_download():
+    dados = _dados_precificados()
+    if not dados:
+        flash('Comparação indisponível ou sessão expirada. Envie os dois PDFs novamente.')
+        return redirect(url_for('comparador.precificado_upload'))
+
+    colunas = [
+        'CODIGO', 'DESCRICAO', 'QUANTIDADE', 'PRECO_DOCUMENTO', 'TOTAL_DOCUMENTO',
+        'TOTAL_CALCULADO', 'DIFERENCA_TOTAL', 'PRECO_ORCAMENTO', 'DESCONTO',
+        'PRECO_FINAL', 'STATUS', 'OBS',
+    ]
+    df = pd.DataFrame(dados['registros']).rename(columns={'PRECO_OC': 'PRECO_DOCUMENTO'})[colunas]
+    for coluna in colunas[2:10]:
+        df[coluna] = pd.to_numeric(df[coluna])
+    aprovados = df[df['STATUS'].isin(['OK', 'ABAIXO'])][
+        ['DESCRICAO', 'CODIGO', 'QUANTIDADE', 'DESCONTO']
+    ].copy()
+    aprovados['DESCONTO'] = aprovados['DESCONTO'].map(lambda valor: f'{valor:.5f}')
+    output = io.BytesIO()
+    with pd.ExcelWriter(
+        output, engine='xlsxwriter',
+        engine_kwargs={'options': {'strings_to_formulas': False, 'strings_to_urls': False}},
+    ) as writer:
+        df.to_excel(writer, index=False, sheet_name='comparacao')
+        aprovados.to_excel(writer, index=False, sheet_name='gamatec')
+        wb = writer.book
+        preco = wb.add_format({'num_format': '0.000'})
+        dinheiro = wb.add_format({'num_format': '0.00'})
+        desconto = wb.add_format({'num_format': '0.00000'})
+        for sheet in writer.sheets.values():
+            sheet.freeze_panes(1, 0)
+            sheet.set_column('A:A', 14)
+            sheet.set_column('B:B', 50)
+            sheet.set_column('C:L', 18)
+        ws = writer.sheets['comparacao']
+        ws.set_column('D:D', 18, preco)
+        ws.set_column('E:G', 18, dinheiro)
+        ws.set_column('H:H', 18, preco)
+        ws.set_column('I:I', 18, desconto)
+        ws.set_column('J:J', 18, dinheiro)
+        writer.sheets['gamatec'].set_column('A:A', 50)
+        writer.sheets['gamatec'].set_column('B:B', 14)
+    output.seek(0)
+    return send_file(
+        output, as_attachment=True, download_name='comparacao_documento_precificado.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _csv_oc(oc_id: str) -> Path | None:
