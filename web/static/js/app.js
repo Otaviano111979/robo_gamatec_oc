@@ -37,10 +37,6 @@ const STORAGE_OC_DESTAQUE = "gamatec_oc_destaque";
 const STORAGE_OC_FINALIZADA = "gamatec_oc_finalizada";
 const STORAGE_OC_MOVIDA = "gamatec_oc_movida";
 
-const LIST_LIMIT = 10;
-let ordemAtualFila = "recentes";
-let mostrarTodas = false;
-
 function setTexto(id, texto) {
   const el = document.getElementById(id);
   if (el) el.innerText = texto;
@@ -807,119 +803,12 @@ async function removerDaLista(nomeArquivo) {
       return;
     }
 
-    const row = document.querySelector(`[data-oc-row="${CSS.escape(nomeArquivo)}"]`);
-    if (row) {
-      row.remove();
-    }
-
-    aplicarFiltrosFila();
+    window.location.reload();
   } catch (e) {
     console.error(e);
     alert("Erro ao remover OC da lista.");
     window.location.reload();
   }
-}
-
-function obterLinhasFila() {
-  return Array.from(document.querySelectorAll("#oc-table-body [data-oc-row]"));
-}
-
-function ordenarLinhas(linhas) {
-  return [...linhas].sort((a, b) => {
-    const ta = Number(a.getAttribute("data-timestamp-ref") || "0");
-    const tb = Number(b.getAttribute("data-timestamp-ref") || "0");
-
-    if (ordemAtualFila === "antigos") {
-      return ta - tb;
-    }
-
-    return tb - ta;
-  });
-}
-
-function atualizarTextoFila(totalFiltradas, totalVisiveis, temFiltroAtivo) {
-  const info = getEl("fila-info");
-  const badge = getEl("fila-count");
-
-  if (badge) {
-    badge.textContent = `${totalVisiveis} visível(is)`;
-  }
-
-  if (!info) return;
-
-  if (totalFiltradas === 0) {
-    info.textContent = "Nenhuma OC encontrada com o filtro atual.";
-    return;
-  }
-
-  if (mostrarTodas) {
-    if (temFiltroAtivo) {
-      info.textContent = `Mostrando ${totalVisiveis} de ${totalFiltradas} OCs filtradas.`;
-    } else {
-      info.textContent = `Mostrando ${totalVisiveis} de ${totalFiltradas} OCs.`;
-    }
-    return;
-  }
-
-  if (temFiltroAtivo) {
-    info.textContent = `Mostrando ${totalVisiveis} de ${totalFiltradas} OCs filtradas.`;
-  } else {
-    info.textContent = `Mostrando ${totalVisiveis} de ${totalFiltradas} OCs.`;
-  }
-}
-
-function atualizarEstadoBotoesLista(totalFiltradas) {
-  const btnVerTodas = getEl("btn-ver-todas");
-  const btnVoltar10 = getEl("btn-voltar-10");
-
-  if (!btnVerTodas || !btnVoltar10) return;
-
-  if (mostrarTodas) {
-    btnVerTodas.style.display = "none";
-    btnVoltar10.style.display = totalFiltradas > LIST_LIMIT ? "" : "none";
-  } else {
-    btnVerTodas.style.display = totalFiltradas > LIST_LIMIT ? "" : "none";
-    btnVoltar10.style.display = "none";
-  }
-}
-
-function aplicarFiltrosFila() {
-  const linhas = obterLinhasFila();
-  const filtroNumero = (getEl("filtro-oc")?.value || "").trim().toLowerCase();
-  const filtroData = (getEl("filtro-data")?.value || "").trim();
-  const corpo = getEl("oc-table-body");
-
-  if (!corpo) return;
-
-  linhas.forEach((row) => {
-    row.style.display = "none";
-  });
-
-  let filtradas = linhas.filter((row) => {
-    const nome = (row.getAttribute("data-nome") || "").toLowerCase();
-    const numero = (row.getAttribute("data-numero-oc") || "").toLowerCase();
-    const dataRef = row.getAttribute("data-data-ref") || "";
-
-    const passouNumero = !filtroNumero || numero.includes(filtroNumero) || nome.includes(filtroNumero);
-    const passouData = !filtroData || dataRef === filtroData;
-
-    return passouNumero && passouData;
-  });
-
-  const totalFiltradas = filtradas.length;
-  const temFiltroAtivo = Boolean(filtroNumero || filtroData);
-
-  filtradas = ordenarLinhas(filtradas);
-
-  const visiveis = mostrarTodas ? filtradas : filtradas.slice(0, LIST_LIMIT);
-
-  visiveis.forEach((row) => {
-    row.style.display = "";
-    corpo.appendChild(row);
-  });
-
-  atualizarTextoFila(totalFiltradas, visiveis.length, temFiltroAtivo);
-  atualizarEstadoBotoesLista(totalFiltradas);
 }
 
 window.ativarAutoRefreshLogs = function (nomeArquivo) {
@@ -1037,65 +926,50 @@ function registrarInterceptacaoRemover() {
 function registrarFiltrosFila() {
   const filtroOc = getEl("filtro-oc");
   const filtroData = getEl("filtro-data");
-  const btnRecentes = getEl("ordenar-recente");
-  const btnAntigos = getEl("ordenar-antigo");
-  const btnLimpar = getEl("limpar-filtros");
-  const btnVerTodas = getEl("btn-ver-todas");
-  const btnVoltar10 = getEl("btn-voltar-10");
+  const form = getEl("filtros-ocs");
+  const limpar = getEl("limpar-filtros");
+
+  if (!form && !filtroOc) return;
+
+  // a lista e paginada no servidor: cada alteracao recarrega /ocs com os
+  // parametros na URL (q, data, ordem) e a pagina volta sempre ao inicio
+  let temporizador = null;
+
+  function irParaFiltro() {
+    clearTimeout(temporizador);
+    const parametros = new URLSearchParams();
+    const texto = (filtroOc?.value || "").trim();
+    const data = (filtroData?.value || "").trim();
+    const ordem = form?.querySelector('input[name="ordem"]')?.value || "";
+
+    if (texto) parametros.set("q", texto);
+    if (data) parametros.set("data", data);
+    if (ordem === "antigos") parametros.set("ordem", ordem);
+
+    const destino = "/ocs" + (parametros.toString() ? "?" + parametros.toString() : "");
+    window.location.assign(destino);
+  }
 
   if (filtroOc) {
-    filtroOc.addEventListener("input", () => {
-      mostrarTodas = false;
-      aplicarFiltrosFila();
+    filtroOc.addEventListener("input", function () {
+      clearTimeout(temporizador);
+      temporizador = setTimeout(irParaFiltro, 400);
     });
   }
 
   if (filtroData) {
-    filtroData.addEventListener("change", () => {
-      mostrarTodas = false;
-      aplicarFiltrosFila();
-    });
+    filtroData.addEventListener("change", irParaFiltro);
   }
 
-  if (btnRecentes) {
-    btnRecentes.addEventListener("click", function () {
-      ordemAtualFila = "recentes";
-      aplicarFiltrosFila();
-    });
-  }
+  form?.addEventListener("submit", function (event) {
+    event.preventDefault();
+    irParaFiltro();
+  });
 
-  if (btnAntigos) {
-    btnAntigos.addEventListener("click", function () {
-      ordemAtualFila = "antigos";
-      aplicarFiltrosFila();
-    });
-  }
-
-  if (btnVerTodas) {
-    btnVerTodas.addEventListener("click", function () {
-      mostrarTodas = true;
-      aplicarFiltrosFila();
-    });
-  }
-
-  if (btnVoltar10) {
-    btnVoltar10.addEventListener("click", function () {
-      mostrarTodas = false;
-      aplicarFiltrosFila();
-    });
-  }
-
-  if (btnLimpar) {
-    btnLimpar.addEventListener("click", function () {
-      ordemAtualFila = "recentes";
-      mostrarTodas = false;
-      if (filtroOc) filtroOc.value = "";
-      if (filtroData) filtroData.value = "";
-      aplicarFiltrosFila();
-    });
-  }
-
-  aplicarFiltrosFila();
+  limpar?.addEventListener("click", function (event) {
+    event.preventDefault();
+    window.location.assign("/ocs");
+  });
 }
 
 function restaurarMonitoramentoAoReabrirPagina() {

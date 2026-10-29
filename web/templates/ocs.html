@@ -169,18 +169,19 @@
 
       <div class="ocs-grid">
         <section class="panel list-card">
-          <div class="toolbar">
+          <form class="toolbar" method="get" action="/ocs" id="filtros-ocs">
             <div class="input-search ocs-search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input id="filtro-oc" type="text" class="input" placeholder="Número da OC ou nome do arquivo">
+              <input id="filtro-oc" name="q" type="text" class="input" placeholder="Número da OC ou nome do arquivo" value="{{ busca }}">
             </div>
-            <input id="filtro-data" type="date" class="input ocs-date" aria-label="Filtrar por data">
+            <input id="filtro-data" name="data" type="date" class="input ocs-date" aria-label="Filtrar por data" value="{{ filtro_data }}">
+            <input type="hidden" name="ordem" value="{{ '' if ordem == 'recentes' else ordem }}">
             <div class="btn-group" role="group" aria-label="Ordenação">
-              <button class="btn btn-sm is-on" type="button" id="ordenar-recente">Recentes</button>
-              <button class="btn btn-sm" type="button" id="ordenar-antigo">Antigas</button>
+              <a class="btn btn-sm {{ 'is-on' if ordem == 'recentes' }}" href="{{ url_for('ocs', q=busca or None, data=filtro_data or None) }}">Recentes</a>
+              <a class="btn btn-sm {{ 'is-on' if ordem == 'antigos' }}" href="{{ url_for('ocs', q=busca or None, data=filtro_data or None, ordem='antigos') }}">Antigas</a>
             </div>
-            <button class="btn btn-sm btn-ghost" type="button" id="limpar-filtros">Limpar</button>
-          </div>
+            <a class="btn btn-sm btn-ghost" href="/ocs" id="limpar-filtros">Limpar</a>
+          </form>
 
           <div class="table-wrap">
             <table class="table ocs-table">
@@ -273,18 +274,31 @@
                   </tr>
                   {% endfor %}
                 {% else %}
-                  <tr><td colspan="4" class="empty-cell">Nenhuma OC encontrada.</td></tr>
+                  <tr><td colspan="4" class="empty-cell">{{ 'Nenhuma OC encontrada com o filtro atual.' if tem_filtro else 'Nenhuma OC encontrada.' }}</td></tr>
                 {% endif %}
               </tbody>
             </table>
           </div>
 
           <div class="panel-foot">
-            <span id="fila-info">Carregando fila...</span>
-            <span>
-              <button class="btn btn-sm btn-ghost" type="button" id="btn-ver-todas">Ver todas</button>
-              <button class="btn btn-sm btn-ghost" type="button" id="btn-voltar-10" style="display:none;">Mostrar só 10</button>
+            <span id="fila-info">
+              {% if total_ocs %}
+                Mostrando {{ primeiro_item }}–{{ ultimo_item }} de {{ total_ocs }} {{ 'OCs filtradas' if tem_filtro else 'OCs' }}.
+              {% else %}
+                Nenhuma OC encontrada com o filtro atual.
+              {% endif %}
             </span>
+            {% if total_paginas > 1 %}
+            <nav class="ocs-paginacao" aria-label="Paginação">
+              {% if pagina > 1 %}
+              <a class="btn btn-sm btn-ghost" href="{{ url_for('ocs', q=busca or None, data=filtro_data or None, ordem=None if ordem == 'recentes' else ordem, pagina=pagina - 1) }}">Anterior</a>
+              {% endif %}
+              <span>Página {{ pagina }} de {{ total_paginas }}</span>
+              {% if pagina < total_paginas %}
+              <a class="btn btn-sm btn-ghost" href="{{ url_for('ocs', q=busca or None, data=filtro_data or None, ordem=None if ordem == 'recentes' else ordem, pagina=pagina + 1) }}">Seguinte</a>
+              {% endif %}
+            </nav>
+            {% endif %}
           </div>
         </section>
 
@@ -523,12 +537,6 @@
       toast.style.animation = 'toast-slide-out 0.2s ease forwards';
       setTimeout(() => { toast.style.display = 'none'; }, 200);
     }
-
-    document.querySelectorAll('#ordenar-recente, #ordenar-antigo').forEach((b) => {
-      b.addEventListener('click', () => {
-        document.querySelectorAll('#ordenar-recente, #ordenar-antigo').forEach((x) => x.classList.toggle('is-on', x === b));
-      });
-    });
 
     function atualizarEstadoCotacao(linha, data) {
       const nome = linha.dataset.cotacaoRow;

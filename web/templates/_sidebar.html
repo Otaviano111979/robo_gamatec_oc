@@ -57,6 +57,7 @@
         </div>
       </div>
     </div>
+    {% include '_sidebar_calendario.html' %}
   </div>
   <div class="sidebar-foot">
     <div class="who">{{ session.get('user') }}<small>{{ session.get('tipo', 'user') }}</small></div>
@@ -69,4 +70,6 @@
   </div>
 </aside>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pg_calendario.css') }}">
 <script src="{{ url_for('static', filename='js/ilha.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/calendario.js') }}" defer></script>

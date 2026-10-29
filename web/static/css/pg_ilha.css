@@ -5,7 +5,7 @@
 
 .sidebar-branding {
   display: flex; justify-content: center;
-  padding: 18px 12px 0;
+  padding: 10px 12px 0;
 }
 .sidebar-branding img { display: block; width: 100%; max-width: 168px; height: auto; }
 .sidebar-branding .marca-escura { display: none; }
@@ -13,7 +13,7 @@ html.dark .sidebar-branding .marca-clara { display: none; }
 html.dark .sidebar-branding .marca-escura { display: block; }
 
 /* ── pílula ──────────────────────────────────────────── */
-.ilha { position: relative; margin: 12px 6px 4px; z-index: 40; }
+.ilha { position: relative; margin: 8px 6px 2px; z-index: 40; }
 
 .ilha-pilula {
   display: flex; align-items: center; justify-content: center; gap: 7px;

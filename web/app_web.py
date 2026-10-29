@@ -1003,6 +1003,9 @@ def launcher():
 # =========================
 # OCs — PAGINA PRINCIPAL
 # =========================
+ITENS_POR_PAGINA_OCS = 100
+
+
 @app.route("/ocs")
 def ocs():
     if not usuario_logado():
@@ -1030,15 +1033,50 @@ def ocs():
     except Exception:
         total_revisao = 0
 
+    busca = (request.args.get("q") or "").strip()
+    filtro_data = (request.args.get("data") or "").strip()
+    ordem = request.args.get("ordem") if request.args.get("ordem") in ("recentes", "antigos") else "recentes"
+
+    if busca:
+        alvo = normalizar_busca(busca)
+        arquivos = [
+            item for item in arquivos
+            if alvo in normalizar_busca(item.get("nome"))
+            or alvo in normalizar_busca(str(item.get("numero_oc") or ""))
+        ]
+    if filtro_data:
+        arquivos = [item for item in arquivos if item.get("data_ref_iso") == filtro_data]
+    if ordem == "antigos":
+        arquivos.sort(key=lambda x: x.get("timestamp_ref", 0))
+
+    total_filtrado = len(arquivos)
+    total_paginas = max(1, (total_filtrado + ITENS_POR_PAGINA_OCS - 1) // ITENS_POR_PAGINA_OCS)
+    try:
+        pagina = int(request.args.get("pagina", "1"))
+    except ValueError:
+        pagina = 1
+    pagina = min(max(pagina, 1), total_paginas)
+    inicio = (pagina - 1) * ITENS_POR_PAGINA_OCS
+
     return render_template(
         "ocs.html",
-        arquivos=arquivos,
+        arquivos=arquivos[inicio:inicio + ITENS_POR_PAGINA_OCS],
         cotacoes=cotacoes,
         total_entrada=total_entrada,
         total_processando=total_processando,
         total_concluidos=total_concluidos,
         total_revisao=total_revisao,
+        total_ocs=total_filtrado,
+        tem_filtro=bool(busca or filtro_data),
+        busca=busca,
+        filtro_data=filtro_data,
+        ordem=ordem,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        primeiro_item=inicio + 1 if total_filtrado else 0,
+        ultimo_item=min(inicio + ITENS_POR_PAGINA_OCS, total_filtrado),
     )
+
 
 
 # =========================
@@ -2752,6 +2790,49 @@ def api_ilha():
     try:
         from ilha_mercado import coletar
         return jsonify(coletar(forcar=request.args.get("forcar") == "1"))
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+# =========================
+# CALENDÁRIO DA SIDEBAR — FERIADOS, DATAS E EFEMÉRIDES
+# =========================
+
+@app.route("/api/calendario")
+def api_calendario():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+
+    hoje = datetime.now()
+    try:
+        ano = int(request.args.get("ano") or hoje.year)
+        numero_mes = int(request.args.get("mes") or hoje.month)
+    except ValueError:
+        return jsonify({"ok": False, "erro": "data inválida"}), 400
+    if not 1900 <= ano <= 2100 or not 1 <= numero_mes <= 12:
+        return jsonify({"ok": False, "erro": "data inválida"}), 400
+
+    try:
+        from calendario import mes as ler_mes
+        return jsonify(ler_mes(ano, numero_mes))
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/calendario/dia")
+def api_calendario_dia():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+
+    data = (request.args.get("data") or "").strip()
+    try:
+        datetime.strptime(data, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"ok": False, "erro": "data inválida"}), 400
+
+    try:
+        from calendario import dia as ler_dia
+        return jsonify(ler_dia(data))
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 500
 

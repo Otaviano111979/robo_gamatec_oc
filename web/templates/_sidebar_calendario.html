@@ -1,0 +1,16 @@
+{# Calendário da sidebar: mês, feriados e destaques do dia. #}
+<div class="cal-sidebar" id="calendario" aria-label="Calendário e destaques do dia">
+  <div class="cal-topo">
+    <button class="cal-nav" type="button" data-cal-mes="-1" aria-label="Mês anterior">&#8249;</button>
+    <button class="cal-mes" type="button" id="cal-mes" title="Voltar ao mês atual">—</button>
+    <button class="cal-nav" type="button" data-cal-mes="1" aria-label="Mês seguinte">&#8250;</button>
+  </div>
+  <div class="cal-semana" aria-hidden="true">
+    <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+  </div>
+  <div class="cal-grade" id="cal-grade" role="grid" aria-label="Dias do mês"></div>
+  <p class="cal-aviso" id="cal-aviso" hidden></p>
+  <div class="cal-destaques" id="cal-destaques" aria-live="polite">
+    <p class="cal-vazio">A carregar destaques…</p>
+  </div>
+</div>
