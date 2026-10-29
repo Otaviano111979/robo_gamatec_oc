@@ -25,6 +25,38 @@
         </div>
       </header>
 
+      <!-- MÉTRICAS DA FILA -->
+      <section class="kpis revisao-kpis" aria-label="Métricas da revisão">
+        <div class="kpi {{ 'is-warn' if metricas.pendentes }}">
+          <div class="kpi-label">Pendentes</div>
+          <div class="kpi-value">{{ metricas.pendentes }}
+            {% if metricas.pendentes and metricas.pendente_mais_antigo_dias %}
+              <small>mais antigo há {{ metricas.pendente_mais_antigo_dias }} d</small>
+            {% elif not metricas.pendentes %}
+              <small>fila vazia</small>
+            {% endif %}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Tempo até resolução</div>
+          <div class="kpi-value">{{ metricas.tempo_medio or '—' }}
+            {% if metricas.tempo_mediano %}<small>mediana {{ metricas.tempo_mediano }}</small>{% endif %}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Corrigidos</div>
+          <div class="kpi-value">{{ metricas.resolvidos }}
+            <small>{{ metricas.resolvidos_30_dias }} em 30 dias</small>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Descartados</div>
+          <div class="kpi-value">{{ metricas.descartados }}
+            {% if metricas.taxa_correcao is not none %}<small>{{ metricas.taxa_correcao }}% corrigidos</small>{% endif %}
+          </div>
+        </div>
+      </section>
+
       <!-- FILA DE REVISÃO -->
       <section class="panel revisao-content">
         <div class="panel-head">
@@ -245,6 +277,49 @@
         </div>
         {% endif %}
       </section>
+
+      <!-- OCs COM MAIS CORREÇÕES -->
+      {% if metricas.top_ocs %}
+      <section class="panel revisao-top-ocs">
+        <div class="panel-head">
+          <div>
+            <h2>OCs com mais correções</h2>
+            <p>Ficheiros onde o pipeline mais precisou de intervenção humana.</p>
+          </div>
+          <span class="badge neutral-state">{{ metricas.ocs_com_correcao }} OCs corrigidas</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table top-ocs-table">
+            <colgroup>
+              <col>
+              <col class="col-num">
+              <col class="col-num">
+              <col class="col-num">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>OC</th>
+                <th class="t-right">Corrigidos</th>
+                <th class="t-right">Descartados</th>
+                <th class="t-right">Pendentes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for oc in metricas.top_ocs %}
+              <tr>
+                <td><div class="top-oc-arquivo" title="{{ oc.arquivo }}">{{ oc.arquivo }}</div></td>
+                <td class="t-right"><span class="tag">{{ oc.correcoes }}</span></td>
+                <td class="t-right"><span class="tag">{{ oc.descartados }}</span></td>
+                <td class="t-right">
+                  {% if oc.pendentes %}<span class="chip chip-warn">{{ oc.pendentes }}</span>{% else %}<span class="muted">—</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
     </main>
   </div>
 

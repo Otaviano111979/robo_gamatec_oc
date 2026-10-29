@@ -2960,7 +2960,7 @@ def pagina_revisao():
     if not usuario_logado():
         return redirect("/")
     
-    from dados.revisao_store import listar_pendentes, listar_resolvidos
+    from dados.revisao_store import listar_pendentes, listar_resolvidos, metricas_revisao
     itens = listar_pendentes()
     historico = listar_resolvidos(limite=20)
     
@@ -2969,6 +2969,7 @@ def pagina_revisao():
         itens=itens,
         historico=historico,
         total=len(itens),
+        metricas=metricas_revisao(),
         usuario=session.get('user', 'admin')
     )
 

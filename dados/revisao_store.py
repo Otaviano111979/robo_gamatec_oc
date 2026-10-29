@@ -384,6 +384,87 @@ def remover_pendentes_obsoletos(arquivo, ids_mantidos):
     return removidos
 
 
+def _horas_texto(horas):
+    """Formata uma duração em horas para leitura rápida."""
+    if horas is None:
+        return None
+    if horas < 1:
+        return f"{max(1, round(horas * 60))} min"
+    if horas < 48:
+        return f"{round(horas)} h"
+    return f"{horas / 24:.1f} d".replace(".", ",")
+
+
+def metricas_revisao():
+    """
+    Resumo da fila de revisão: pendentes, histórico, tempo até resolução
+    e as OCs que mais precisaram de correção humana.
+    """
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        pendentes = conn.execute(
+            "SELECT COUNT(*) FROM itens_revisao WHERE status='pendente'").fetchone()[0]
+        idade_mais_antigo = conn.execute(
+            "SELECT julianday('now') - julianday(MIN(criado_em)) "
+            "FROM itens_revisao WHERE status='pendente'").fetchone()[0]
+
+        por_status = {linha["status"]: linha["total"] for linha in conn.execute(
+            "SELECT status, COUNT(*) AS total FROM itens_revisao GROUP BY status")}
+        resolvidos = por_status.get("resolvido", 0)
+        descartados = por_status.get("descartado", 0)
+
+        resolvidos_30 = conn.execute(
+            "SELECT COUNT(*) FROM itens_revisao WHERE status='resolvido' "
+            "AND datetime(resolvido_em) >= datetime('now', '-30 days')").fetchone()[0]
+
+        duracoes = sorted(
+            linha[0] for linha in conn.execute(
+                "SELECT (julianday(resolvido_em) - julianday(criado_em)) * 24 "
+                "FROM itens_revisao WHERE status='resolvido' "
+                "AND resolvido_em IS NOT NULL AND criado_em IS NOT NULL")
+            if linha[0] is not None)
+        media = sum(duracoes) / len(duracoes) if duracoes else None
+        mediana = None
+        if duracoes:
+            meio = len(duracoes) // 2
+            mediana = (duracoes[meio] if len(duracoes) % 2
+                       else (duracoes[meio - 1] + duracoes[meio]) / 2)
+
+        top_ocs = [dict(linha) for linha in conn.execute("""
+            SELECT arquivo,
+                   SUM(status='resolvido')  AS correcoes,
+                   SUM(status='descartado') AS descartados,
+                   SUM(status='pendente')   AS pendentes
+            FROM itens_revisao
+            GROUP BY arquivo
+            HAVING SUM(status='resolvido') > 0
+            ORDER BY correcoes DESC, pendentes DESC, arquivo
+            LIMIT 5
+        """)]
+        ocs_com_correcao = conn.execute(
+            "SELECT COUNT(DISTINCT arquivo) FROM itens_revisao "
+            "WHERE status='resolvido'").fetchone()[0]
+    finally:
+        conn.close()
+
+    decididos = resolvidos + descartados
+    return {
+        "pendentes": pendentes,
+        "pendente_mais_antigo_dias": round(idade_mais_antigo) if idade_mais_antigo is not None else None,
+        "resolvidos": resolvidos,
+        "descartados": descartados,
+        "resolvidos_30_dias": resolvidos_30,
+        "taxa_correcao": round(resolvidos * 100 / decididos) if decididos else None,
+        "tempo_medio": _horas_texto(media),
+        "tempo_mediano": _horas_texto(mediana),
+        "amostra_tempo": len(duracoes),
+        "top_ocs": top_ocs,
+        "ocs_com_correcao": ocs_com_correcao,
+    }
+
+
 def listar_resolvidos(limite=50):
     """
     Retorna os últimos itens resolvidos com detalhes.

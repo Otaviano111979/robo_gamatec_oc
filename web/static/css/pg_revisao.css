@@ -2,6 +2,15 @@
 
 .revisao-content { margin-bottom: 0; }
 
+/* ── métricas ─────────────────────────────────────────── */
+.revisao-kpis { margin-bottom: 16px; }
+.revisao-top-ocs .top-ocs-table { table-layout: fixed; }
+.top-ocs-table col.col-num { width: 118px; }
+.top-oc-arquivo {
+  font-family: var(--mono); font-size: 12px; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* ── fila ─────────────────────────────────────────────── */
 .revisao-table { table-layout: fixed; }
 .revisao-table col.col-score { width: 76px; }
@@ -138,5 +147,13 @@
   .historico-table col.col-por { width: 110px; }
   .historico-table col.col-score { width: 108px; }
   .historico-table col.col-status { width: 108px; }
+}
+/* no telemóvel as tabelas mantêm as colunas e deslizam dentro do painel */
+@media (max-width: 700px) {
+  .revisao-table, .historico-table, .top-ocs-table {
+    table-layout: auto;
+    min-width: 720px;
+  }
+  .top-ocs-table { min-width: 560px; }
 }
 .revisao-sem-match { color: var(--text-3); font-style: normal; }
