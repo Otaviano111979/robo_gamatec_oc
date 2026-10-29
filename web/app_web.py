@@ -77,6 +77,7 @@ USUARIOS_FILE = os.path.join(PASTA_DADOS, "usuarios.json")
 CLIENTES_FILE = os.path.join(PASTA_DADOS, "clientes.json")
 OCS_REMOVIDAS_FILE = os.path.join(PASTA_DADOS, "ocs_removidas.json")
 TIPOS_DOCUMENTO_FILE = os.path.join(PASTA_DADOS, "tipos_documentos.json")
+CACHE_TIPOS_DOCUMENTO_FILE = os.path.join(PASTA_DADOS, "cache_tipos_documentos.json")
 OCS_REMOVIDAS_FILE_LEGADO = os.path.join(PASTA_DADOS, "ocs_removidas_dashboard.json")
 
 os.makedirs(PASTA_LOGS, exist_ok=True)
@@ -86,6 +87,7 @@ os.makedirs(PASTA_DADOS, exist_ok=True)
 
 PROCESSOS_ATIVOS = {}
 LOCK_PROCESSOS = threading.Lock()
+LOCK_CACHE_TIPOS = threading.Lock()
 
 
 def verificar_estado_ao_iniciar():
@@ -1147,6 +1149,15 @@ def dashboard_compatibilidade():
 # COTAÇÕES DE PREÇOS
 # =========================
 _CACHE_TIPO_DOCUMENTO = {}
+_CACHE_TIPOS_DISCO = None
+
+
+def _cache_tipos_disco():
+    global _CACHE_TIPOS_DISCO
+    if _CACHE_TIPOS_DISCO is None:
+        dados = carregar_json(CACHE_TIPOS_DOCUMENTO_FILE, {})
+        _CACHE_TIPOS_DISCO = dados if isinstance(dados, dict) else {}
+    return _CACHE_TIPOS_DISCO
 
 
 def carregar_tipos_documento():
@@ -1183,7 +1194,8 @@ def tipo_documento_arquivo(nome_arquivo):
         return "OC", ""
 
     try:
-        chave = os.path.getmtime(caminho)
+        estado = os.stat(caminho)
+        chave = [estado.st_mtime_ns, estado.st_size]
     except OSError:
         chave = None
 
@@ -1191,12 +1203,24 @@ def tipo_documento_arquivo(nome_arquivo):
     if cache and cache[0] == chave:
         tipo, motivo = cache[1], cache[2]
     else:
-        try:
-            resultado = classificar_documento(caminho, nome_arquivo)
-            tipo, motivo = resultado.tipo, resultado.motivo
-        except Exception as e:
-            return "OC", f"classificação indisponível ({e})"
-        _CACHE_TIPO_DOCUMENTO[caminho] = (chave, tipo, motivo)
+        relativo = os.path.relpath(caminho, BASE_DIR).replace("\\", "/")
+        guardado = _cache_tipos_disco().get(relativo)
+        if chave and isinstance(guardado, dict) and guardado.get("chave") == chave:
+            tipo, motivo = guardado.get("tipo", "OC"), guardado.get("motivo", "")
+            _CACHE_TIPO_DOCUMENTO[caminho] = (chave, tipo, motivo)
+        else:
+            try:
+                resultado = classificar_documento(caminho, nome_arquivo)
+                tipo, motivo = resultado.tipo, resultado.motivo
+            except Exception as e:
+                return "OC", f"classificação indisponível ({e})"
+            _CACHE_TIPO_DOCUMENTO[caminho] = (chave, tipo, motivo)
+            if chave:
+                with LOCK_CACHE_TIPOS:
+                    _cache_tipos_disco()[relativo] = {
+                        "chave": chave, "tipo": tipo, "motivo": motivo,
+                    }
+                    salvar_json(CACHE_TIPOS_DOCUMENTO_FILE, _CACHE_TIPOS_DISCO)
 
     if tipo == UI:
         escolha = carregar_tipos_documento().get(nome_arquivo)
