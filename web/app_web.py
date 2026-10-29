@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash, abort
+from flask import Flask, g, render_template, request, redirect, session, send_file, jsonify, flash, abort
 import os
 import sys
 import unicodedata
@@ -328,13 +328,53 @@ def pasta_saida_oc(nome_arquivo):
     return os.path.join(PASTA_SAIDA_OCS, nome_base_arquivo(nome_arquivo))
 
 
+def _cache_do_pedido(nome):
+    """Cache de leituras do disco válido apenas durante o pedido atual."""
+    try:
+        cache = getattr(g, nome, None)
+        if cache is None:
+            cache = {}
+            setattr(g, nome, cache)
+        return cache
+    except RuntimeError:
+        return None
+
+
 def listar_arquivos_pasta(pasta):
-    if not os.path.exists(pasta):
-        return []
-    return sorted([
-        nome for nome in os.listdir(pasta)
-        if os.path.isfile(os.path.join(pasta, nome))
-    ])
+    cache = _cache_do_pedido("_listdir_cache")
+    if cache is not None and pasta in cache:
+        return list(cache[pasta])
+    try:
+        nomes = sorted(entrada.name for entrada in os.scandir(pasta) if entrada.is_file())
+    except OSError:
+        nomes = []
+    if cache is not None:
+        cache[pasta] = nomes
+    return list(nomes)
+
+
+def _existe(caminho):
+    cache = _cache_do_pedido("_exists_cache")
+    if cache is None:
+        return os.path.exists(caminho)
+    if caminho not in cache:
+        cache[caminho] = os.path.exists(caminho)
+    return cache[caminho]
+
+
+def _mtime(caminho):
+    cache = _cache_do_pedido("_mtime_cache")
+    if cache is None:
+        try:
+            return os.path.getmtime(caminho)
+        except OSError:
+            return None
+    if caminho not in cache:
+        try:
+            cache[caminho] = os.path.getmtime(caminho)
+        except OSError:
+            cache[caminho] = None
+    return cache[caminho]
 
 
 def listar_todos_arquivos():
@@ -353,19 +393,16 @@ def listar_todos_arquivos():
 
 
 def arquivo_em_entrada(nome_arquivo):
-    return os.path.exists(os.path.join(PASTA_ENTRADA, nome_arquivo))
+    return _existe(os.path.join(PASTA_ENTRADA, nome_arquivo))
 
 
 def arquivo_em_processados(nome_arquivo):
-    return os.path.exists(os.path.join(PASTA_PROCESSADOS, nome_arquivo))
+    return _existe(os.path.join(PASTA_PROCESSADOS, nome_arquivo))
 
 
 def localizar_planilha_xlsx(nome_arquivo):
     pasta_oc = pasta_saida_oc(nome_arquivo)
-    if not os.path.exists(pasta_oc):
-        return None
-
-    for nome in os.listdir(pasta_oc):
+    for nome in listar_arquivos_pasta(pasta_oc):
         if nome.endswith("_planilha_digitacao_manual.xlsx"):
             return os.path.join(pasta_oc, nome)
 
@@ -374,10 +411,7 @@ def localizar_planilha_xlsx(nome_arquivo):
 
 def localizar_resumo_txt(nome_arquivo):
     pasta_oc = pasta_saida_oc(nome_arquivo)
-    if not os.path.exists(pasta_oc):
-        return None
-
-    for nome in os.listdir(pasta_oc):
+    for nome in listar_arquivos_pasta(pasta_oc):
         if nome.endswith("_resumo_processamento.txt"):
             return os.path.join(pasta_oc, nome)
 
@@ -386,10 +420,7 @@ def localizar_resumo_txt(nome_arquivo):
 
 def localizar_debug_txt(nome_arquivo):
     pasta_oc = pasta_saida_oc(nome_arquivo)
-    if not os.path.exists(pasta_oc):
-        return None
-
-    for nome in os.listdir(pasta_oc):
+    for nome in listar_arquivos_pasta(pasta_oc):
         if nome.endswith("_debug_extracao.txt"):
             return os.path.join(pasta_oc, nome)
 
@@ -564,11 +595,10 @@ def obter_timestamp_referencia(nome_arquivo):
 
     timestamps = []
     for caminho in caminhos:
-        if caminho and os.path.exists(caminho):
-            try:
-                timestamps.append(os.path.getmtime(caminho))
-            except Exception:
-                pass
+        if caminho:
+            mtime = _mtime(caminho)
+            if mtime is not None:
+                timestamps.append(mtime)
 
     if not timestamps:
         return 0
@@ -707,10 +737,7 @@ def verificar_correcao_aplicada(nome_arquivo):
         pasta_oc = pasta_saida_oc(nome_arquivo)
         
         # procura arquivo CSV de resultado
-        if not os.path.exists(pasta_oc):
-            return False
-            
-        for nome in os.listdir(pasta_oc):
+        for nome in listar_arquivos_pasta(pasta_oc):
             if nome.endswith("_resultado.csv"):
                 caminho_csv = os.path.join(pasta_oc, nome)
                 df = pd.read_csv(
