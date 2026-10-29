@@ -1,0 +1,59 @@
+<dialog class="modelo-precificado" id="modeloPrecificado" aria-labelledby="modeloPrecificadoTitulo" aria-describedby="modeloPrecificadoResumo">
+  <div class="modal-header">
+    <h2 id="modeloPrecificadoTitulo">Modelo de documento precificado</h2>
+    <button class="modal-fechar" type="button" data-fechar-modelo aria-label="Fechar modelo" autofocus>&times;</button>
+  </div>
+  <div class="modal-body">
+    <p id="modeloPrecificadoResumo">Use estas cinco colunas, nesta ordem, para o <strong>documento já precificado</strong>. Os dados abaixo são apenas exemplos: substitua-os pelos seus itens.</p>
+    <div class="modelo-tabela-wrap" tabindex="0" role="region" aria-label="Exemplo das cinco colunas; pode deslocar a tabela na horizontal">
+      <table>
+        <thead><tr><th scope="col">COD KRONA</th><th scope="col">DESCRIÇÃO</th><th scope="col">VALOR UNIT</th><th scope="col">QUANTIDADE</th><th scope="col">TOTAL</th></tr></thead>
+        <tbody>
+          <tr><td>0647</td><td>LUVA ESGOTO PRIM. - DN 100</td><td>2,226</td><td>1.000</td><td>R$ 2.226,00</td></tr>
+          <tr><td>1231</td><td>ELETRODUTO CORRUGADO 25 MT</td><td>0,879</td><td>500</td><td>R$ 439,50</td></tr>
+          <tr><td>0023</td><td>TUBO PVC SOLDÁVEL - 6M - DN 20</td><td>11,485</td><td>24</td><td>R$ 275,64</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol>
+      <li><strong>Preencha o Excel:</strong> substitua todos os exemplos. Use um código Krona por linha, sem repetir códigos, e a quantidade já na unidade de compra. Medidas na descrição não convertem a quantidade.</li>
+      <li><strong>Preserve os valores originais:</strong> o unitário pode ter duas ou três casas decimais; o total tem duas. A coluna TOTAL é preenchida, não calculada automaticamente.</li>
+      <li><strong>Exporte em PDF:</strong> mantenha as cinco colunas na mesma página, com vírgula decimal e ponto de milhar. Confira que nenhuma descrição ficou cortada. Não acrescente títulos, logótipos, notas ou total geral fora da tabela; não envie uma imagem digitalizada.</li>
+      <li><strong>Compare:</strong> envie este PDF em “1. Documento já precificado”. Em “2. Orçamento Gamatec”, selecione o orçamento original do sistema Gamatec — não precisa de o adaptar a este modelo.</li>
+    </ol>
+    <p class="modelo-nota">O Excel já está preparado para impressão A4 horizontal, com o cabeçalho repetido nas páginas seguintes. Envie o PDF exportado, não o Excel. Os documentos existentes com “qnd” continuam aceites.</p>
+  </div>
+  <div class="modal-footer">
+    <a class="btn" href="{{ url_for('comparador.precificado_modelo', formato='pdf') }}" download>Descarregar PDF de exemplo</a>
+    <a class="btn btn-primary" href="{{ url_for('comparador.precificado_modelo', formato='xlsx') }}" download>Descarregar Excel editável</a>
+  </div>
+</dialog>
+<script>
+  (() => {
+    const modal = document.getElementById('modeloPrecificado');
+    let overflowAnterior;
+    document.querySelectorAll('[data-modelo-precificado]').forEach(botao => {
+      botao.addEventListener('click', () => {
+        overflowAnterior = document.body.style.overflow;
+        modal.showModal();
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    modal.querySelector('[data-fechar-modelo]').addEventListener('click', () => modal.close());
+    modal.addEventListener('close', () => { document.body.style.overflow = overflowAnterior; });
+    modal.addEventListener('keydown', event => {
+      if (event.key !== 'Tab') return;
+      const campos = modal.querySelectorAll('button, a[href], [tabindex="0"]');
+      const primeiro = campos[0];
+      const ultimo = campos[campos.length - 1];
+      if (event.shiftKey ? document.activeElement === primeiro : document.activeElement === ultimo) {
+        event.preventDefault();
+        (event.shiftKey ? ultimo : primeiro).focus();
+      }
+    });
+    modal.addEventListener('click', event => {
+      const area = modal.getBoundingClientRect();
+      if (event.target === modal && (event.clientX < area.left || event.clientX > area.right || event.clientY < area.top || event.clientY > area.bottom)) modal.close();
+    });
+  })();
+</script>

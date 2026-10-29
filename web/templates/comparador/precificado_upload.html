@@ -7,6 +7,7 @@
   <title>Documento precificado | Vortex Sync</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_modelo_precificado.css') }}">
 </head>
 <body class="page-comparador">
   <div class="app">
@@ -19,7 +20,10 @@
             <h1>Comparar documento precificado</h1>
             <p>Compare os preços do documento com o orçamento Gamatec, sem processar uma OC.</p>
           </div>
-          <div class="page-actions"><a href="/ocs" class="btn">Voltar às OCs</a></div>
+          <div class="page-actions">
+            <button class="btn" type="button" data-modelo-precificado aria-haspopup="dialog" aria-controls="modeloPrecificado">Ver modelo</button>
+            <a href="/ocs" class="btn">Voltar às OCs</a>
+          </div>
         </header>
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -34,7 +38,7 @@
                 action="{{ url_for('comparador.precificado_processar') }}">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
             {% for campo, titulo, ajuda in [
-              ('documento', '1. Documento já precificado', 'Layout COD KRONA, descrição, VALOR unit, qnd e TOTAL, como AREIAL KRONA.'),
+              ('documento', '1. Documento já precificado', 'Layout COD KRONA, DESCRIÇÃO, VALOR UNIT, QUANTIDADE e TOTAL. Consulte “Ver modelo”.'),
               ('orcamento', '2. Orçamento Gamatec', 'PDF do orçamento que será comparado com os preços do documento.')
             ] %}
               <div class="cmp-drop" id="drop-{{ campo }}">
@@ -77,6 +81,7 @@
       status.textContent = 'A ler os PDFs e comparar os preços…';
     });
   </script>
+  {% include 'comparador/_modelo_precificado.html' %}
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

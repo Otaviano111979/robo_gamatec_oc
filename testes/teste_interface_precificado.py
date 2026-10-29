@@ -6,13 +6,14 @@ import sys
 sys.dont_write_bytecode = True
 
 import builtins
+import copy
 import io
 import json
 import re
 import tempfile
 import unittest
 import unicodedata
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
@@ -818,6 +819,315 @@ class TestRegressaoInterfaceLegada(BaseInterface):
         self.assertRegex(pagina.texto, r"1[.,]?059[.,]00\b")
         self.assertEqual(self.arquivos(), [])
         self.legado_save.assert_not_called()
+
+
+MODELOS = {
+    "pdf": (UPLOAD + "/modelo.pdf", "application/pdf"),
+    "xlsx": (UPLOAD + "/modelo.xlsx",
+             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+}
+COLUNAS_MODELO = ["COD KRONA", "DESCRIÇÃO", "VALOR UNIT", "QUANTIDADE", "TOTAL"]
+LINHAS_MODELO = [
+    ("0647", "LUVA ESGOTO PRIM. - DN 100", Decimal("2.226"), 1000, Decimal("2226.00")),
+    ("1231", "ELETRODUTO CORRUGADO 25 MT", Decimal("0.879"), 500, Decimal("439.50")),
+    ("0023", "TUBO PVC SOLDÁVEL - 6M - DN 20", Decimal("11.485"), 24, Decimal("275.64")),
+]
+
+
+class HTMLModeloPrecificado(HTMLVisivel):
+    """Recolhe o dialog e os seus links sem mudar o parser dos testes antigos."""
+
+    def __init__(self, html):
+        self.botoes = []
+        self.links = []
+        self.dialogos = []
+        self._dialogo = None
+        super().__init__(html)
+
+    def handle_starttag(self, tag, attrs):
+        super().handle_starttag(tag, attrs)
+        atributos = dict(attrs)
+        if tag == "button":
+            self.botoes.append(atributos)
+        if tag == "dialog":
+            self._dialogo = {"attrs": atributos, "html": [], "links": []}
+            self.dialogos.append(self._dialogo)
+        if self._dialogo is not None:
+            self._dialogo["html"].append(self.get_starttag_text())
+        if tag == "a":
+            self.links.append(atributos)
+            if self._dialogo is not None:
+                self._dialogo["links"].append(atributos)
+
+    def handle_endtag(self, tag):
+        super().handle_endtag(tag)
+        if self._dialogo is not None:
+            self._dialogo["html"].append("</" + tag + ">")
+        if tag == "dialog":
+            self._dialogo = None
+
+    def handle_data(self, data):
+        super().handle_data(data)
+        if self._dialogo is not None:
+            self._dialogo["html"].append(data)
+
+
+class TestModelosPrecificados(BaseInterface):
+    def get_sem_efeitos(self, rota, client=None, query_string=None):
+        """Vigia o GET, incluindo escritas transitórias e acesso à sessão em disco."""
+        client = client or self.client
+        with client.session_transaction() as sessao:
+            antes_sessao = copy.deepcopy(dict(sessao))
+        antes_arquivos = self.arquivos()
+        antes_bytes = {p: p.read_bytes() for p in self.tmp.rglob("*") if p.is_file()}
+        acessados = []
+
+        def vigiar_abertura(abrir):
+            def abrir_so_leitura(file, mode="r", *args, **kwargs):
+                self.assertFalse(any(c in mode for c in "wax+"),
+                                 "GET do modelo tentou escrever um ficheiro.")
+                if isinstance(file, (str, bytes, Path)):
+                    caminho = Path(file.decode() if isinstance(file, bytes) else file).resolve()
+                    self.assertFalse(caminho.is_relative_to(self.tmp),
+                                     "O modelo não pode ser lido da sessão temporária.")
+                    acessados.append(caminho)
+                return abrir(file, mode, *args, **kwargs)
+            return abrir_so_leitura
+
+        abrir_os = bp.os.open
+
+        def abrir_os_so_leitura(path, flags, *args, **kwargs):
+            escrita = (bp.os.O_WRONLY | bp.os.O_RDWR | bp.os.O_CREAT
+                       | bp.os.O_TRUNC | bp.os.O_APPEND)
+            self.assertFalse(flags & escrita, "GET do modelo tentou escrever via os.open.")
+            if isinstance(path, (str, bytes, Path)):
+                caminho = Path(path.decode() if isinstance(path, bytes) else path).resolve()
+                self.assertFalse(caminho.is_relative_to(self.tmp),
+                                 "O modelo não pode ser lido da sessão temporária.")
+                acessados.append(caminho)
+            return abrir_os(path, flags, *args, **kwargs)
+
+        with ExitStack() as remendos:
+            for modulo in (builtins, io):
+                remendos.enter_context(patch.object(
+                    modulo, "open", side_effect=vigiar_abertura(modulo.open),
+                ))
+            remendos.enter_context(patch.object(bp.os, "open", side_effect=abrir_os_so_leitura))
+            for nome in ("mkdir", "makedirs", "replace", "rename", "remove", "unlink"):
+                remendos.enter_context(patch.object(
+                    bp.os, nome, side_effect=AssertionError("GET não pode alterar o disco: " + nome),
+                ))
+            for nome in ("_load_session_data", "_dados_precificados",
+                         "comparar_documento_precificado", "comparar_oc_orcamento",
+                         "extrair_orcamento_gamatec"):
+                remendos.enter_context(patch.object(
+                    bp, nome, side_effect=AssertionError("GET não pode executar: " + nome),
+                ))
+            remendos.enter_context(patch.object(
+                tempfile, "NamedTemporaryFile",
+                side_effect=AssertionError("GET não pode gerar ficheiros temporários."),
+            ))
+            remendos.enter_context(patch.object(
+                bp.pd, "ExcelWriter", side_effect=AssertionError("O Excel deve ser um ficheiro fixo."),
+            ))
+            resposta = client.get(rota, query_string=query_string, buffered=True)
+            resposta.get_data()
+            resposta.close()
+        self.assertEqual(self.arquivos(), antes_arquivos)
+        self.assertEqual({p: p.read_bytes() for p in antes_bytes}, antes_bytes)
+        with client.session_transaction() as sessao:
+            self.assertEqual(dict(sessao), antes_sessao, "GET do modelo alterou a sessão.")
+        self.assertNotIn("Set-Cookie", resposta.headers)
+        self.legado_save.assert_not_called()
+        self.legado_csv.assert_not_called()
+        self.legado_planilha.assert_not_called()
+        return resposta, acessados
+
+    def baixar_modelo(self, formato, client=None, query_string=None):
+        from werkzeug.http import parse_options_header
+        rota, mimetype = MODELOS[formato]
+        resposta, acessados = self.get_sem_efeitos(rota, client, query_string)
+        self.assertEqual(resposta.status_code, 200, resposta.get_data(as_text=False)[:200])
+        self.assertEqual(resposta.mimetype, mimetype)
+        disposition, parametros = parse_options_header(
+            resposta.headers.get("Content-Disposition", ""),
+        )
+        nome = "modelo_documento_precificado." + formato
+        self.assertEqual(disposition, "attachment")
+        self.assertEqual(parametros.get("filename"), nome)
+        caminho = (BASE / "web" / "modelos" / nome).resolve()
+        self.assertTrue(caminho.is_file(), "Modelo fixo ainda ausente: " + str(caminho))
+        self.assertIn(caminho, acessados, "GET deve servir o ficheiro fixo de web/modelos.")
+        self.assertEqual(resposta.data, caminho.read_bytes())
+        return resposta.data
+
+    def excel_modelo(self):
+        dados = self.baixar_modelo("xlsx")
+        self.assertTrue(dados.startswith(b"PK\x03\x04"))
+        workbook = load_workbook(io.BytesIO(dados), data_only=False)
+        self.addCleanup(workbook.close)
+        self.assertEqual(workbook.sheetnames, ["documento"])
+        return workbook["documento"]
+
+    def modal(self):
+        resposta = self.client.get(UPLOAD)
+        self.assertEqual(resposta.status_code, 200)
+        html = HTMLModeloPrecificado(resposta.get_data(as_text=True))
+        dialogos = [d for d in html.dialogos if d["attrs"].get("id") == "modeloPrecificado"]
+        self.assertEqual(len(dialogos), 1, "Falta o dialog id=modeloPrecificado no upload.")
+        return html, dialogos[0]
+
+    def test_duas_urls_get_mesmo_endpoint_e_parametro_formato(self):
+        endpoint = "comparador.precificado_modelo"
+        self.assertTrue(callable(getattr(bp, "precificado_modelo", None)),
+                        "Endpoint precificado_modelo ainda ausente.")
+        self.assertIs(self.app.view_functions.get(endpoint), bp.precificado_modelo)
+        self.assertIn(bp.autenticar_precificado,
+                      self.app.before_request_funcs.get("comparador", []))
+        adapter = self.app.url_map.bind("localhost")
+        for formato, (rota, _) in MODELOS.items():
+            with self.subTest(formato=formato):
+                self.assertEqual(adapter.match(rota, method="GET"),
+                                 (endpoint, {"formato": formato}))
+                self.assertEqual(adapter.build(endpoint, {"formato": formato}), rota)
+                self.assertEqual(self.client.post(rota).status_code, 405)
+
+    def test_anonimo_redireciona_raiz_antes_de_ler_modelos(self):
+        anonimo = self.app.test_client()
+        with patch.object(bp, "send_file",
+                          side_effect=AssertionError("Anónimo não pode receber um modelo.")) as enviar:
+            for formato, (rota, _) in MODELOS.items():
+                with self.subTest(formato=formato):
+                    resposta, acessados = self.get_sem_efeitos(rota, anonimo)
+                    self.assertEqual(resposta.status_code, 302)
+                    self.assertEqual(urlsplit(resposta.headers["Location"]).path, "/")
+                    self.assertFalse(any((BASE / "web" / "modelos") in p.parents
+                                         for p in acessados))
+            enviar.assert_not_called()
+        self.assertEqual(self.arquivos(), [])
+
+    def test_downloads_fixos_bytes_validos_attachment_sem_criar_sessao(self):
+        for formato in MODELOS:
+            with self.subTest(formato=formato):
+                dados = self.baixar_modelo(formato)
+                if formato == "pdf":
+                    self.assertTrue(dados.startswith(b"%PDF-"))
+                    with fitz.open(stream=dados, filetype="pdf") as documento:
+                        self.assertGreater(len(documento), 0)
+                        self.assertFalse(documento.is_encrypted)
+                else:
+                    self.assertTrue(dados.startswith(b"PK\x03\x04"))
+                    workbook = load_workbook(io.BytesIO(dados), data_only=False)
+                    self.addCleanup(workbook.close)
+                    self.assertEqual(workbook.sheetnames, ["documento"])
+        with self.client.session_transaction() as sessao:
+            self.assertEqual(dict(sessao), {"user": "usuario_teste"})
+        self.assertEqual(self.arquivos(), [])
+
+    def test_download_ignora_id_e_preserva_sessoes_e_resultado_anterior(self):
+        fileid = self.sucesso()
+        outro = self.app.test_client()
+        self.autenticar(outro, "outro_usuario")
+        with self.client.session_transaction() as sessao:
+            sessao["comparador_legado"] = {"id": "OC_LEGADA", "total": "123.45"}
+        for formato in MODELOS:
+            with self.subTest(formato=formato):
+                original = self.baixar_modelo(formato, outro)
+                for consulta in ({"id": fileid}, {"id": "../../fora.json"},
+                                 {"id": "inexistente", "formato": "txt"}):
+                    with self.subTest(consulta=consulta):
+                        self.assertEqual(self.baixar_modelo(formato, query_string=consulta), original)
+
+    def test_formatos_desconhecidos_retornam_404_sem_efeitos(self):
+        for formato in ("csv", "txt", "json", "zip", "xlsx.exe"):
+            with self.subTest(formato=formato):
+                resposta, acessados = self.get_sem_efeitos(UPLOAD + "/modelo." + formato)
+                self.assertEqual(resposta.status_code, 404)
+                self.assertNotIn("Content-Disposition", resposta.headers)
+                self.assertFalse(any((BASE / "web" / "modelos") in p.parents for p in acessados))
+        self.assertEqual(self.arquivos(), [])
+
+    def test_excel_cinco_colunas_codigos_texto_e_tres_linhas_numericas(self):
+        sheet = self.excel_modelo()
+        self.assertEqual(sheet.max_column, 5)
+        self.assertEqual(sheet.max_row, 4)
+        self.assertEqual([c.value for c in sheet[1]], COLUNAS_MODELO)
+        for linha, esperado in zip(sheet.iter_rows(min_row=2), LINHAS_MODELO):
+            codigo, descricao, *numeros = linha
+            with self.subTest(codigo=esperado[0]):
+                self.assertEqual(codigo.data_type, "s")
+                self.assertIsInstance(codigo.value, str)
+                self.assertEqual(codigo.value, esperado[0])
+                self.assertEqual(descricao.data_type, "s")
+                self.assertEqual(descricao.value, esperado[1])
+                for cell, valor in zip(numeros, esperado[2:]):
+                    self.assertEqual(cell.data_type, "n", cell.coordinate)
+                    self.assertIsInstance(cell.value, (int, float))
+                    self.assertNotIsInstance(cell.value, bool)
+                    self.assertEqual(Decimal(str(cell.value)), Decimal(str(valor)))
+        for linha in sheet:
+            for cell in linha:
+                self.assertNotEqual(cell.data_type, "f", cell.coordinate)
+
+    def test_excel_total_explicito_nao_muda_ao_editar_preco_e_quantidade(self):
+        sheet = self.excel_modelo()
+        for numero, esperado in enumerate(LINHAS_MODELO, start=2):
+            with self.subTest(linha=numero):
+                total = sheet.cell(numero, 5)
+                sheet.cell(numero, 3).value = 99.999
+                sheet.cell(numero, 4).value = 7
+                self.assertEqual(total.data_type, "n")
+                self.assertEqual(Decimal(str(total.value)), esperado[4])
+
+    def test_excel_impressao_a4_paisagem_cabecalho_repetido_sem_area_fixa(self):
+        sheet = self.excel_modelo()
+        self.assertIn(sheet.print_title_rows, ("1:1", "$1:$1"))
+        self.assertEqual(str(sheet.page_setup.paperSize), str(sheet.PAPERSIZE_A4))
+        self.assertEqual(sheet.page_setup.orientation, "landscape")
+        self.assertEqual(sheet.page_setup.fitToWidth, 1)
+        self.assertEqual(sheet.page_setup.fitToHeight, 0)
+        self.assertFalse(sheet.print_area, "Área de impressão fixa excluiria novas linhas.")
+        for nome in ("oddHeader", "evenHeader", "firstHeader",
+                     "oddFooter", "evenFooter", "firstFooter"):
+            bloco = getattr(sheet, nome)
+            for posicao in ("left", "center", "right"):
+                self.assertFalse(getattr(bloco, posicao).text, nome + "." + posicao)
+        sheet.append(["0001", "NOVO ITEM", 1.123, 2, 2.25])
+        self.assertFalse(sheet.print_area)
+        self.assertEqual(sheet.max_row, 5)
+
+    def test_upload_botao_modelo_dialog_e_links_dos_dois_downloads(self):
+        html, dialogo = self.modal()
+        botoes = [b for b in html.botoes if "data-modelo-precificado" in b]
+        self.assertEqual(len(botoes), 1)
+        self.assertEqual(botoes[0].get("type"), "button")
+        links_modal = {a.get("href") for a in dialogo["links"]}
+        links_upload = {a.get("href") for a in html.links}
+        for rota, _ in MODELOS.values():
+            self.assertIn(rota, links_modal)
+            self.assertIn(rota, links_upload)
+        self.assertEqual(self.arquivos(), [])
+        self.legado_csv.assert_not_called()
+
+    def test_modal_exemplos_e_instrucoes_pdf_excel_sem_importacao_oc(self):
+        _, dialogo = self.modal()
+        exemplo = HTMLVisivel("".join(dialogo["html"]))
+        texto = normalizar(exemplo.texto)
+        self.assertIn(normalizar(" ".join(COLUNAS_MODELO)), texto)
+        self.assertRegex(texto, r"\bpdf\b")
+        self.assertRegex(texto, r"\b(?:excel|xlsx)\b")
+        self.assertRegex(texto, r"preench|edit|alter")
+        self.assertRegex(texto, r"(?:export|salv|imprim|ger).{0,120}\bpdf\b")
+        self.assertRegex(texto, r"exemplo")
+        self.assertRegex(texto, r"\b0647\b")
+        self.assertIn("luva esgoto prim. - dn 100", texto)
+        self.assertRegex(texto, r"\b1231\b")
+        self.assertIn("eletroduto corrugado 25 mt", texto)
+        for link in dialogo["links"]:
+            caminho = urlsplit(link.get("href", "")).path
+            self.assertFalse(caminho.startswith(("/ocs", "/importar", "/upload")),
+                             "O modal não pode encaminhar para a importação de OC.")
+        self.assertNotRegex(texto, r"(?:acesse|abra|clique|va).{0,60}importa.{0,30}\bocs?\b")
 
 
 if __name__ == "__main__":

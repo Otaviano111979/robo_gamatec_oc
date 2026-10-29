@@ -7,7 +7,7 @@ import pdfplumber
 
 
 _CABECALHO = re.compile(
-    r"COD\s+KRONA\s+descri[çc][ãa]o\s+VALOR\s+unit\s+qnd\s+TOTAL",
+    r"COD\s+KRONA\s+descri[çc][ãa]o\s+VALOR\s+unit\s+(?:qnd|quantidade)\s+TOTAL",
     re.IGNORECASE,
 )
 _INTEIRO_BR = r"(?:\d{1,3}(?:\.\d{3})+|\d+)"
@@ -47,7 +47,7 @@ def extrair_documento_precificado(pdf_bytes: bytes) -> pd.DataFrame:
                 if cabecalho is None:
                     raise ValueError(
                         "Layout de documento precificado não suportado: esperado "
-                        "COD KRONA, descrição, VALOR unit, qnd e TOTAL."
+                        "COD KRONA, DESCRIÇÃO, VALOR UNIT, QUANTIDADE (ou qnd) e TOTAL."
                     )
                 if any(linha.strip() for linha in linhas[:cabecalho]):
                     raise ValueError(

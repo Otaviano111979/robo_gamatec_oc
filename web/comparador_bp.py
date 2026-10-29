@@ -25,7 +25,7 @@ from pathlib import Path
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, InvalidOperation
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, session, send_file, flash, jsonify
+    url_for, session, send_file, flash, jsonify, abort
 )
 
 from extrator_orcamento_gamatec import extrair_orcamento_gamatec
@@ -122,6 +122,22 @@ def precificado_upload():
     if 'precificado_csrf' not in session:
         session['precificado_csrf'] = secrets.token_urlsafe(32)
     return render_template('precificado_upload.html', csrf_token=session['precificado_csrf'])
+
+
+@comparador_bp.get('/documento-precificado/modelo.<formato>')
+def precificado_modelo(formato):
+    formatos = {
+        'pdf': ('modelo_documento_precificado.pdf', 'application/pdf'),
+        'xlsx': ('modelo_documento_precificado.xlsx',
+                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+    }
+    if formato not in formatos:
+        abort(404)
+    nome, mimetype = formatos[formato]
+    return send_file(
+        Path(_HERE) / 'modelos' / nome,
+        as_attachment=True, download_name=nome, mimetype=mimetype,
+    )
 
 
 @comparador_bp.post('/documento-precificado/processar')

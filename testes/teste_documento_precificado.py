@@ -620,5 +620,150 @@ class TestExtratorOrcamentoGamatec(unittest.TestCase):
                     ))
 
 
+CABECALHO_MODELO = "COD KRONA DESCRIÇÃO VALOR UNIT QUANTIDADE TOTAL"
+ITENS_MODELO = [
+    ("0647", "LUVA ESGOTO PRIM. - DN 100", "2.226", "1000", "2226.00"),
+    ("1231", "ELETRODUTO CORRUGADO 25 MT", "0.879", "500", "439.50"),
+    ("0023", "TUBO PVC SOLDÁVEL - 6M - DN 20", "11.485", "24", "275.64"),
+]
+
+
+class TestCabecalhoQuantidade(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from extrator_documento_precificado import extrair_documento_precificado
+        cls.extrair = staticmethod(extrair_documento_precificado)
+
+    def test_quantidade_aceita_caixa_e_acentos_no_cabecalho(self):
+        esperado = self.extrair(pdf_em_memoria(CABECALHO + "\n" + LINHA_VALIDA))
+        for cabecalho in (
+            CABECALHO_MODELO, CABECALHO_MODELO.lower(),
+            "cod krona Descrição valor Unit Quantidade total",
+            "COD KRONA DESCRICAO VALOR UNIT QUANTIDADE TOTAL",
+            "cod krona descricao valor unit quantidade total",
+        ):
+            with self.subTest(cabecalho=cabecalho):
+                resultado = self.extrair(pdf_em_memoria(cabecalho + "\n" + LINHA_VALIDA))
+                assert_frame_equal(resultado, esperado, check_exact=True)
+
+    def test_quantidade_repetida_na_mesma_pagina_e_entre_paginas(self):
+        linhas = [
+            "0647 LUVA ESGOTO PRIM. - DN 100 2,226 1.000 R$ 2.226,00",
+            "1231 ELETRODUTO CORRUGADO 25 MT 0,879 500 R$ 439,50",
+            "0023 TUBO PVC SOLDÁVEL - 6M - DN 20 11,485 24 R$ 275,64",
+        ]
+        resultado = self.extrair(pdf_em_memoria(
+            CABECALHO_MODELO + "\n" + linhas[0] + "\n" + CABECALHO_MODELO.lower(),
+            CABECALHO_MODELO.replace("DESCRIÇÃO", "DESCRICAO") + "\n" + linhas[1],
+            CABECALHO_MODELO.lower() + "\n" + linhas[2],
+        ))
+        self.assertEqual(len(resultado), 3)
+        self.assertEqual(resultado["codigo_krona"].tolist(), ["647", "1231", "23"])
+        self.assertEqual(resultado["pagina"].tolist(), [1, 2, 3])
+        for registro, (_, descricao, unitario, quantidade, total) in zip(
+                resultado.to_dict("records"), ITENS_MODELO):
+            self.assertEqual(registro["descricao_krona"], descricao)
+            for coluna, valor in (("valor_unitario_oc", unitario),
+                                  ("quantidade_final", quantidade),
+                                  ("total_documento", total)):
+                self.assertIsInstance(registro[coluna], Decimal)
+                self.assertEqual(registro[coluna], Decimal(valor))
+
+    def test_quantidade_preserva_precos_decimais_e_total_divergente(self):
+        resultado = self.extrair(pdf_em_memoria(
+            CABECALHO_MODELO + "\n"
+            "0647 LUVA DN 100 2,226 1.000,50 R$ 2.225,99\n"
+            "1231 ELETRODUTO 25 MT 0,879 0,5 R$ 0,43\n"
+            "0023 TUBO 6M DN 20 11,485 24 R$ 275,63",
+        ))
+        self.assertEqual(resultado["codigo_krona"].tolist(), ["647", "1231", "23"])
+        for registro, (unitario, quantidade, total) in zip(
+                resultado.to_dict("records"),
+                (("2.226", "1000.50", "2225.99"),
+                 ("0.879", "0.5", "0.43"), ("11.485", "24", "275.63"))):
+            self.assertEqual(registro["valor_unitario_oc"], Decimal(unitario))
+            self.assertEqual(registro["quantidade_final"], Decimal(quantidade))
+            self.assertEqual(registro["total_documento"], Decimal(total))
+            self.assertNotEqual(
+                registro["total_documento"],
+                (Decimal(unitario) * Decimal(quantidade)).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP,
+                ),
+            )
+
+    def test_qnd_continua_igual_e_pode_alternar_com_quantidade(self):
+        primeira = "0647 LUVA DN 100 2,226 1.000 R$ 2.225,99"
+        segunda = "0023 TUBO DN 20 11,485 24 R$ 275,63"
+        esperado = self.extrair(pdf_em_memoria(
+            CABECALHO + "\n" + primeira,
+            CABECALHO.upper() + "\n" + segunda,
+        ))
+        for cabecalhos in (
+            (CABECALHO, CABECALHO_MODELO),
+            (CABECALHO_MODELO, CABECALHO),
+        ):
+            with self.subTest(cabecalhos=cabecalhos):
+                resultado = self.extrair(pdf_em_memoria(
+                    cabecalhos[0] + "\n" + primeira,
+                    cabecalhos[1] + "\n" + segunda,
+                ))
+                assert_frame_equal(resultado, esperado, check_exact=True)
+
+    def test_comparacao_quantidade_equivale_a_qnd_sem_recalcular_documento(self):
+        linha = "1231 ELETRODUTO CORRUGADO 25 MT 0,879 500 R$ 439,49"
+        itens = [orcamento("1231", 1.0, quantidade=500)]
+        esperado = comparador.comparar_documento_precificado(
+            pdf_em_memoria(CABECALHO + "\n" + linha), itens,
+        )
+        resultado = comparador.comparar_documento_precificado(
+            pdf_em_memoria(CABECALHO_MODELO + "\n" + linha), itens,
+        )
+        assert_frame_equal(resultado, esperado, check_exact=True)
+        registro = resultado.iloc[0]
+        for coluna, valor in (
+            ("PRECO_OC", "0.879"), ("QUANTIDADE", "500"),
+            ("TOTAL_DOCUMENTO", "439.49"), ("TOTAL_CALCULADO", "439.50"),
+            ("DIFERENCA_TOTAL", "-0.01"),
+        ):
+            self.assertEqual(decimal_resultado(registro[coluna]), Decimal(valor))
+
+
+class TestModeloPDFDocumentoPrecificado(unittest.TestCase):
+    def modelo(self):
+        caminho = os.path.join(BASE, "web", "modelos", "modelo_documento_precificado.pdf")
+        self.assertTrue(os.path.isfile(caminho), "Modelo PDF fixo ainda ausente: " + caminho)
+        with open(caminho, "rb") as arquivo:
+            return arquivo.read()
+
+    def test_pdf_valido_com_cabecalho_exato_quantidade_sem_qnd(self):
+        dados = self.modelo()
+        self.assertTrue(dados.startswith(b"%PDF-"))
+        with fitz.open(stream=dados, filetype="pdf") as documento:
+            self.assertFalse(documento.is_encrypted)
+            self.assertGreater(len(documento), 0)
+            texto = " ".join(" ".join(p.get_text() for p in documento).split())
+        self.assertIn(CABECALHO_MODELO, texto)
+        self.assertNotRegex(texto.lower(), r"\bqnd\b")
+
+    def test_leitor_do_pdf_fixo_devolve_exatamente_os_tres_itens(self):
+        from extrator_documento_precificado import extrair_documento_precificado
+        resultado = extrair_documento_precificado(self.modelo())
+        self.assertEqual(list(resultado.columns), COLUNAS_EXTRACAO)
+        self.assertEqual(len(resultado), 3)
+        self.assertEqual(resultado["codigo_krona"].tolist(), ["647", "1231", "23"])
+        for registro, (codigo, descricao, unitario, quantidade, total) in zip(
+                resultado.to_dict("records"), ITENS_MODELO):
+            with self.subTest(codigo=codigo):
+                self.assertIsInstance(registro["codigo_krona"], str)
+                self.assertEqual(registro["descricao_krona"], descricao)
+                self.assertIsInstance(registro["pagina"], int)
+                self.assertGreaterEqual(registro["pagina"], 1)
+                for coluna, valor in (("valor_unitario_oc", unitario),
+                                      ("quantidade_final", quantidade),
+                                      ("total_documento", total)):
+                    self.assertIsInstance(registro[coluna], Decimal)
+                    self.assertEqual(registro[coluna], Decimal(valor))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

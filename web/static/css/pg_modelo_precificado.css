@@ -1,0 +1,24 @@
+.modelo-precificado {
+  width: min(920px, calc(100% - 32px)); max-height: calc(100dvh - 32px);
+  margin: auto; padding: 0; overflow: auto;
+  background: var(--surface); color: var(--text); font: inherit;
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+}
+.modelo-precificado::backdrop { background: rgba(15, 18, 22, .5); }
+.modelo-precificado .modelo-tabela-wrap { margin: 16px 0; overflow-x: auto; }
+.modelo-precificado table { width: 100%; min-width: 740px; }
+.modelo-precificado th, .modelo-precificado td { white-space: nowrap; }
+.modelo-precificado th { font-size: 11px; }
+.modelo-precificado td:first-child { font-family: var(--mono); }
+.modelo-precificado th:nth-child(n+3), .modelo-precificado td:nth-child(n+3) {
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.modelo-precificado ol { padding-left: 20px; }
+.modelo-precificado li + li { margin-top: 8px; }
+.modelo-precificado .modelo-nota { margin-top: 16px; color: var(--text-2); }
+.modelo-precificado .modal-footer { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .modelo-precificado .modal-body { padding: 14px; }
+  .modelo-precificado .modal-footer .btn { flex: 1 1 160px; }
+}

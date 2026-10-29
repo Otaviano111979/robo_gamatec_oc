@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OCs | Vortex Sync</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_modelo_precificado.css') }}">
 </head>
 <body class="page-ocs">
 
@@ -26,7 +27,10 @@
         <div>
           <h1>OCs</h1>
           <p>Ordens de compra, pedidos e cotações recebidos para processamento.</p>
-          <a class="btn btn-sm" href="{{ url_for('comparador.precificado_upload') }}">Comparar documento precificado</a>
+          <div class="page-actions">
+            <a class="btn btn-sm" href="{{ url_for('comparador.precificado_upload') }}">Comparar documento precificado</a>
+            <button class="btn btn-ghost btn-sm" type="button" data-modelo-precificado aria-haspopup="dialog" aria-controls="modeloPrecificado">Ver modelo</button>
+          </div>
         </div>
         <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form compact-card" id="upload-form">
           <label class="btn" for="file" id="upload-label">
@@ -634,6 +638,7 @@
     });
   </script>
 
+  {% include 'comparador/_modelo_precificado.html' %}
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
