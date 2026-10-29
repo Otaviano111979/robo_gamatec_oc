@@ -46,7 +46,7 @@ html.dark .sidebar-branding .marca-escura { display: block; }
     transform var(--dur-2) var(--ease-out),
     visibility 0s linear var(--dur-2);
 }
-.ilha:hover .ilha-cartao,
+.ilha.is-aberto .ilha-cartao,
 .ilha.is-fixo .ilha-cartao {
   opacity: 1; visibility: visible; pointer-events: auto;
   transform: none;

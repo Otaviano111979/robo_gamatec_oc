@@ -243,20 +243,69 @@
     botao.setAttribute('aria-expanded', estado ? 'true' : 'false');
   }
 
+  var ABRIR_MS = 120;
+  var FECHAR_MS = 200;
+  var relogioAbrir = 0;
+  var relogioFechar = 0;
+
+  function abrirComAtraso() {
+    clearTimeout(relogioFechar);
+    clearTimeout(relogioAbrir);
+    relogioAbrir = setTimeout(function () {
+      raiz.classList.add('is-aberto');
+    }, ABRIR_MS);
+  }
+
+  function fecharComAtraso() {
+    clearTimeout(relogioAbrir);
+    clearTimeout(relogioFechar);
+    if (estaFixo()) return;
+    relogioFechar = setTimeout(function () {
+      if (estaFixo() || raiz.matches(':hover') || cartao.contains(document.activeElement)) return;
+      raiz.classList.remove('is-aberto');
+    }, FECHAR_MS);
+  }
+
+  raiz.addEventListener('mouseenter', abrirComAtraso);
+  raiz.addEventListener('mouseleave', fecharComAtraso);
+
+  cartao.addEventListener('focusin', function () {
+    clearTimeout(relogioAbrir);
+    clearTimeout(relogioFechar);
+    raiz.classList.add('is-aberto');
+  });
+  cartao.addEventListener('focusout', function (evento) {
+    if (!cartao.contains(evento.relatedTarget)) fecharComAtraso();
+  });
+
   botao.addEventListener('click', function (evento) {
     evento.preventDefault();
-    fixar(!estaFixo());
+    if (estaFixo()) {
+      fixar(false);
+      if (raiz.matches(':hover')) raiz.classList.add('is-aberto');
+      else fecharComAtraso();
+    } else {
+      clearTimeout(relogioAbrir);
+      clearTimeout(relogioFechar);
+      fixar(true);
+      raiz.classList.add('is-aberto');
+    }
   });
 
   document.addEventListener('keydown', function (evento) {
     if (evento.key === 'Escape' && estaFixo()) {
       fixar(false);
+      if (raiz.matches(':hover')) raiz.classList.add('is-aberto');
+      else raiz.classList.remove('is-aberto');
       botao.focus();
     }
   });
 
   document.addEventListener('click', function (evento) {
-    if (estaFixo() && !raiz.contains(evento.target)) fixar(false);
+    if (estaFixo() && !raiz.contains(evento.target)) {
+      fixar(false);
+      if (!raiz.matches(':hover')) raiz.classList.remove('is-aberto');
+    }
   });
 
   botaoAtualizar.addEventListener('click', function () {
