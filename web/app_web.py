@@ -2588,6 +2588,21 @@ def api_agente_email_log():
 
 
 # =========================
+# ILHA DA SIDEBAR — TEMPO, MERCADO E NOTÍCIAS
+# =========================
+
+@app.route("/api/ilha")
+def api_ilha():
+    if not usuario_logado():
+        return jsonify({"ok": False}), 403
+    try:
+        from ilha_mercado import coletar
+        return jsonify(coletar(forcar=request.args.get("forcar") == "1"))
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+# =========================
 # SHADOW MODE — STATS
 # =========================
 

@@ -23,6 +23,41 @@
     <div class="nav-sep"></div>
     <a href="/launcher" class="{{ 'is-active' if nav_ativo == 'launcher' }}">Launcher</a>
   </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-branding">
+      <img class="marca-clara" src="{{ url_for('static', filename='img/une_representacoes.png') }}" alt="UNE Representações" width="360" height="209">
+      <img class="marca-escura" src="{{ url_for('static', filename='img/une_representacoes_dark.png') }}" alt="" width="360" height="209">
+    </div>
+    <div class="ilha" id="ilha" data-estado="carregando">
+      <button class="ilha-pilula" type="button" id="ilha-botao" aria-expanded="false" aria-controls="ilha-cartao">
+        <span class="ilha-temp"><span class="ilha-icone" id="ilha-pilula-icone"></span><span id="ilha-temp-txt">—</span></span>
+        <span class="ilha-sep" aria-hidden="true"></span>
+        <span class="ilha-cot" id="ilha-cot">—</span>
+        <span class="ilha-sep" aria-hidden="true"></span>
+        <span class="ilha-bolsa" id="ilha-bolsa">—</span>
+      </button>
+      <div class="ilha-cartao" id="ilha-cartao">
+        <div class="ilha-painel" role="region" aria-label="Ilha de informações">
+          <div class="ilha-topo">
+            <span class="ilha-cidade">Goiânia</span>
+            <span class="ilha-relogio" id="ilha-relogio"></span>
+          </div>
+          <div id="ilha-tempo"><p class="ilha-vazio">A carregar…</p></div>
+          <div class="ilha-dias" id="ilha-dias"></div>
+          <div class="ilha-seccao-titulo" id="titulo-mercado">Mercado</div>
+          <div class="ilha-mercado" id="ilha-mercado"></div>
+          <div class="ilha-seccao-titulo" id="titulo-noticias">Notícias do setor</div>
+          <div class="ilha-noticias" id="ilha-noticias"></div>
+          <div class="ilha-rodape">
+            <span id="ilha-atualizado">A carregar…</span>
+            <button class="ilha-atualizar" type="button" id="ilha-atualizar" title="Atualizar agora" aria-label="Atualizar dados">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="sidebar-foot">
     <div class="who">{{ session.get('user') }}<small>{{ session.get('tipo', 'user') }}</small></div>
     <div class="sidebar-foot-actions">
@@ -33,3 +68,5 @@
     </div>
   </div>
 </aside>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+<script src="{{ url_for('static', filename='js/ilha.js') }}" defer></script>
