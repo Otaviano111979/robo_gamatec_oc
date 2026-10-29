@@ -208,6 +208,14 @@
         const data = await resp.json();
         if (!data.ok) return;
 
+        const tamanho = n => !n ? "0 KB"
+          : n >= 1048576 ? (n / 1048576).toFixed(1) + " MB"
+          : Math.max(1, Math.round(n / 1024)) + " KB";
+        const backup = data.backup || {};
+        const sqlites = (data.sqlite || []).filter(b => b.existe);
+        const processando = data.processando || { total: 0, itens: [] };
+        const disco = data.disco || {};
+
         const itens = [
           {
             label: "Base Krona",
@@ -254,6 +262,46 @@
             ok:    data.total_erros === 0,
             aviso: data.total_erros > 0,
             detalhe: `${data.total_erros} arquivo(s) com erro`
+          },
+          {
+            label: "Backup diário",
+            ok:    Boolean(backup.ok) && backup.idade_horas < 24,
+            aviso: Boolean(backup.ok) && backup.idade_horas >= 24,
+            detalhe: backup.ok
+              ? `${backup.quando} · ${tamanho(backup.bytes)} · ${backup.copias} cópia(s) guardada(s)`
+              : (backup.erro === "sem copias" ? "Sem cópias ainda" : `Falhou: ${backup.erro || "motivo desconhecido"}`)
+          },
+          {
+            label: "Bases SQLite",
+            ok:    sqlites.length > 0 && sqlites.every(b => b.ok),
+            aviso: sqlites.length > 0 && sqlites.some(b => b.ok === null),
+            detalhe: sqlites.length
+              ? sqlites.map(b => `${b.nome} ${tamanho(b.bytes)}`).join(" · ")
+              : "Bases não encontradas"
+          },
+          {
+            label: "Cache de classificação",
+            ok:    Boolean((data.cache_tipos || {}).existe),
+            aviso: !(data.cache_tipos || {}).existe,
+            detalhe: (data.cache_tipos || {}).existe
+              ? `${data.cache_tipos.entradas} documentos · ${tamanho(data.cache_tipos.bytes)} · ${data.cache_tipos.atualizado}`
+              : "Ainda não gerado"
+          },
+          {
+            label: "Processamento",
+            ok:    processando.total === 0,
+            aviso: processando.total > 0,
+            detalhe: processando.total === 0
+              ? "Nenhuma OC em processamento"
+              : `${processando.total} OC(s): ${processando.itens.join(", ")}`
+          },
+          {
+            label: "Disco",
+            ok:    (disco.livre_gb ?? 0) >= 5,
+            aviso: (disco.livre_gb ?? 0) < 5 && (disco.livre_gb ?? 0) >= 1,
+            detalhe: disco.livre_gb === undefined
+              ? "Não disponível"
+              : `${disco.livre_gb} GB livres de ${disco.total_gb} GB`
           },
         ];
 

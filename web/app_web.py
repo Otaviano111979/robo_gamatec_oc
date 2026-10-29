@@ -2348,6 +2348,101 @@ def api_excluir_erro():
 # PAINEL DE CONTROLE
 # =========================
 
+_CACHE_INTEGRIDADE = {"em": 0.0, "dados": None}
+REGRA_INTEGRIDADE = 60  # segundos; o painel atualiza a cada 30
+
+
+def resumo_backup():
+    """Ultima copia diaria: quando foi feita, se passou o teste de restauro."""
+    from backup_diario import PADRAO_DIA, pasta_diaria
+
+    pasta = pasta_diaria(BASE_DIR)
+    try:
+        dias = sorted(nome for nome in os.listdir(pasta)
+                      if PADRAO_DIA.match(nome) and os.path.isdir(os.path.join(pasta, nome)))
+    except OSError:
+        dias = []
+    if not dias:
+        return {"ok": False, "dia": None, "quando": None, "idade_horas": None,
+                "bytes": 0, "copias": 0, "erro": "sem copias"}
+
+    caminho = os.path.join(pasta, dias[-1])
+    estado = carregar_json(os.path.join(caminho, "estado.json"), {})
+    try:
+        quando = datetime.fromisoformat(estado.get("quando", ""))
+    except ValueError:
+        quando = datetime.fromtimestamp(os.path.getmtime(caminho))
+    bytes_copia = 0
+    for nome in os.listdir(caminho):
+        ficheiro = os.path.join(caminho, nome)
+        if os.path.isfile(ficheiro):
+            bytes_copia += os.path.getsize(ficheiro)
+    return {
+        "ok": bool(estado.get("ok")),
+        "dia": dias[-1],
+        "quando": quando.strftime("%d/%m/%Y %H:%M"),
+        "idade_horas": round((datetime.now() - quando).total_seconds() / 3600, 1),
+        "bytes": bytes_copia,
+        "copias": len(dias),
+        "erro": estado.get("erro"),
+    }
+
+
+def resumo_sqlite():
+    """Integridade das bases do sistema, reaproveitada durante um minuto."""
+    agora = time.time()
+    if _CACHE_INTEGRIDADE["dados"] is not None and agora - _CACHE_INTEGRIDADE["em"] < REGRA_INTEGRIDADE:
+        return _CACHE_INTEGRIDADE["dados"]
+
+    import sqlite3
+    from urllib.parse import quote
+
+    itens = []
+    for nome in ("crm.db", "revisoes.db"):
+        caminho = os.path.join(PASTA_DADOS, nome)
+        item = {"nome": nome, "existe": os.path.exists(caminho), "ok": None,
+                "bytes": 0, "tabelas": 0, "integridade": None}
+        if item["existe"]:
+            item["bytes"] = os.path.getsize(caminho)
+            try:
+                uri = "file:" + quote(caminho.replace("\\", "/")) + "?mode=ro"
+                db = sqlite3.connect(uri, uri=True, timeout=10)
+                try:
+                    item["integridade"] = db.execute("PRAGMA quick_check").fetchone()[0]
+                    item["tabelas"] = db.execute(
+                        "SELECT count(*) FROM sqlite_master "
+                        "WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0]
+                finally:
+                    db.close()
+                item["ok"] = item["integridade"] == "ok"
+            except Exception as erro:
+                item["erro"] = str(erro)
+        itens.append(item)
+    _CACHE_INTEGRIDADE.update({"em": agora, "dados": itens})
+    return itens
+
+
+def resumo_cache_tipos():
+    caminho = CACHE_TIPOS_DOCUMENTO_FILE
+    if not os.path.exists(caminho):
+        return {"existe": False, "entradas": 0, "bytes": 0, "atualizado": None}
+    dados = carregar_json(caminho, {})
+    return {
+        "existe": True,
+        "entradas": len(dados) if isinstance(dados, dict) else 0,
+        "bytes": os.path.getsize(caminho),
+        "atualizado": time.strftime("%d/%m/%Y %H:%M", time.localtime(os.path.getmtime(caminho))),
+    }
+
+
+def resumo_disco():
+    try:
+        uso = shutil.disk_usage(BASE_DIR)
+    except OSError:
+        return None
+    return {"livre_gb": round(uso.free / 1e9, 1), "total_gb": round(uso.total / 1e9, 1)}
+
+
 @app.route("/painel")
 def painel():
     if not usuario_logado():
@@ -2409,6 +2504,9 @@ def api_painel_saude():
     # agente email
     email_status = status_agente_email()
 
+    with LOCK_PROCESSOS:
+        processando = sorted(nome for nome, proc in PROCESSOS_ATIVOS.items() if proc.poll() is None)
+
     return jsonify({
         "ok": True,
         "bases": {
@@ -2421,6 +2519,11 @@ def api_painel_saude():
         "calibrado":     calibrado,
         "cal_data":      cal_data,
         "agente_email":  email_status,
+        "backup":        resumo_backup(),
+        "sqlite":        resumo_sqlite(),
+        "cache_tipos":   resumo_cache_tipos(),
+        "disco":         resumo_disco(),
+        "processando":   {"total": len(processando), "itens": processando},
     })
 
 
