@@ -3042,6 +3042,12 @@ if __name__ == "__main__":
     verificar_estado_ao_iniciar()
     limpar_arquivos_antigos()
 
+    try:
+        from backup_diario import vigiar
+        vigiar()
+    except Exception as erro:
+        print(f"[BACKUP] Verificador nao iniciado: {erro}")
+
     # inicia agente de email automaticamente se token existir
     token_path = os.path.join(BASE_DIR, "agente_email", "token.pickle")
     if os.path.exists(token_path):

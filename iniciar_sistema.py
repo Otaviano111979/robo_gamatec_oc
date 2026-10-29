@@ -189,6 +189,11 @@ def main():
         if not os.path.exists(os.path.join(RAIZ, "web", "app_web.py")):
             print(f"[INICIAR] ERRO: app_web.py nao encontrado em {RAIZ}")
             return 1
+        try:
+            import backup_diario
+            backup_diario.executar_se_necessario()
+        except Exception as erro:
+            print(f"[INICIAR] Backup diario ignorado neste arranque: {erro}")
         return iniciar_web(porta, arquivo, args.abrir_navegador)
 
 
