@@ -430,5 +430,195 @@ class TestRegressoesFontesExistentes(unittest.TestCase):
                 self.assertEqual(total_triplet, Decimal("315.57"))
 
 
+class TestExtratorOrcamentoGamatec(unittest.TestCase):
+    CABECALHOS = {
+        8: "Produto Emb Qtde Unitário Total IPI ICMS Ret Unit.Imp Tot.c/Imp",
+        4: "Produto Emb Qtde Unitário Total",
+        3: "Produto Qtde Unitário Total",
+    }
+    COLUNAS = {
+        8: "10 1.000 2,738 2.738,00 0,00 0,00 2,738 2.738,00",
+        4: "10 1.000 2,738 2.738,00",
+        3: "1.000 2,738 2.738,00",
+    }
+
+    def extrair_linhas(self, *linhas, layout=None):
+        cabecalho = [self.CABECALHOS[layout]] if layout is not None else []
+        return extrair_orcamento_gamatec(pdf_em_memoria(
+            "\n".join([*cabecalho, *linhas]),
+        ))
+
+    def verificar_itens(self, resultado, esperados):
+        self.assertEqual(resultado["total_itens"], len(esperados))
+        self.assertEqual(len(resultado["itens"]), len(esperados))
+        for item, (codigo, descricao, quantidade, preco) in zip(
+                resultado["itens"], esperados):
+            self.assertEqual(item["codigo"], codigo)
+            self.assertEqual(item["preco_orcamento"], preco)
+            self.assertEqual(item["qtde"], quantidade)
+            self.assertEqual(item["descricao"], descricao)
+
+    def test_codigo_0647_oito_colunas_com_sem_header_e_codigo_colado(self):
+        for layout in (8, None):
+            for separador in (" ", ""):
+                with self.subTest(layout=layout, separador=separador):
+                    resultado = self.extrair_linhas(
+                        f"0647{separador}LUVA ESGOTO PRIM. - DN 100 {self.COLUNAS[8]}",
+                        layout=layout,
+                    )
+                    self.verificar_itens(resultado, [
+                        ("647", "LUVA ESGOTO PRIM. - DN 100", 1000.0, 2.738),
+                    ])
+
+    def test_oito_colunas_preserva_numeros_e_medidas_da_descricao(self):
+        for layout in (8, None):
+            for descricao in ("LUVA DN 100", "CAIXA 100 X 52 X 40", "ADESIVO 1 KG"):
+                with self.subTest(layout=layout, descricao=descricao):
+                    resultado = self.extrair_linhas(
+                        f"0647 {descricao} {self.COLUNAS[8]}", layout=layout,
+                    )
+                    self.verificar_itens(resultado, [("647", descricao, 1000.0, 2.738)])
+
+    def test_unitario_sem_impostos_nao_e_substituido_pelo_unitario_com_ipi(self):
+        for layout in (8, None):
+            with self.subTest(layout=layout):
+                resultado = self.extrair_linhas(
+                    "0029 TUBO PVC 1 KG 1 10 57,722 577,22 9,75 0,00 63,350 633,50",
+                    layout=layout,
+                )
+                self.verificar_itens(resultado, [("29", "TUBO PVC 1 KG", 10.0, 57.722)])
+                self.assertNotEqual(resultado["itens"][0]["preco_orcamento"], 63.350)
+
+    def test_quatro_colunas_preserva_numero_final_da_descricao(self):
+        for layout in (4, None):
+            for descricao in ("LUVA DN 100", "CAIXA 100 X 52 X 40", "ADESIVO 1 KG"):
+                with self.subTest(layout=layout, descricao=descricao):
+                    resultado = self.extrair_linhas(
+                        f"0647 {descricao} {self.COLUNAS[4]}", layout=layout,
+                    )
+                    self.verificar_itens(resultado, [("647", descricao, 1000.0, 2.738)])
+
+    def test_tres_colunas_com_header_preserva_numero_final_da_descricao(self):
+        for separador in (" ", ""):
+            for descricao in ("LUVA DN 100", "CAIXA 100 X 52 X 40", "ADESIVO 1 KG"):
+                with self.subTest(separador=separador, descricao=descricao):
+                    resultado = self.extrair_linhas(
+                        f"0647{separador}{descricao} {self.COLUNAS[3]}", layout=3,
+                    )
+                    self.verificar_itens(resultado, [("647", descricao, 1000.0, 2.738)])
+
+    def test_medidas_numericas_nao_criam_colunas_de_impostos(self):
+        descricao = "CAIXA 100 150 50 20"
+        resultado = self.extrair_linhas(f"0647 {descricao} {self.COLUNAS[4]}")
+        self.verificar_itens(resultado, [("647", descricao, 1000.0, 2.738)])
+
+    def test_formatos_compactos_conhecidos_sem_header(self):
+        for layout in (8, 4, 3):
+            for separador in (" ", ""):
+                with self.subTest(layout=layout, separador=separador):
+                    resultado = self.extrair_linhas(
+                        f"0331{separador}ADAPTADOR 1/2 {self.COLUNAS[layout]}",
+                    )
+                    self.verificar_itens(resultado, [("331", "ADAPTADOR 1/2", 1000.0, 2.738)])
+
+    def test_header_explicito_define_layout_mesmo_com_cauda_numerica_ambigua(self):
+        # O mesmo sufixo tem três ou quatro colunas conforme o cabeçalho.
+        linha = "0647 LUVA DN 100 10 2,738 27,38"
+        for layout, descricao, quantidade in (
+            (3, "LUVA DN 100", 10.0), (4, "LUVA DN", 10.0),
+        ):
+            with self.subTest(layout=layout):
+                resultado = self.extrair_linhas(linha, layout=layout)
+                self.verificar_itens(resultado, [("647", descricao, quantidade, 2.738)])
+
+    def test_quantidades_decimais_milhares_e_totais_nao_redefinem_colunas(self):
+        casos = (
+            ("0,5", "2,738", "1,37", 0.5, 2.738),
+            ("1.000", "2,738", "2.738,00", 1000.0, 2.738),
+            ("1.000,50", "2,738", "2.739,37", 1000.5, 2.738),
+            ("484", "0,652", "315,57", 484.0, 0.652),
+            ("5.000", "0,879", "4.392,95", 5000.0, 0.879),
+            ("750", "1,412", "1.059,10", 750.0, 1.412),
+            ("1.000,50", "1.234,567", "1.234.567,89", 1000.5, 1234.567),
+        )
+        for layout in (8, 4, 3):
+            for quantidade_br, preco_br, total_br, quantidade, preco in casos:
+                for com_header in (True, False):
+                    with self.subTest(layout=layout, quantidade=quantidade_br,
+                                      preco=preco_br, total=total_br, com_header=com_header):
+                        colunas = f"{quantidade_br} {preco_br} {total_br}"
+                        if layout in (8, 4):
+                            colunas = "10 " + colunas
+                        if layout == 8:
+                            colunas += f" 0,00 0,00 {preco_br} {total_br}"
+                        # Sem cabeçalho, a cauda numérica de três colunas é inequívoca.
+                        descricao = "LUVA DN 100" if com_header or layout != 3 else "LUVA 1 KG"
+                        resultado = self.extrair_linhas(
+                            f"0647 {descricao} {colunas}",
+                            layout=layout if com_header else None,
+                        )
+                        self.verificar_itens(resultado, [("647", descricao, quantidade, preco)])
+
+    def test_header_persiste_em_paginas_seguintes_sem_header(self):
+        for layout in (8, 4, 3):
+            with self.subTest(layout=layout):
+                colunas = self.COLUNAS[layout]
+                resultado = extrair_orcamento_gamatec(pdf_em_memoria(
+                    self.CABECALHOS[layout] + f"\n0647 LUVA DN 100 {colunas}",
+                    f"0029CAIXA 100 X 52 X 40 {colunas}",
+                    f"0331 ADESIVO 1 KG {colunas}",
+                    self.CABECALHOS[layout] + f"\n1232 TUBO DN 100 {colunas}",
+                ))
+                self.verificar_itens(resultado, [
+                    ("647", "LUVA DN 100", 1000.0, 2.738),
+                    ("29", "CAIXA 100 X 52 X 40", 1000.0, 2.738),
+                    ("331", "ADESIVO 1 KG", 1000.0, 2.738),
+                    ("1232", "TUBO DN 100", 1000.0, 2.738),
+                ])
+
+    def test_coluna_invalida_rejeita_linha_sem_preco_alternativo_ou_omissao(self):
+        for layout in (8, 4, 3):
+            for indice in range(layout):
+                for invalido in ("INVALIDO", "1,0,00"):
+                    for com_header in (True, False):
+                        with self.subTest(layout=layout, coluna=indice,
+                                          invalido=invalido, com_header=com_header):
+                            colunas = self.COLUNAS[layout].split()
+                            colunas[indice] = invalido
+                            with self.assertRaises(ValueError):
+                                self.extrair_linhas(
+                                    f"0001 PRIMEIRO ITEM {self.COLUNAS[layout]}",
+                                    "0647 LUVA ESGOTO " + " ".join(colunas),
+                                    f"0331 ULTIMO ITEM {self.COLUNAS[layout]}",
+                                    layout=layout if com_header else None,
+                                )
+
+    def test_linha_numerica_incompleta_com_header_nao_retorna_itens_parciais(self):
+        for layout in (8, 4, 3):
+            for indice in range(layout):
+                with self.subTest(layout=layout, coluna_ausente=indice):
+                    colunas = self.COLUNAS[layout].split()
+                    del colunas[indice]
+                    with self.assertRaises(ValueError):
+                        self.extrair_linhas(
+                            f"0001 PRIMEIRO ITEM {self.COLUNAS[layout]}",
+                            "0647 LUVA ESGOTO " + " ".join(colunas),
+                            f"0331 ULTIMO ITEM {self.COLUNAS[layout]}",
+                            layout=layout,
+                        )
+
+    def test_linha_invalida_na_pagina_seguinte_nao_e_silenciosamente_omitida(self):
+        for layout in (8, 4, 3):
+            with self.subTest(layout=layout):
+                colunas = self.COLUNAS[layout].split()
+                colunas[-2] = "INVALIDO"
+                with self.assertRaises(ValueError):
+                    extrair_orcamento_gamatec(pdf_em_memoria(
+                        self.CABECALHOS[layout] + f"\n0001 PRIMEIRO ITEM {self.COLUNAS[layout]}",
+                        "0647 LUVA ESGOTO " + " ".join(colunas),
+                        f"0331 ULTIMO ITEM {self.COLUNAS[layout]}",
+                    ))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

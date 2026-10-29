@@ -689,6 +689,51 @@ class TestFluxoPrecificado(BaseInterface):
         self.assertEqual(desconto.value, "5.86667")
         self.assertEqual(self.arquivos(), antes, "Download não deve criar XLSX/CSV em disco.")
 
+    def test_codigo_0647_preco_e_desconto_corretos_no_resultado_e_excel(self):
+        fileid = self.sucesso(
+            documento=documento_pdf("0647 LUVA ESGOTO PRIM. - DN 100 2,226 1.000 R$ 2.226,00"),
+            orcamento=pdf_em_memoria(
+                "Produto Emb. Qtde Unitário Total IPI ICMS Ret Unit.Imp. Tot.c/Imp.\n"
+                "0647 LUVA ESGOTO PRIM. - DN 100 10 1.000 2,738 2.738,00 0,00 0,00 2,738 2.738,00"
+            ),
+        )
+        dados = json.loads((self.tmp / fileid).read_text(encoding="utf-8"))
+        registro = dados["registros"][0]
+        self.assertEqual(registro["CODIGO"], "647")
+        self.assertEqual(registro["QUANTIDADE"], 1000)
+        self.assertEqual(registro["PRECO_ORCAMENTO"], 2.738)
+        self.assertEqual(registro["DESCONTO"], 18.69979)
+        resposta = self.client.get(RESULTADO, query_string={"id": fileid})
+        self.assertEqual(resposta.status_code, 200)
+        html = HTMLVisivel(resposta.get_data(as_text=True))
+        self.assertIn("2.738", html.texto)
+        self.assertIn("18.69979", html.texto)
+        wb = self.planilha(fileid)
+        _, auditoria = self.registros_excel(wb["comparacao"])
+        self.assertEqual(auditoria[0]["PRECO_ORCAMENTO"].value, 2.738)
+        self.assertEqual(auditoria[0]["QUANTIDADE"].value, 1000)
+        self.assertEqual(auditoria[0]["DESCONTO"].value, 18.69979)
+        _, gamatec = self.registros_excel(wb["gamatec"])
+        self.assertEqual(gamatec[0]["DESCONTO"].value, "18.69979")
+
+    def test_orcamento_coluna_invalida_mostra_erro_e_preserva_resultado_anterior(self):
+        fileid = self.sucesso()
+        antes = self.arquivos()
+        with capturar_templates(self.app) as templates:
+            resposta = self.enviar(
+                csrf=self.token(),
+                orcamento=pdf_em_memoria(
+                    "Produto Emb. Qtde Unitário Total IPI ICMS Ret Unit.Imp. Tot.c/Imp.\n"
+                    "1232 PRIMEIRO ITEM 1 750 1,500 1.125,00 0,00 0,00 1,500 1.125,00\n"
+                    "0647 LUVA DN 100 10 1.000 INVALIDO 2.738,00 0,00 0,00 2,738 2.738,00"
+                ),
+            )
+        self.erro_upload(resposta, templates)
+        self.assertIn("Colunas inválidas no item 647", resposta.get_data(as_text=True))
+        self.assertEqual(self.arquivos(), antes)
+        with self.client.session_transaction() as sessao:
+            self.assertEqual(sessao["comparador_precificado"], fileid)
+
     def test_download_audita_todos_e_filtra_somente_ok_abaixo(self):
         fileid = self.sucesso(
             documento=documento_pdf(LINHA, "1233 ABAIXO 2,000 1 R$ 2,00",

@@ -15,6 +15,29 @@ import re
 import io
 import pdfplumber
 
+_CABECALHO = re.compile(
+    r'^Produto\s+(?P<emb>Emb\.?\s+)?Qtde\s+Unit[aá]rio\s+Total'
+    r'(?P<impostos>\s+IPI\s+ICMS\s+Ret\.?\s+Unit\.Imp\.?\s+Tot\.c/Imp\.?)?$',
+    re.IGNORECASE,
+)
+_INTEIRO_BR = r'(?:\d{1,3}(?:\.\d{3})+|\d+)'
+_NUMERO_BR = rf'{_INTEIRO_BR}(?:,\d+)?'
+_VALOR_BR = rf'{_INTEIRO_BR},\d{{2,3}}'
+_COLUNAS = {
+    8: ('emb', 'qtde', 'preco', 'total', 'ipi', 'icms', 'preco_impostos', 'total_impostos'),
+    4: ('emb', 'qtde', 'preco', 'total'),
+    3: ('qtde', 'preco', 'total'),
+}
+_LINHAS_ITEM = {
+    quantidade: re.compile(
+        r'(?P<descricao>.+?)\s+' + r'\s+'.join(
+            rf'(?P<{coluna}>{_NUMERO_BR if coluna in ("emb", "qtde") else _VALOR_BR})'
+            for coluna in colunas
+        )
+    )
+    for quantidade, colunas in _COLUNAS.items()
+}
+
 _IGNORAR = re.compile(
     r'^(Página|Relatório|Produto|Peso:|Cubagem:|Total|Valor|Desc\.|CNPJ|Rua|Joinville'
     r'|www\.|Representante|Cliente|CNPJ/CPF|Endereço|Cidade|CEP|Fone|Condição|Imagem'
@@ -90,13 +113,21 @@ def extrair_orcamento_gamatec(pdf_bytes: bytes) -> dict:
     cliente = ""
     emissao = ""
     itens = []
+    layout = None
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        for pagina, page in enumerate(pdf.pages, 1):
             text = page.extract_text() or ""
             for line in text.split('\n'):
                 line = line.strip()
                 if not line:
+                    continue
+
+                cabecalho = _CABECALHO.fullmatch(line)
+                if cabecalho:
+                    if cabecalho['impostos'] and not cabecalho['emb']:
+                        raise ValueError('Cabeçalho do orçamento não suportado.')
+                    layout = 8 if cabecalho['impostos'] else 4 if cabecalho['emb'] else 3
                     continue
 
                 # Metadados do cabeçalho
@@ -116,87 +147,33 @@ def extrair_orcamento_gamatec(pdf_bytes: bytes) -> dict:
                 if _IGNORAR.match(line):
                     continue
 
-                # --- NOVA LÓGICA DE EXTRAÇÃO ROBUSTA ---
-                parts = line.split()
-                if len(parts) < 4:
+                inicio = re.match(r'^(\d{4})(?!\d)\s*(.+)$', line)
+                if not inicio:
                     continue
 
-                # 1. Extrair Código (4 dígitos iniciais)
-                first = parts[0]
-                codigo = ""
-                if len(first) >= 4 and first[:4].isdigit():
-                    codigo = _norm_codigo(first[:4])
-                    if len(first) > 4:
-                        parts[0] = first[4:] # Remove código grudado na descrição
-                    else:
-                        parts.pop(0)
-                else:
-                    continue
-
-                # 2. Identificar números no final (de trás para frente)
-                # Vamos pegar todos os números possíveis até encontrar um texto
-                nums = []
-                num_parts = []
-                for p in reversed(parts):
-                    val = _parse_num_br(p)
-                    if val is not None:
-                        nums.insert(0, val)
-                        num_parts.insert(0, p)
-                    else:
+                codigo = _norm_codigo(inicio[1])
+                conteudo = inicio[2]
+                formatos = (layout,) if layout is not None else (8, 4, 3)
+                item = None
+                for formato in formatos:
+                    item = _LINHAS_ITEM[formato].fullmatch(conteudo)
+                    if item:
+                        layout = formato
                         break
-                
-                if len(nums) < 3:
-                    continue
+                if item is None:
+                    raise ValueError(
+                        f'Colunas inválidas no item {codigo}, página {pagina} do orçamento.'
+                    )
 
-                # 3. Mapear Colunas de forma robusta (Triplet Q * P = T)
-                # O objetivo é encontrar a quantidade e o preço unitário.
-                qtde_val = None
-                preco_val = None
-                
-                def is_approx(v1, v2, tol=0.05):
-                    if v1 is None or v2 is None: return False
-                    return abs(v1 - v2) < tol
-
-                # Tenta encontrar o melhor triplet (Q, P, T) tal que Q*P ≈ T
-                # No padrão de 8 colunas: Q=nums[1], P=nums[2], T=nums[3]
-                # No padrão de 4 colunas: Q=nums[1], P=nums[2], T=nums[3] (se nums[0] for Emb)
-                # No padrão de 3 colunas: Q=nums[0], P=nums[1], T=nums[2]
-                
-                found = False
-                for i in range(len(nums) - 2):
-                    q, p, t = nums[i], nums[i+1], nums[i+2]
-                    if q > 0 and p > 0 and is_approx(q * p, t):
-                        qtde_val, preco_val = q, p
-                        found = True
-                        break
-                
-                # Fallback se não achou triplet perfeito:
-                if not found:
-                    if len(nums) == 3:
-                        qtde_val, preco_val = nums[0], nums[1]
-                    elif len(nums) >= 4:
-                        # Se tiver 4 ou mais, o Unitário costuma ser o 3º se houver Emb, ou o 2º.
-                        # Na dúvida, pegamos o penúltimo ou antepenúltimo?
-                        # No caso de 8 colunas, o unitário desejado é o nums[2].
-                        # Se len(nums) >= 4, nums[1] costuma ser Qtde e nums[2] Unitário.
-                        qtde_val, preco_val = nums[1], nums[2]
-
-                # 4. Descrição é o que sobrou no meio
-                # A descrição termina onde começam os números que usamos
-                # Mas para simplificar, removemos todos os 'num_parts' do final
-                desc_limit = len(parts) - len(nums)
-                descricao = " ".join(parts[:desc_limit]).strip()
-
-                if preco_val is not None and qtde_val is not None and preco_val > 0:
+                qtde_val = _parse_num_br(item['qtde'])
+                preco_val = _parse_num_br(item['preco'])
+                if preco_val > 0:
                     itens.append({
-                        'codigo':          codigo,
-                        'descricao':       descricao,
-                        'qtde':            qtde_val,
+                        'codigo': codigo,
+                        'descricao': item['descricao'],
+                        'qtde': qtde_val,
                         'preco_orcamento': preco_val,
                     })
-
-                # --- FIM DA LÓGICA ROBUSTA ---
-                continue
 
     return {
         'numero_orcamento': numero_orcamento,
