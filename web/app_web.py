@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, flash, abort
 import os
 import sys
+import unicodedata
 
 # ── Garante que a pasta raiz do projeto (onde fica config.py) está no path ──
 # Funciona rodando de qualquer pasta: web\, raiz, ou atalho
@@ -21,7 +22,7 @@ import bcrypt
 from dotenv import load_dotenv
 load_dotenv(os.path.join(_ROOT_DIR, ".env"))
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("GAMATEC_SECRET_KEY", "chave_fallback_local")
@@ -1009,6 +1010,131 @@ def ocs():
         total_concluidos=total_concluidos,
         total_revisao=total_revisao,
     )
+
+
+# =========================
+# PASTAS DE OCs (entrada e processados)
+# =========================
+PASTAS_OC = {
+    "entrada": PASTA_ENTRADA,
+    "processados": PASTA_PROCESSADOS,
+}
+ITENS_POR_PAGINA_PASTAS = 100
+
+
+def normalizar_busca(texto):
+    texto = unicodedata.normalize("NFD", (texto or "").lower())
+    return "".join(c for c in texto if not unicodedata.combining(c))
+
+
+def formatar_tamanho(bytes_):
+    valor = float(bytes_)
+    for unidade in ("B", "KB", "MB", "GB"):
+        if valor < 1024 or unidade == "GB":
+            return f"{valor:.0f} {unidade}" if unidade == "B" else f"{valor:.1f} {unidade}"
+        valor /= 1024
+
+
+def contar_pdfs_pasta(pasta):
+    return sum(1 for nome in listar_arquivos_pasta(pasta) if nome.lower().endswith(".pdf"))
+
+
+def tem_planilha_oc(nome_arquivo):
+    base = nome_base_arquivo(nome_arquivo)
+    return os.path.isfile(os.path.join(
+        PASTA_SAIDA_OCS, base, base + "_planilha_digitacao_manual.xlsx",
+    ))
+
+
+def listar_pdfs_com_detalhes(pasta):
+    raiz = PASTAS_OC[pasta]
+    itens = []
+    for nome in listar_arquivos_pasta(raiz):
+        if not nome.lower().endswith(".pdf"):
+            continue
+        try:
+            info = os.stat(os.path.join(raiz, nome))
+        except OSError:
+            continue
+        itens.append({
+            "nome": nome,
+            "modificado": info.st_mtime,
+            "modificado_txt": datetime.fromtimestamp(info.st_mtime).strftime("%d/%m/%Y %H:%M"),
+            "tamanho_txt": formatar_tamanho(info.st_size),
+            "tem_planilha": pasta == "processados" and tem_planilha_oc(nome),
+        })
+    itens.sort(key=lambda item: (item["modificado"], item["nome"]), reverse=True)
+    return itens
+
+
+def resolver_arquivo_pasta(pasta, arquivo):
+    raiz = PASTAS_OC.get(pasta)
+    if not raiz or not arquivo:
+        abort(404)
+    if arquivo != os.path.basename(arquivo) or any(sep in arquivo for sep in ("/", "\\", "\x00")):
+        abort(404)
+    if arquivo.startswith(".") or not arquivo.lower().endswith(".pdf"):
+        abort(404)
+    raiz_real = os.path.realpath(raiz)
+    caminho = os.path.realpath(os.path.join(raiz_real, arquivo))
+    if os.path.commonpath([caminho, raiz_real]) != raiz_real or not os.path.isfile(caminho):
+        abort(404)
+    return caminho
+
+
+@app.route("/pastas")
+def pastas():
+    if not usuario_logado():
+        return redirect("/")
+
+    pasta = request.args.get("pasta", "entrada")
+    if pasta not in PASTAS_OC:
+        pasta = "entrada"
+    busca = (request.args.get("q") or "").strip()
+    try:
+        pagina = int(request.args.get("pagina", "1"))
+    except ValueError:
+        pagina = 1
+
+    arquivos = listar_pdfs_com_detalhes(pasta)
+    if busca:
+        alvo = normalizar_busca(busca)
+        arquivos = [item for item in arquivos if alvo in normalizar_busca(item["nome"])]
+
+    total = len(arquivos)
+    total_paginas = max(1, (total + ITENS_POR_PAGINA_PASTAS - 1) // ITENS_POR_PAGINA_PASTAS)
+    pagina = min(max(pagina, 1), total_paginas)
+    inicio = (pagina - 1) * ITENS_POR_PAGINA_PASTAS
+
+    return render_template(
+        "pastas.html",
+        nav_ativo="pastas",
+        pasta=pasta,
+        busca=busca,
+        pagina=pagina,
+        total_paginas=total_paginas,
+        total=total,
+        arquivos=arquivos[inicio:inicio + ITENS_POR_PAGINA_PASTAS],
+        totais={
+            "entrada": contar_pdfs_pasta(PASTA_ENTRADA),
+            "processados": contar_pdfs_pasta(PASTA_PROCESSADOS),
+        },
+    )
+
+
+@app.route("/pastas/ver/<pasta>/<path:arquivo>")
+def pastas_ver(pasta, arquivo):
+    if not usuario_logado():
+        return redirect("/")
+    return send_file(resolver_arquivo_pasta(pasta, arquivo), mimetype="application/pdf")
+
+
+@app.route("/pastas/baixar/<pasta>/<path:arquivo>")
+def pastas_baixar(pasta, arquivo):
+    if not usuario_logado():
+        return redirect("/")
+    caminho = resolver_arquivo_pasta(pasta, arquivo)
+    return send_file(caminho, mimetype="application/pdf", as_attachment=True, download_name=arquivo)
 
 
 @app.route("/dashboard")

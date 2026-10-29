@@ -1,0 +1,19 @@
+.page-pastas .tabs { padding-bottom: 1px; margin-bottom: 15px; }
+.page-pastas .tabs .tab { display: inline-flex; align-items: center; gap: 8px; }
+.page-pastas .tabs .chip { font-size: 11px; }
+.page-pastas .toolbar { margin-bottom: 12px; }
+.page-pastas .toolbar .input { max-width: 320px; }
+.page-pastas .arquivo-celula { overflow-wrap: anywhere; }
+.page-pastas .arquivo-celula .chip { margin-left: 6px; }
+.page-pastas .arquivo-meta { display: none; }
+.page-pastas .td-actions .btn + .btn { margin-left: 4px; }
+.page-pastas .paginacao { justify-content: center; }
+@media (max-width: 600px) {
+  .page-pastas .toolbar .input { max-width: none; }
+  .page-pastas .table th:nth-child(2),
+  .page-pastas .table td:nth-child(2),
+  .page-pastas .table th:nth-child(3),
+  .page-pastas .table td:nth-child(3) { display: none; }
+  .page-pastas .arquivo-meta { display: block; margin-top: 4px; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .page-pastas .td-actions .btn { padding-left: 8px; padding-right: 8px; }
+}

@@ -6,6 +6,7 @@
   </a>
   <nav class="nav" aria-label="Navegação principal">
     <a href="/ocs" class="{{ 'is-active' if nav_ativo == 'ocs' }}">OCs</a>
+    <a href="/pastas" class="{{ 'is-active' if nav_ativo == 'pastas' }}">Pastas</a>
     <a href="/revisao" class="{{ 'is-active' if nav_ativo == 'revisao' }}">
       <span>Revisão</span>
       {% if total_revisao is defined and total_revisao %}<span class="nav-count">{{ total_revisao }}</span>{% endif %}

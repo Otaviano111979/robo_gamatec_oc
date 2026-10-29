@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pastas | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_pastas.css') }}">
+</head>
+<body class="page-pastas">
+
+  <div class="app">
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Pastas</h1>
+          <p>PDFs em entrada_oc e processados_oc. Apenas consulta e download.</p>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Pastas de OCs">
+        <a class="tab {{ 'is-active' if pasta == 'entrada' }}" href="{{ url_for('pastas', pasta='entrada', q=busca or None) }}" {% if pasta == 'entrada' %}aria-current="page"{% endif %}>
+          Entrada <span class="chip plain">{{ totais.entrada }}</span>
+        </a>
+        <a class="tab {{ 'is-active' if pasta == 'processados' }}" href="{{ url_for('pastas', pasta='processados', q=busca or None) }}" {% if pasta == 'processados' %}aria-current="page"{% endif %}>
+          Processados <span class="chip plain">{{ totais.processados }}</span>
+        </a>
+      </nav>
+
+      <form class="toolbar" method="get" action="/pastas">
+        <input type="hidden" name="pasta" value="{{ pasta }}">
+        <input class="input" type="search" name="q" value="{{ busca }}" placeholder="Pesquisar pelo nome do ficheiro" aria-label="Pesquisar ficheiro">
+        <button class="btn btn-sm" type="submit">Pesquisar</button>
+        {% if busca %}<a class="btn btn-ghost btn-sm" href="{{ url_for('pastas', pasta=pasta) }}">Limpar</a>{% endif %}
+        <span class="spacer"></span>
+        <span class="muted">{{ total }} ficheiro{{ 's' if total != 1 else '' }}</span>
+      </form>
+
+      <section class="panel">
+        <div class="table-wrap">
+          <table class="table" id="lista-pastas">
+            <thead>
+              <tr>
+                <th>Ficheiro</th>
+                <th>Modificado</th>
+                <th class="t-right">Tamanho</th>
+                <th class="td-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for arquivo in arquivos %}
+              <tr>
+                <td class="arquivo-celula">
+                  <a href="{{ url_for('pastas_ver', pasta=pasta, arquivo=arquivo.nome) }}" target="_blank" rel="noopener">{{ arquivo.nome }}</a>
+                  {% if arquivo.tem_planilha %}<span class="chip chip-ok plain">Planilha</span>{% endif %}
+                  <span class="arquivo-meta">{{ arquivo.modificado_txt }} · {{ arquivo.tamanho_txt }}</span>
+                </td>
+                <td class="t-nowrap">{{ arquivo.modificado_txt }}</td>
+                <td class="num">{{ arquivo.tamanho_txt }}</td>
+                <td class="td-actions">
+                  <a class="btn btn-ghost btn-sm" href="{{ url_for('pastas_ver', pasta=pasta, arquivo=arquivo.nome) }}" target="_blank" rel="noopener">Abrir</a>
+                  <a class="btn btn-ghost btn-sm" href="{{ url_for('pastas_baixar', pasta=pasta, arquivo=arquivo.nome) }}">Descarregar</a>
+                  {% if arquivo.tem_planilha %}<a class="btn btn-ghost btn-sm" href="{{ url_for('baixar_planilha', arquivo=arquivo.nome) }}">Planilha</a>{% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="empty">
+                  {% if busca %}Nenhum ficheiro corresponde a “{{ busca }}”.{% else %}Esta pasta está vazia.{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {% if total_paginas > 1 %}
+      <nav class="toolbar paginacao" aria-label="Paginação">
+        {% if pagina > 1 %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('pastas', pasta=pasta, q=busca or None, pagina=pagina - 1) }}">Anterior</a>
+        {% endif %}
+        <span class="muted">Página {{ pagina }} de {{ total_paginas }}</span>
+        {% if pagina < total_paginas %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('pastas', pasta=pasta, q=busca or None, pagina=pagina + 1) }}">Seguinte</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
