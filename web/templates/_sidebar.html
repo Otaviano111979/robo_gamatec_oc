@@ -68,6 +68,7 @@
       <a href="/logout" class="btn btn-ghost btn-sm" onclick="return confirm('Deseja realmente sair?')">Sair</a>
     </div>
   </div>
+  <div class="sidebar-versao" title="Versão em execução">Vortex Sync v{{ versao }}{% if commit %} · {{ commit }}{% endif %}</div>
 </aside>
 <script src="{{ url_for('static', filename='js/ilha.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/calendario.js') }}" defer></script>

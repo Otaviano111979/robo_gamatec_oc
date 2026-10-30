@@ -30,6 +30,31 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.jinja_env.auto_reload = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
+
+def _versao_do_sistema():
+    try:
+        from config import VERSAO_SISTEMA as versao
+    except Exception:
+        versao = "1.0"
+    try:
+        commit = subprocess.run(
+            ["git", "-C", _ROOT_DIR, "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=3,
+        )
+        commit = commit.stdout.strip() if commit.returncode == 0 else ""
+    except Exception:
+        commit = ""
+    return versao, commit
+
+
+VERSAO_SISTEMA, COMMIT_SISTEMA = _versao_do_sistema()
+
+
+@app.context_processor
+def _injetar_versao():
+    return {"versao": VERSAO_SISTEMA, "commit": COMMIT_SISTEMA}
+
+
 # ── Catálogo Steck/Schneider ─────────────────────────────────────────────────
 # Integração gerada a partir de INTEGRACAO_VORTEX.py
 try:

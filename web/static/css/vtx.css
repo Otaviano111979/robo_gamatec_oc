@@ -163,6 +163,10 @@ code, pre, kbd, .mono { font-family: var(--mono); font-size: 12px; }
 .sidebar-foot .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-foot .who small { display: block; color: var(--text-3); font-size: 11px; }
 .sidebar-foot-actions { display: flex; gap: 2px; }
+.sidebar-versao {
+  padding: 0 12px 10px; font-size: 10.5px; color: var(--text-3);
+  text-align: right; user-select: text;
+}
 
 .main { min-width: 0; padding: 20px 28px 40px; }
 .page-head {
@@ -547,6 +551,7 @@ html.dark body .out-dark { background: #0b0d10; border-color: var(--border); }
   .nav { flex-direction: row; flex-wrap: wrap; }
   .nav-sep, .nav-label { display: none; }
   .sidebar-foot { margin: 0 0 0 auto; border: 0; padding: 4px 8px; }
+  .sidebar-versao { display: none; }
 }
 
 /* ══ página: OCs ═════════════════════════════════════════ */
