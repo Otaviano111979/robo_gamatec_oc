@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento não precificado | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_calendario.css') }}">
+</head>
+<body class="page-comparador is-precificado">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Documento não precificado</h1>
+          <p class="cmp-meta">
+            <span>Documento <strong>{{ dados.nome_arquivo }}</strong></span>
+            <span>Tabela <strong>{{ dados.cliente }}</strong> (vigência {{ dados.vigencia }})</span>
+            <span>Leitura <strong>{{ dados.layout }}</strong></span>
+            {% if dados.numero %}<span>Nº <strong>{{ dados.numero }}</strong></span>{% endif %}
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="/ocs" class="btn btn-ghost">Voltar às OCs</a>
+          <a href="{{ url_for('nao_precificado.upload') }}" class="btn">Nova comparação</a>
+          <a href="{{ url_for('nao_precificado.download', id=file_id) }}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            Descarregar planilha
+          </a>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for m in messages %}<div class="alert alert-warn">{{ m }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="flash-wrap" role="status">
+        <div class="alert {{ 'alert-warn' if stats.sem }}">
+          {{ stats.ok }} itens encontrados na tabela com preço; {{ stats.revisar }} precisam de confirmação e {{ stats.sem }} não têm correspondência na tabela {{ dados.cliente }}.
+          {% if stats.com_preco_documento %}
+            O preço que o documento trazia é informativo; o total a usar é o da tabela.
+          {% endif %}
+        </div>
+      </div>
+
+      <section class="kpis">
+        <div class="kpi is-ok">
+          <div class="kpi-label">Na tabela</div>
+          <div class="kpi-value">{{ stats.ok }}</div>
+        </div>
+        <div class="kpi {{ 'is-warn' if stats.revisar }}">
+          <div class="kpi-label">A revisar</div>
+          <div class="kpi-value">{{ stats.revisar }}</div>
+        </div>
+        <div class="kpi {{ 'is-err' if stats.sem }}">
+          <div class="kpi-label">Sem correspondência</div>
+          <div class="kpi-value">{{ stats.sem }}</div>
+        </div>
+        <div class="kpi is-run">
+          <div class="kpi-label">Total pela tabela</div>
+          <div class="kpi-value"><small>R$</small> {{ "%.2f"|format(stats.valor_total) }}</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="btn-group cmp-filtros" role="group" aria-label="Filtrar por situação">
+            <button class="btn btn-sm tbl-filter-btn active" type="button" onclick="filtrar('TODOS', this)">Todos <span class="cmp-count">{{ stats.total }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('OK', this)">Na tabela <span class="cmp-count">{{ stats.ok }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('REVISAR', this)">A revisar <span class="cmp-count">{{ stats.revisar }}</span></button>
+            <button class="btn btn-sm tbl-filter-btn" type="button" onclick="filtrar('SEM', this)">Sem correspondência <span class="cmp-count">{{ stats.sem }}</span></button>
+          </div>
+          <div class="spacer"></div>
+          <div class="input-search cmp-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="input tbl-search" type="text" placeholder="Buscar código ou descrição" aria-label="Buscar código ou descrição" oninput="buscar(this.value)">
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table cmp-table" id="tabelaComparacao">
+            <thead>
+              <tr>
+                <th>Cód. cliente</th>
+                <th>Cód. Krona</th>
+                <th>Descrição do documento</th>
+                <th>Descrição na tabela</th>
+                <th class="t-right">Qtde</th>
+                <th>Un.</th>
+                <th class="t-right th-preco-orc">Preço tabela</th>
+                <th class="t-right">Total</th>
+                <th class="t-right">Preço documento</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in registros %}
+              <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO_CLIENTE }} {{ r.CODIGO_KRONA }} {{ r.DESCRICAO }} {{ r.DESCRICAO_TABELA }}">
+                <td class="td-cod">{{ r.CODIGO_CLIENTE or '—' }}</td>
+                <td class="td-cod">{{ r.CODIGO_KRONA or '—' }}</td>
+                <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
+                <td class="td-desc" title="{{ r.DESCRICAO_TABELA }}">{{ r.DESCRICAO_TABELA or '—' }}</td>
+                <td class="td-num">{{ ("%.10g"|format(r.QUANTIDADE)) if r.QUANTIDADE else '—' }}</td>
+                <td class="td-un">{{ r.UNIDADE or '—' }}</td>
+                <td class="td-num td-preco-orc">
+                  {% if r.PRECO_TABELA %}R$ {{ "%.3f"|format(r.PRECO_TABELA) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-total-oc">
+                  {% if r.TOTAL is not none %}R$ {{ "%.2f"|format(r.TOTAL) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num">
+                  {% if r.PRECO_DOCUMENTO %}R$ {{ "%.3f"|format(r.PRECO_DOCUMENTO) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-status">
+                  {% if r.STATUS == 'OK' %}
+                    <span class="chip chip-ok">Na tabela</span>
+                  {% elif r.STATUS == 'REVISAR' %}
+                    <span class="chip chip-warn">A revisar</span>
+                  {% else %}
+                    <span class="chip chip-err">Sem correspondência</span>
+                  {% endif %}
+                  {% if r.VIA %}<span class="badge cmp-obs">{{ r.VIA }}</span>{% endif %}
+                  {% if r.OBS %}<span class="badge cmp-obs">{{ r.OBS }}</span>{% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="10" class="empty">Nenhum item encontrado.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-foot">
+          <span><span id="cmpVisiveis">{{ registros|length }}</span> de {{ registros|length }} itens visíveis</span>
+          <span>A planilha inclui todos os itens; o total usa o preço da tabela {{ dados.cliente }}.</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let filtroAtivo = 'TODOS';
+
+    function filtrar(status, btn) {
+      filtroAtivo = status;
+      document.querySelectorAll('.tbl-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      aplicarFiltros();
+    }
+
+    function buscar(q) { aplicarFiltros(q); }
+
+    function aplicarFiltros(q) {
+      const busca = (q !== undefined ? q : document.querySelector('.tbl-search').value).toLowerCase();
+      let visiveis = 0;
+      document.querySelectorAll('#tabelaComparacao tbody tr[data-status]').forEach(tr => {
+        const statusOk = filtroAtivo === 'TODOS' || tr.dataset.status === filtroAtivo;
+        const buscaOk  = !busca || tr.dataset.busca.toLowerCase().includes(busca);
+        tr.style.display = (statusOk && buscaOk) ? '' : 'none';
+        if (statusOk && buscaOk) visiveis++;
+      });
+      const cont = document.getElementById('cmpVisiveis');
+      if (cont) cont.textContent = visiveis;
+    }
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

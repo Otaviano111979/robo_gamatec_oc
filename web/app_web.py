@@ -50,6 +50,14 @@ try:
 except ImportError:
     print("[COMPARADOR] comparador_bp.py não encontrado — módulo desativado")
 
+# ── Comparador de documento não precificado (tabela do cliente) ─────────────
+try:
+    from comparador_nao_precificado import nao_precificado_bp
+    app.register_blueprint(nao_precificado_bp)
+    print("[NAO PRECIFICADO] Módulo carregado — /comparador/documento-nao-precificado")
+except Exception as erro:
+    print(f"[NAO PRECIFICADO] Módulo desativado: {erro}")
+
 # diretorio raiz do projeto — resolvido pelo config (GAMATEC_BASE_DIR se
 # existir; senao a pasta do projeto). Fallback local se o config falhar.
 try:

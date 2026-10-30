@@ -76,3 +76,13 @@
   .cmp-table .td-desc { max-width: 220px; }
   .cmp-table th, .cmp-table td { padding-left: 10px; padding-right: 10px; }
 }
+
+/* modelo do documento não precificado: quatro colunas, mais estreito */
+.modelo-nao-precificado table { min-width: 560px; }
+.modelo-nao-precificado .modelo-tabela-wrap { max-width: 100%; }
+.modelo-nao-precificado th:nth-child(3), .modelo-nao-precificado td:nth-child(3) {
+  text-align: center;
+}
+.modelo-nao-precificado th:nth-child(4), .modelo-nao-precificado td:nth-child(4) {
+  text-align: right;
+}

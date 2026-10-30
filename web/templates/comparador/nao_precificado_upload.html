@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento não precificado | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_modelo_precificado.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_calendario.css') }}">
+</head>
+<body class="page-comparador">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
+    <main class="main">
+      <div class="cmp-narrow">
+        <header class="page-head">
+          <div>
+            <h1>Comparar documento não precificado</h1>
+            <p>O documento pode vir sem preço, com o código do cliente ou sem código. Os itens são comparados com a tabela de preços escolhida.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" type="button" data-modelo-nao-precificado aria-haspopup="dialog" aria-controls="modeloNaoPrecificado">Ver modelo</button>
+            <a href="/ocs" class="btn">Voltar às OCs</a>
+          </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-wrap" role="alert">
+              {% for message in messages %}<div class="flash-msg flash-erro">{{ message }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <section class="panel">
+          <div class="panel-head"><h2>Documento e tabela de preços</h2></div>
+          <form class="panel-body form-stack" id="naoPrecificadoForm" method="post" enctype="multipart/form-data"
+                action="{{ url_for('nao_precificado.processar') }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+            <div class="cmp-drop" id="drop-documento">
+              <div class="cmp-drop-label">1. Documento sem preço</div>
+              <div class="cmp-drop-hint">PDF ou Excel. Aceita o modelo abaixo, pedidos/orçamentos (Sienge, UAU, MRV...) e listas com descrição e quantidade.</div>
+              <input type="file" id="documentoInput" name="documento" accept=".pdf,.xlsx,.xls" required>
+              <button class="btn btn-sm" type="button" aria-controls="documentoInput"
+                      onclick="document.getElementById('documentoInput').click()">Selecionar arquivo</button>
+              <div class="cmp-drop-file" id="nome-documento"></div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="tabelaInput">2. Tabela de preços do cliente</label>
+              {% if tabelas %}
+                <select class="input" id="tabelaInput" name="tabela" required>
+                  <option value="" {{ 'selected' if not selecionada }}>Escolher tabela…</option>
+                  {% for tabela in tabelas %}
+                    <option value="{{ tabela.cliente }}" {{ 'selected' if selecionada == tabela.cliente }}>
+                      {{ tabela.cliente }} — vigência {{ tabela.vigencia }} ({{ tabela.itens }} itens)
+                    </option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <div class="alert alert-warn">Não há tabelas de preços importadas. Importe uma tabela de cliente antes de comparar.</div>
+              {% endif %}
+            </div>
+
+            <p class="muted small">O preço do documento, quando existir, é apenas informativo: o preço que conta é o da tabela escolhida. Itens que a tabela não tem ficam marcados como sem correspondência.</p>
+
+            <div class="cmp-form-foot">
+              <span class="muted small" id="naoPrecificadoStatus" role="status" aria-live="polite">Selecione o documento e a tabela para continuar.</span>
+              <button class="btn btn-primary" id="compararBtn" type="submit" {{ 'disabled' if not tabelas }}>Comparar com a tabela</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const botaoComparar = document.getElementById('compararBtn');
+    const estado = document.getElementById('naoPrecificadoStatus');
+    const entrada = document.getElementById('documentoInput');
+    const tabela = document.getElementById('tabelaInput');
+
+    function atualizarPronto() {
+      const arquivo = entrada.files[0];
+      const nome = document.getElementById('nome-documento');
+      nome.textContent = arquivo ? arquivo.name : '';
+      nome.style.display = arquivo ? 'block' : 'none';
+      document.getElementById('drop-documento').classList.toggle('is-selected', !!arquivo);
+      const pronto = !!arquivo && !!tabela && !!tabela.value;
+      botaoComparar.disabled = !pronto;
+      if (!tabela || !tabela.options.length) return;
+      estado.textContent = pronto
+        ? 'Pronto para comparar com a tabela ' + tabela.value + '.'
+        : 'Selecione o documento e a tabela para continuar.';
+    }
+
+    entrada.addEventListener('change', atualizarPronto);
+    if (tabela) tabela.addEventListener('change', atualizarPronto);
+    document.getElementById('naoPrecificadoForm').addEventListener('submit', () => {
+      botaoComparar.disabled = true;
+      botaoComparar.textContent = 'Comparando…';
+      estado.textContent = 'A ler o documento e a comparar com a tabela…';
+    });
+    atualizarPronto();
+  </script>
+
+  {% include 'comparador/_modelo_nao_precificado.html' %}
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

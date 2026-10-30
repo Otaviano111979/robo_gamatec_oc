@@ -1,0 +1,58 @@
+<dialog class="modelo-precificado modelo-nao-precificado" id="modeloNaoPrecificado" aria-labelledby="modeloNaoPrecificadoTitulo" aria-describedby="modeloNaoPrecificadoResumo">
+  <div class="modal-header">
+    <h2 id="modeloNaoPrecificadoTitulo">Modelo de documento não precificado</h2>
+    <button class="modal-fechar" type="button" data-fechar-modelo-nao-precificado aria-label="Fechar modelo" autofocus>&times;</button>
+  </div>
+  <div class="modal-body">
+    <p id="modeloNaoPrecificadoResumo">Use estas quatro colunas, nesta ordem, para o <strong>documento sem preço</strong>. Os dados abaixo são apenas exemplos: substitua-os pelos seus itens.</p>
+    <div class="modelo-tabela-wrap" tabindex="0" role="region" aria-label="Exemplo das quatro colunas; pode deslocar a tabela na horizontal">
+      <table>
+        <thead><tr><th scope="col">COD KRONA</th><th scope="col">DESCRIÇÃO</th><th scope="col">UNIDADE</th><th scope="col">QUANTIDADE</th></tr></thead>
+        <tbody>
+          <tr><td>0647</td><td>LUVA ESGOTO PRIM. - DN 100</td><td>UN</td><td>1.000</td></tr>
+          <tr><td>1231</td><td>ELETRODUTO CORRUGADO 25 MT</td><td>MT</td><td>500</td></tr>
+          <tr><td></td><td>TUBO PVC SOLDÁVEL - 6M - DN 20</td><td>BR</td><td>24</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol>
+      <li><strong>Preencha o Excel:</strong> substitua todos os exemplos. Um item por linha; a quantidade já na unidade indicada. Medidas na descrição não convertem a quantidade.</li>
+      <li><strong>Código:</strong> pode ser o código do cliente ou o código Krona. Se não souber o código, deixe a célula vazia: o item é procurado pela descrição. Não numere as linhas (1, 2, 3…) na coluna do código.</li>
+      <li><strong>Preço:</strong> não é preciso preencher. Se o documento trouxer o preço de outro fornecedor, ele fica visível na comparação apenas como informação — o preço que conta é o da tabela do cliente.</li>
+      <li><strong>Exporte em PDF:</strong> mantenha as quatro colunas na mesma página. Confira que nenhuma descrição ficou cortada. Não acrescente títulos, logótipos ou notas fora da tabela; não envie uma imagem digitalizada.</li>
+    </ol>
+    <p class="modelo-nota">Pedidos e orçamentos recebidos (Sienge, UAU, MRV, Terral…) também são aceites sem qualquer conversão: o sistema reconhece o layout. Este modelo serve para listas próprias.</p>
+  </div>
+  <div class="modal-footer">
+    <a class="btn btn-primary" href="{{ url_for('nao_precificado.modelo', formato='xlsx') }}" download>Descarregar Excel editável</a>
+  </div>
+</dialog>
+<script>
+  (() => {
+    const modal = document.getElementById('modeloNaoPrecificado');
+    let overflowAnterior;
+    document.querySelectorAll('[data-modelo-nao-precificado]').forEach(botao => {
+      botao.addEventListener('click', () => {
+        overflowAnterior = document.body.style.overflow;
+        modal.showModal();
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    modal.querySelector('[data-fechar-modelo-nao-precificado]').addEventListener('click', () => modal.close());
+    modal.addEventListener('close', () => { document.body.style.overflow = overflowAnterior; });
+    modal.addEventListener('keydown', event => {
+      if (event.key !== 'Tab') return;
+      const campos = modal.querySelectorAll('button, a[href], [tabindex="0"]');
+      const primeiro = campos[0];
+      const ultimo = campos[campos.length - 1];
+      if (event.shiftKey ? document.activeElement === primeiro : document.activeElement === ultimo) {
+        event.preventDefault();
+        (event.shiftKey ? ultimo : primeiro).focus();
+      }
+    });
+    modal.addEventListener('click', event => {
+      const area = modal.getBoundingClientRect();
+      if (event.target === modal && (event.clientX < area.left || event.clientX > area.right || event.clientY < area.top || event.clientY > area.bottom)) modal.close();
+    });
+  })();
+</script>
