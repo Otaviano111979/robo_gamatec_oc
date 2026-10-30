@@ -27,6 +27,8 @@ STATUS_SEM = "SEM"
 LIMIAR_OK = 0.80       # descrição abaixo disto nunca é aceite em silêncio
 LIMIAR_CODIGO = 0.50   # código certo com descrição muito diferente vai a revisão
 
+_SEM_DESCRICAO = "código {via} confere; documento sem descrição para confirmar"
+
 VIA_CLIENTE = "CÓD. CLIENTE"
 VIA_KRONA = "CÓD. KRONA"
 VIA_DESCRICAO = "DESCRIÇÃO"
@@ -202,14 +204,19 @@ def _por_codigo_cliente(item, achados):
     if len(achados) > 1:
         obs = f"código do cliente repetido na tabela ({len(achados)} itens)"
     elif status == STATUS_REVISAR:
-        obs = "código do cliente confere, descrição muito diferente"
+        obs = (_SEM_DESCRICAO.format(via="do cliente") if not descricao.strip()
+               else "código do cliente confere, descrição muito diferente")
     return _registro(item, escolhido, VIA_CLIENTE, status, obs, score)
 
 
 def _por_codigo_krona(item, tabela):
-    score = _score(item.get("descricao") or "", tabela.get("descricao_krona"))
+    descricao = item.get("descricao") or ""
+    score = _score(descricao, tabela.get("descricao_krona"))
     status = STATUS_OK if score >= LIMIAR_CODIGO else STATUS_REVISAR
-    obs = None if status == STATUS_OK else "código Krona confere, descrição muito diferente"
+    obs = None
+    if status == STATUS_REVISAR:
+        obs = (_SEM_DESCRICAO.format(via="Krona") if not descricao.strip()
+               else "código Krona confere, descrição muito diferente")
     return _registro(item, tabela, VIA_KRONA, status, obs, score)
 
 
