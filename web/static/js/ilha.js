@@ -248,10 +248,20 @@
   var relogioAbrir = 0;
   var relogioFechar = 0;
 
+  // o cartão cresce para cima a partir da pílula; limita a altura ao espaço
+  // livre até ao topo da janela para nunca ficar cortado em ecrãs baixos
+  function ajustarAlturaCartao() {
+    var fundo = botao.getBoundingClientRect().bottom;
+    if (!fundo) return;
+    cartao.style.setProperty('--ilha-altura', Math.max(220, Math.round(fundo - 8)) + 'px');
+  }
+  window.addEventListener('resize', ajustarAlturaCartao);
+
   function abrirComAtraso() {
     clearTimeout(relogioFechar);
     clearTimeout(relogioAbrir);
     relogioAbrir = setTimeout(function () {
+      ajustarAlturaCartao();
       raiz.classList.add('is-aberto');
     }, ABRIR_MS);
   }
@@ -272,6 +282,7 @@
   cartao.addEventListener('focusin', function () {
     clearTimeout(relogioAbrir);
     clearTimeout(relogioFechar);
+    ajustarAlturaCartao();
     raiz.classList.add('is-aberto');
   });
   cartao.addEventListener('focusout', function (evento) {
@@ -288,6 +299,7 @@
       clearTimeout(relogioAbrir);
       clearTimeout(relogioFechar);
       fixar(true);
+      ajustarAlturaCartao();
       raiz.classList.add('is-aberto');
     }
   });

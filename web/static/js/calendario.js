@@ -9,7 +9,6 @@
   var grade = document.getElementById('cal-grade');
   var rotulo = document.getElementById('cal-mes');
   var painel = document.getElementById('cal-destaques');
-  var aviso = document.getElementById('cal-aviso');
 
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
                'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -22,6 +21,7 @@
   var dias = {};
   var pedidos = {};
   var pedidoMes = 0;
+  var avisoTexto = '';
 
   function pad(numero) {
     return (numero < 10 ? '0' : '') + numero;
@@ -46,15 +46,18 @@
     return el;
   }
 
+  // o aviso vive dentro do painel de destaques (altura fixa): fora dele
+  // empurrava a logo e a pílula sempre que aparecia
   function mostrarAviso(texto) {
-    if (!aviso) return;
-    aviso.textContent = texto;
-    aviso.hidden = false;
+    if (avisoTexto === texto) return;
+    avisoTexto = texto;
+    renderizarDestaques();
   }
 
   function esconderAviso() {
-    if (!aviso) return;
-    aviso.hidden = true;
+    if (!avisoTexto) return;
+    avisoTexto = '';
+    renderizarDestaques();
   }
 
   function carregarMes() {
@@ -191,6 +194,8 @@
     var anoAtual = new Date().getFullYear();
 
     painel.replaceChildren();
+
+    if (avisoTexto) painel.appendChild(elemento('p', 'cal-aviso', avisoTexto));
 
     var titulo = elemento('div', 'cal-destaques-titulo',
       dia.getDate() + ' de ' + MESES[dia.getMonth()] + (dia.getFullYear() !== anoAtual ? ' de ' + dia.getFullYear() : ''));

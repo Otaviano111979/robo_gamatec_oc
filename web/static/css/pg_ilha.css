@@ -54,7 +54,8 @@ html.dark .sidebar-branding .marca-escura { display: block; }
 }
 
 .ilha-painel {
-  max-height: calc(100vh - 28px); overflow-y: auto;
+  /* --ilha-altura é medida pelo ilha.js: espaço livre acima da pílula */
+  max-height: var(--ilha-altura, calc(100vh - 28px)); overflow-y: auto;
   padding: 12px 13px 10px;
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: 12px;

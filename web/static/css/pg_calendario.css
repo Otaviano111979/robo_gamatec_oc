@@ -1,6 +1,7 @@
 /* Calendário da sidebar: grelha do mês e destaques do dia selecionado. */
 
 .cal-sidebar {
+  --cal-linha: 20px;
   margin: 6px 4px 2px;
   padding: 8px 8px 9px;
   border: 1px solid var(--border);
@@ -35,11 +36,17 @@
   text-align: center; font-size: 9px; font-weight: 600;
   line-height: 14px; color: var(--text-3); text-transform: uppercase;
 }
-.cal-grade { margin-top: 2px; }
+/* seis semanas reservadas: a grelha não cresce depois do primeiro paint
+   (se não, a logo e a pílula saltam quando o mês é desenhado) */
+.cal-grade {
+  margin-top: 2px;
+  grid-auto-rows: var(--cal-linha);
+  min-height: calc(var(--cal-linha) * 6 + 10px);
+}
 
 .cal-dia {
   position: relative; display: flex; align-items: center; justify-content: center;
-  height: 20px; padding: 0; border: 0; border-radius: 5px;
+  height: var(--cal-linha); padding: 0; border: 0; border-radius: 5px;
   background: transparent; color: var(--text-2);
   font: 500 10.5px/1 var(--font); font-variant-numeric: tabular-nums;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -59,14 +66,14 @@
 .cal-dia.is-sel::after { background: rgba(255, 255, 255, .85); }
 
 .cal-aviso {
-  margin: 5px 0 0; font-size: 9.5px; line-height: 1.35; color: var(--warn);
+  margin: 0 0 4px; font-size: 9.5px; line-height: 1.35; color: var(--warn);
 }
 
 /* ── destaques do dia ─────────────────────────────────── */
 .cal-destaques {
   margin-top: 6px; padding-top: 6px;
   border-top: 1px solid var(--border);
-  max-height: 112px; overflow-y: auto; overscroll-behavior: contain;
+  height: 112px; overflow-y: auto; overscroll-behavior: contain;
 }
 .cal-destaques::-webkit-scrollbar { width: 6px; }
 .cal-destaques::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
@@ -108,21 +115,19 @@
 
 /* ecrãs mais baixos: a sidebar continua a caber com a pílula e o logo */
 @media (max-height: 900px) {
-  .cal-sidebar { padding: 7px 7px 8px; }
-  .cal-dia { height: 18px; }
-  .cal-destaques { max-height: 88px; }
+  .cal-sidebar { --cal-linha: 18px; padding: 7px 7px 8px; }
+  .cal-destaques { height: 88px; }
 }
 @media (max-height: 780px) {
-  .cal-dia { height: 17px; }
-  .cal-destaques { max-height: 72px; }
+  .cal-sidebar { --cal-linha: 17px; }
+  .cal-destaques { height: 72px; }
 }
 /* 720–820 px: o rodapé (utilizador, tema, sair) tem de continuar visível */
 @media (max-height: 820px) {
   .sidebar-branding img { max-width: 104px; }
-  .cal-sidebar { margin-top: 4px; padding: 6px 6px 6px; }
+  .cal-sidebar { --cal-linha: 16px; margin-top: 4px; padding: 6px 6px 6px; }
   .cal-semana span { line-height: 12px; }
-  .cal-dia { height: 16px; }
-  .cal-destaques { margin-top: 4px; padding-top: 4px; max-height: 52px; }
+  .cal-destaques { margin-top: 4px; padding-top: 4px; height: 52px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cal-destaques { scroll-behavior: auto; }
