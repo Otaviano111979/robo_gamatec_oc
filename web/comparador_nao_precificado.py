@@ -6,6 +6,7 @@ Fluxo:
     POST /comparador/documento-nao-precificado/processar  → lê o documento e compara
     GET  /comparador/documento-nao-precificado/resultado  → resultado (sessão em disco)
     GET  /comparador/documento-nao-precificado/download   → planilha Excel
+    GET  /comparador/documento-nao-precificado/pdf        → orçamento em PDF
     GET  /comparador/documento-nao-precificado/modelo.xlsx→ modelo para preencher
 
 Não toca no comparador de documento precificado nem no fluxo das OCs.
@@ -259,3 +260,22 @@ def download():
         saida, as_attachment=True, download_name=nome,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/pdf")
+def download_pdf():
+    dados = _dados()
+    if not dados:
+        flash("Comparação indisponível ou sessão expirada. Envie o documento novamente.")
+        return redirect(url_for("nao_precificado.upload"))
+
+    try:
+        from pdf_orcamento_nao_precificado import gerar_pdf
+        pdf = gerar_pdf(dados)
+    except Exception as erro:
+        flash(f"Não foi possível gerar o PDF do orçamento: {erro}")
+        return redirect(url_for("nao_precificado.resultado", id=request.args["id"]))
+
+    nome = f"orcamento_{dados['cliente'].lower()}.pdf"
+    return send_file(BytesIO(pdf), as_attachment=True, download_name=nome,
+                     mimetype="application/pdf")
