@@ -36,6 +36,9 @@ _LARGURA_DESC = _COLUNAS[2][1] - 6
 _CINZA = (0.36, 0.38, 0.42)
 _CLARO = (0.62, 0.64, 0.68)
 _ESCURO = (0.12, 0.14, 0.18)
+_AMBAR = (0.992, 0.902, 0.541)
+_VERMELHO = (0.863, 0.149, 0.149)
+_BRANCO = (1.0, 1.0, 1.0)
 
 _TEXTO_RODAPE = ("Preços conforme a tabela do cliente; o preço do documento, "
                  "quando existe, não é usado.")
@@ -228,7 +231,10 @@ def _cabecalho_tabela(page, y, fontes):
 
 
 def _linhas_item(registro, regular):
-    linhas = _quebrar(registro.get("DESCRICAO") or "", regular, 7.4, _LARGURA_DESC)
+    descricao = (registro.get("DESCRICAO") or "").strip()
+    if not descricao:
+        descricao = "— descrição não indicada no documento"
+    linhas = _quebrar(descricao, regular, 7.4, _LARGURA_DESC)
     if len(linhas) > 4:
         linhas = linhas[:4]
         linhas[-1] = f"{linhas[-1]}…"
@@ -240,36 +246,46 @@ def _desenhar_item(page, y, registro, fontes, faixa):
     linhas = _linhas_item(registro, regular)
     altura = 4.5 + 8.5 * len(linhas)
 
-    if faixa % 2:
+    status = registro.get("STATUS")
+    cor_texto, cor_secundaria = _ESCURO, _CINZA
+    fundo = None
+    if status == "SEM":
+        fundo, cor_texto, cor_secundaria = _VERMELHO, _BRANCO, _BRANCO
+    elif status == "REVISAR":
+        fundo = _AMBAR
+    elif faixa % 2:
+        fundo = (0.965, 0.97, 0.975)
+
+    if fundo:
         page.draw_rect(fitz.Rect(_MARGEM, y, _MARGEM + _LARGURA_TABELA, y + altura),
-                       color=None, fill=(0.965, 0.97, 0.975))
+                       color=None, fill=fundo)
 
     base = y + 8.5
     x = _MARGEM
     _texto(page, x + 3, base, str(registro.get("CODIGO_CLIENTE") or "—"),
-           nome_regular, 7.2, _CINZA)
+           nome_regular, 7.2, cor_secundaria)
     x += _COLUNAS[0][1]
     _texto(page, x + 3, base, str(registro.get("CODIGO_KRONA") or "—"),
-           nome_regular, 7.2, _ESCURO)
+           nome_regular, 7.2, cor_texto)
     x += _COLUNAS[1][1]
 
     linha_y = base
     for indice, linha in enumerate(linhas):
-        _texto(page, x + 3, linha_y, linha, nome_regular, 7.4, _ESCURO)
+        _texto(page, x + 3, linha_y, linha, nome_regular, 7.4, cor_texto)
         linha_y += 8.5
     x += _COLUNAS[2][1]
 
     _texto_direita(page, x + _COLUNAS[3][1] - 3, base,
-                   _quantidade(registro.get("QUANTIDADE")), nome_regular, regular, 7.2, _ESCURO)
+                   _quantidade(registro.get("QUANTIDADE")), nome_regular, regular, 7.2, cor_texto)
     x += _COLUNAS[3][1]
     _texto_centro(page, x, _COLUNAS[4][1], base, str(registro.get("UNIDADE") or "—"),
-                  nome_regular, regular, 7.2, _CINZA)
+                  nome_regular, regular, 7.2, cor_secundaria)
     x += _COLUNAS[4][1]
     _texto_direita(page, x + _COLUNAS[5][1] - 3, base,
-                   _moeda(registro.get("PRECO_TABELA"), 3), nome_regular, regular, 7.2, _ESCURO)
+                   _moeda(registro.get("PRECO_TABELA"), 3), nome_regular, regular, 7.2, cor_texto)
     x += _COLUNAS[5][1]
     _texto_direita(page, x + _COLUNAS[6][1] - 3, base,
-                   _moeda(registro.get("TOTAL")), nome_negrito, negrito, 7.2, _ESCURO)
+                   _moeda(registro.get("TOTAL")), nome_negrito, negrito, 7.2, cor_texto)
 
     page.draw_line(fitz.Point(_MARGEM, y + altura),
                    fitz.Point(_MARGEM + _LARGURA_TABELA, y + altura),
@@ -295,6 +311,10 @@ def _bloco_rodape(page, dados, fontes):
     _texto(page, _MARGEM, 791,
            _encolher("Itens sem preço não foram cotados; quantidades conforme o "
                      "documento do cliente.", regular, 6.8, largura_nota),
+           nome_regular, 6.8, _CLARO)
+    _texto(page, _MARGEM, 800,
+           _encolher("Âmbar: item a confirmar · Vermelho: sem correspondência na tabela.",
+                     regular, 6.8, largura_nota),
            nome_regular, 6.8, _CLARO)
 
     largura_selo = 170

@@ -132,26 +132,124 @@ def _colunas_modelo(celulas):
     return colunas
 
 
+def _parece_cabecalho(celulas):
+    """Linha de título da tabela, mesmo quando o PDF a funde numa só célula."""
+    texto = " ".join(str(celula or "") for celula in celulas).lower()
+    marcas = ("código", "codigo", "descri", "quant", "qtd", "unidade", "unid")
+    return sum(1 for marca in marcas if marca in texto) >= 2
+
+
+def _colunas_por_conteudo(linhas):
+    """Colunas deduzidas do conteúdo, para tabelas sem cabeçalho repetido.
+
+    Modelos exportados (Sienge, UAU, planilhas) costumam trazer o cabeçalho
+    fundido numa célula e não o repetir nas páginas seguintes; sem isto as
+    páginas sem cabeçalho ficam de fora e o documento perde itens.
+    """
+    dados = [linha for linha in linhas if not _parece_cabecalho(linha)]
+    dados = [linha for linha in dados
+             if sum(1 for celula in linha if str(celula or "").strip()) >= 2]
+    if len(dados) < 2:
+        return None
+    ncol = max(len(linha) for linha in dados)
+    # só o layout de modelo (código, descrição, unidade, quantidade, talvez
+    # preço); tabelas mais largas pertencem a leitores específicos
+    if not 4 <= ncol <= 6:
+        return None
+
+    def valores(coluna):
+        return [re.sub(r"\s+", " ", str(linha[coluna] or "")).strip() for linha in dados
+                if coluna < len(linha) and str(linha[coluna] or "").strip()]
+
+    unidade, melhor = None, 0.0
+    for coluna in range(ncol):
+        vals = valores(coluna)
+        if not vals:
+            continue
+        fracao = sum(1 for v in vals if _unidade(v) in _UNIDADES) / len(vals)
+        if fracao >= 0.6 and fracao > melhor:
+            melhor, unidade = fracao, coluna
+    if unidade is None:
+        return None
+
+    numericas = []
+    for coluna in range(ncol):
+        if coluna == unidade:
+            continue
+        vals = valores(coluna)
+        if vals and sum(1 for v in vals if _num_br(v) is not None) / len(vals) >= 0.9:
+            numericas.append(coluna)
+    adjacentes = [coluna for coluna in numericas if abs(coluna - unidade) == 1]
+    if not adjacentes:
+        return None
+    quantidade = next((c for c in adjacentes if c > unidade), adjacentes[0])
+
+    descricao, melhor = None, 0.0
+    for coluna in range(ncol):
+        if coluna in (unidade, quantidade):
+            continue
+        vals = [v for v in valores(coluna)
+                if len(v) >= 6 and sum(c.isalpha() for c in v) >= 4]
+        if not vals:
+            continue
+        media = sum(len(v) for v in vals) / len(vals)
+        if media > melhor:
+            melhor, descricao = media, coluna
+    if descricao is None:
+        return None
+
+    codigo = None
+    for coluna in range(descricao):
+        if coluna in (unidade, quantidade):
+            continue
+        vals = valores(coluna)
+        if vals and sum(1 for v in vals if _RX_CODIGO.match(v)) / len(vals) >= 0.8:
+            codigo = coluna
+            break
+    if codigo is None:
+        return None
+    return {"desc": descricao, "qtd": quantidade, "cod": codigo, "un": unidade}
+
+
 def _ler_modelo_tabelas(pdf):
-    """Modelo lido pelas células da tabela: aceita linhas sem código."""
+    """Modelo lido pelas células da tabela: aceita linhas sem código.
+
+    Aceita também linhas sem descrição (código + quantidade), que ficam em
+    revisão na comparação em vez de desaparecerem do documento.
+    """
     itens = []
     for pagina, page in enumerate(pdf.pages, start=1):
-        colunas = None
         for tabela in page.extract_tables() or []:
-            for linha in tabela or []:
-                celulas = [str(celula or "").strip() for celula in linha]
-                cabecalho = _colunas_modelo(celulas)
-                if cabecalho:
-                    colunas = cabecalho
+            linhas = [linha for linha in (tabela or [])
+                      if linha and any(str(celula or "").strip() for celula in linha)]
+            if not linhas:
+                continue
+
+            colunas = None
+            for linha in linhas[:3]:
+                colunas = _colunas_modelo([str(celula or "").strip() for celula in linha])
+                if colunas:
+                    break
+            if not colunas:
+                colunas = _colunas_por_conteudo(linhas)
+            if not colunas:
+                continue
+
+            for linha in linhas:
+                celulas = [re.sub(r"\s+", " ", str(celula or "")).strip()
+                           for celula in linha]
+                if _parece_cabecalho(celulas):
                     continue
-                if colunas is None or len(celulas) <= max(colunas["desc"], colunas["qtd"]):
+                if len(celulas) <= max(colunas["desc"], colunas["qtd"]):
                     continue
-                descricao = " ".join(celulas[colunas["desc"]].split())
+                descricao = celulas[colunas["desc"]]
                 quantidade = _num_br(celulas[colunas["qtd"]])
-                if not descricao or not quantidade:
-                    continue
                 codigo = celulas[colunas["cod"]] if colunas["cod"] is not None else ""
                 if codigo and not _RX_CODIGO.match(codigo):
+                    continue
+                if not quantidade or quantidade <= 0:
+                    continue
+                if not descricao and not codigo:
                     continue
                 itens.append({
                     "codigo_cliente": str(int(codigo)) if codigo else "",
