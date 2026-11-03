@@ -589,15 +589,64 @@ def tentar_mover_para_processados(nome_arquivo, tentativas=3, espera=1.0):
     return False, f"Falha ao mover arquivo: {ultima_excecao}"
 
 
+_CACHE_NUMERO_CRM = {"marca": None, "mapa": {}}
+
+
+def _mapa_numero_crm():
+    """Número de documento por nome de ficheiro, a partir do crm.db.
+
+    Só entram registos com número preenchido e extração confiante
+    (confianca >= 0.75); números incertos não sobrepõem o cartão.
+    """
+    caminho = os.path.join(PASTA_DADOS, "crm.db")
+    try:
+        marca = (os.path.getmtime(caminho), os.path.getsize(caminho))
+    except OSError:
+        return {}
+
+    if _CACHE_NUMERO_CRM["marca"] != marca:
+        import sqlite3
+        import json as _json
+        mapa = {}
+        try:
+            con = sqlite3.connect(f"file:{caminho}?mode=ro", uri=True)
+            for numero, arquivo, dados_raw in con.execute(
+                "select numero, arquivo_pdf, dados_raw from documentos"
+            ):
+                if not numero or not arquivo:
+                    continue
+                confianca = None
+                try:
+                    confianca = (_json.loads(dados_raw) if dados_raw else {}).get("confianca")
+                except Exception:
+                    pass
+                if not isinstance(confianca, (int, float)) or confianca < 0.75:
+                    continue
+                mapa[os.path.basename(arquivo)] = str(numero)
+            con.close()
+        except Exception:
+            pass
+        _CACHE_NUMERO_CRM["marca"] = marca
+        _CACHE_NUMERO_CRM["mapa"] = mapa
+
+    return _CACHE_NUMERO_CRM["mapa"]
+
+
 def extrair_numero_oc(nome_arquivo):
     """
-    Extrai um número de OC do nome do arquivo.
-    Prioriza sequências de 4+ dígitos.
+    Número de OC: o preenchido no CRM quando o nome do arquivo não traz
+    sequência de 4+ dígitos (aí o nome manda) e, sem isso, o extraído do
+    nome do arquivo (sequências de 4+ dígitos primeiro).
     """
     if not nome_arquivo:
         return ""
 
     base = os.path.splitext(nome_arquivo)[0]
+
+    if not re.search(r"\d{4,}", base):
+        numero_crm = _mapa_numero_crm().get(nome_arquivo)
+        if numero_crm:
+            return numero_crm
     grupos = re.findall(r"\d{4,}", base)
 
     if grupos:
