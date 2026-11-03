@@ -36,6 +36,7 @@ _LARGURA_DESC = _COLUNAS[2][1] - 6
 _CINZA = (0.36, 0.38, 0.42)
 _CLARO = (0.62, 0.64, 0.68)
 _ESCURO = (0.12, 0.14, 0.18)
+_GRELHA = (0.85, 0.87, 0.90)
 _AMBAR = (0.992, 0.902, 0.541)
 _VERMELHO = (0.863, 0.149, 0.149)
 _BRANCO = (1.0, 1.0, 1.0)
@@ -214,11 +215,20 @@ def _continuacao(page, dados, fontes):
     return 52
 
 
+def _verticais(page, y0, y1):
+    """Separadores de coluna; dão à tabela uma estrutura legível por leitores de PDF."""
+    x = _MARGEM
+    page.draw_line(fitz.Point(x, y0), fitz.Point(x, y1), color=_GRELHA, width=0.4)
+    for _, largura, _ in _COLUNAS:
+        x += largura
+        page.draw_line(fitz.Point(x, y0), fitz.Point(x, y1), color=_GRELHA, width=0.4)
+
+
 def _cabecalho_tabela(page, y, fontes):
     regular, negrito, nome_regular, nome_negrito = fontes
     x = _MARGEM
     page.draw_rect(fitz.Rect(_MARGEM, y - 10, _MARGEM + _LARGURA_TABELA, y + 4),
-                   color=None, fill=(0.93, 0.94, 0.96))
+                   color=_GRELHA, fill=(0.93, 0.94, 0.96), width=0.4)
     for titulo, largura, alinhamento in _COLUNAS:
         if alinhamento == "right":
             _texto_direita(page, x + largura - 3, y, titulo, nome_negrito, negrito, 7, _ESCURO)
@@ -227,6 +237,9 @@ def _cabecalho_tabela(page, y, fontes):
         else:
             _texto(page, x + 3, y, titulo, nome_negrito, 7, _ESCURO)
         x += largura
+    _verticais(page, y - 10, y + 13)
+    page.draw_line(fitz.Point(_MARGEM, y + 13), fitz.Point(_MARGEM + _LARGURA_TABELA, y + 13),
+                   color=_GRELHA, width=0.4)
     return y + 13
 
 
@@ -287,9 +300,13 @@ def _desenhar_item(page, y, registro, fontes, faixa):
     _texto_direita(page, x + _COLUNAS[6][1] - 3, base,
                    _moeda(registro.get("TOTAL")), nome_negrito, negrito, 7.2, cor_texto)
 
+    page.draw_line(fitz.Point(_MARGEM, y),
+                   fitz.Point(_MARGEM + _LARGURA_TABELA, y),
+                   color=_GRELHA, width=0.4)
     page.draw_line(fitz.Point(_MARGEM, y + altura),
                    fitz.Point(_MARGEM + _LARGURA_TABELA, y + altura),
                    color=(0.88, 0.89, 0.91), width=0.4)
+    _verticais(page, y, y + altura)
     return y + altura
 
 

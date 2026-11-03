@@ -142,6 +142,8 @@ def _parsear_linha(linha: list, cabecalho: list):
             val_limpo = val.replace(",", "").replace(".", "").strip()
             if not (val_limpo.isdigit() or val_limpo == ""):
                 mapa["unidade"] = val
+        elif "krona" in col_lower:
+            mapa["codigo_krona_oc"] = val
         elif any(p in col_lower for p in ["cod"]):
             mapa["codigo_cliente"] = val
         elif "item" in col_lower:
@@ -155,6 +157,7 @@ def _parsear_linha(linha: list, cabecalho: list):
     return {
         "num_item":       mapa.get("num_item", ""),
         "codigo_cliente": mapa.get("codigo_cliente", ""),
+        "codigo_krona_oc": mapa.get("codigo_krona_oc", ""),
         "descricao_oc":   mapa["descricao"],
         "unidade":        mapa.get("unidade", "PC"),
         "quantidade":     mapa.get("quantidade"),
