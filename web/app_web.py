@@ -595,8 +595,8 @@ _CACHE_NUMERO_CRM = {"marca": None, "mapa": {}}
 def _mapa_numero_crm():
     """Número de documento por nome de ficheiro, a partir do crm.db.
 
-    Só entram registos com número preenchido e extração confiante
-    (confianca >= 0.75); números incertos não sobrepõem o cartão.
+    Só entram registos com número preenchido e extração praticamente certa
+    (confianca >= 0.9); números menos seguros não sobrepõem o cartão.
     """
     caminho = os.path.join(PASTA_DADOS, "crm.db")
     try:
@@ -620,7 +620,7 @@ def _mapa_numero_crm():
                     confianca = (_json.loads(dados_raw) if dados_raw else {}).get("confianca")
                 except Exception:
                     pass
-                if not isinstance(confianca, (int, float)) or confianca < 0.75:
+                if not isinstance(confianca, (int, float)) or confianca < 0.9:
                     continue
                 mapa[os.path.basename(arquivo)] = str(numero)
             con.close()
