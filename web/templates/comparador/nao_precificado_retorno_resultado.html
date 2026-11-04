@@ -49,12 +49,14 @@
       {% endwith %}
 
       <div class="flash-wrap" role="status">
-        <div class="alert {{ 'alert-warn' if stats.sem }}">
+        <div class="alert {{ 'alert-err' if stats.desconto_total is not none and stats.desconto_total < 0 else ('alert-warn' if stats.sem) }}">
           {{ stats.total }} itens comparados. Desconto total:
           {% if stats.desconto_total is not none %}
             <strong>{{ "%.2f"|format(stats.desconto_total) }}%</strong>
+            {% if stats.desconto_total < 0 %}<strong>— acima da tabela</strong>{% endif %}
             (tabela R$ {{ "%.2f"|format(stats.total_tabela) }} → Gamatec R$ {{ "%.2f"|format(stats.total_gamatec) }}).
           {% else %}—{% endif %}
+          {% if stats.fora_do_total %}{{ stats.fora_do_total }} item(ns) com quantidades diferentes ficaram fora do total.{% endif %}
           {% if stats.sem_retorno %}{{ stats.sem_retorno }} item(ns) sem preço no retorno.{% endif %}
           {% if stats.extras %}{{ stats.extras }} item(ns) só existem no retorno.{% endif %}
         </div>
@@ -69,7 +71,7 @@
           <div class="kpi-label">Total Gamatec</div>
           <div class="kpi-value"><small>R$</small> {{ "%.2f"|format(stats.total_gamatec) }}</div>
         </div>
-        <div class="kpi {{ 'is-warn' if stats.desconto_total is none or stats.desconto_total < 0 }}">
+        <div class="kpi {{ 'is-err' if stats.desconto_total is not none and stats.desconto_total < 0 else ('is-warn' if stats.desconto_total is none) }}">
           <div class="kpi-label">Desconto total</div>
           <div class="kpi-value">
             {% if stats.desconto_total is not none %}{{ "%.2f"|format(stats.desconto_total) }}<small>%</small>{% else %}—{% endif %}
@@ -125,7 +127,13 @@
                   {% if r.TOTAL_GAMATEC is not none %}R$ {{ "%.2f"|format(r.TOTAL_GAMATEC) }}{% else %}—{% endif %}
                 </td>
                 <td class="td-num td-preco-orc">
-                  {% if r.DESCONTO_PCT is not none %}{{ "%.2f"|format(r.DESCONTO_PCT) }}%{% else %}—{% endif %}
+                  {% if r.DESCONTO_PCT is not none %}
+                    {% if r.DESCONTO_PCT < 0 %}
+                      <span class="chip chip-err">{{ "%.2f"|format(r.DESCONTO_PCT) }}% acima da tabela</span>
+                    {% else %}
+                      {{ "%.2f"|format(r.DESCONTO_PCT) }}%
+                    {% endif %}
+                  {% else %}—{% endif %}
                 </td>
                 <td class="td-status">
                   {% if r.STATUS == 'OK' %}
@@ -148,7 +156,7 @@
 
         <div class="panel-foot">
           <span><span id="cmpVisiveis">{{ linhas|length }}</span> de {{ linhas|length }} itens visíveis</span>
-          <span>Desconto por item = (preço tabela − preço Gamatec) ÷ preço tabela; só itens com os dois preços entram no total.</span>
+          <span>Desconto por item = (preço tabela − preço Gamatec) ÷ preço tabela; só itens com os dois preços e quantidades iguais entram no total.</span>
         </div>
       </section>
     </main>

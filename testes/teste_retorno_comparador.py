@@ -60,7 +60,7 @@ class TestCompararRetorno(unittest.TestCase):
     def test_codigo_direto_e_desconto(self):
         registros = [
             registrar("331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 484, 0.652),
-            registrar("29", "TUBO PVC SOLDAVEL 6M 75MM", 4, 201.698, "BR"),
+            registrar("29", "TUBO PVC SOLDAVEL 6M 75MM", 4, 33.6163, "BR"),
         ]
         itens = [
             item("0331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 484, 0.58),
@@ -72,8 +72,35 @@ class TestCompararRetorno(unittest.TestCase):
         self.assertEqual(linhas[0]["STATUS"], "OK")
         self.assertAlmostEqual(linhas[0]["DESCONTO_PCT"], 11.04, places=2)
         self.assertEqual(linhas[0]["TOTAL_GAMATEC"], 280.72)
+        # tubo BR: preço por metro convertido para barra (× 6 m)
+        self.assertAlmostEqual(linhas[1]["PRECO_TABELA"], 201.698, places=3)
         self.assertAlmostEqual(linhas[1]["DESCONTO_PCT"], 10.76, places=2)
         self.assertEqual(linhas[1]["TOTAL_TABELA"], 806.79)
+        self.assertIn("barra", linhas[1]["OBS"])
+        self.assertTrue(linhas[1]["QTDE_IGUAL"])
+
+    def test_tubo_sem_falso_quantidade_difere_e_desconto_barra(self):
+        # caso real: cotação 6 br a 53,0725/m; retorno 6 barras a 371,297/barra
+        registros = [registrar("105", "Tubo PVC / DN 200mm", 6, 53.0725, "BR")]
+        linhas = comparar_retorno(
+            registros, [item("105", "TUBO PVC ESGOTO PRIM. - 6M - DN 200", 6, 371.297)])
+        linha = linhas[0]
+        self.assertEqual(linha["STATUS"], "OK")
+        self.assertNotIn("quantidade difere", linha["OBS"] or "")
+        self.assertIn("barra", linha["OBS"] or "")
+        self.assertTrue(linha["QTDE_IGUAL"])
+        self.assertAlmostEqual(linha["PRECO_TABELA"], 318.435, places=3)
+        self.assertEqual(linha["TOTAL_TABELA"], 1910.61)
+        self.assertAlmostEqual(linha["DESCONTO_PCT"], -16.6, places=1)
+
+    def test_tubo_quantidade_difere_vai_a_revisao(self):
+        registros = [registrar("105", "Tubo PVC / DN 200mm", 5, 53.0725, "BR")]
+        linhas = comparar_retorno(
+            registros, [item("105", "TUBO PVC ESGOTO PRIM. - 6M - DN 200", 6, 371.297)])
+        linha = linhas[0]
+        self.assertEqual(linha["STATUS"], "REVISAR")
+        self.assertIn("quantidade difere", linha["OBS"])
+        self.assertFalse(linha["QTDE_IGUAL"])
 
     def test_quantidade_difere_vai_a_revisao(self):
         registros = [registrar("331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 484, 0.652)]
@@ -115,10 +142,46 @@ class TestCompararRetorno(unittest.TestCase):
         self.assertEqual(len(linhas), 1)
         self.assertEqual(linhas[0]["TOTAL_GAMATEC"], 280.72)
 
+    def test_trava_de_medida_bloqueia_dn_diferente(self):
+        registros = [registrar("", "Tubo PVC Esgoto / Série Normal - DN 40mm - Barra de 6m",
+                               1, None)]
+        linhas = comparar_retorno(
+            registros, [item("145", "TUBO PVC ESGOTO PRIM. - 6M - DN 75", 4, 210.0)])
+        linha = linhas[0]
+        self.assertEqual(linha["VIA"], "—")
+        self.assertEqual(linha["STATUS"], "SEM")
+        self.assertIsNone(linha["PRECO_GAMATEC"])
+
+    def test_trava_de_medida_permite_mesma_medida(self):
+        registros = [registrar("", "Tubo PVC Esgoto / Série Normal - DN 75mm - Barra de 6m",
+                               4, None)]
+        linhas = comparar_retorno(
+            registros, [item("145", "TUBO PVC ESGOTO PRIM. - 6M - DN 75", 4, 210.0)])
+        linha = linhas[0]
+        self.assertEqual(linha["VIA"], "DESCRIÇÃO")
+        self.assertEqual(linha["PRECO_GAMATEC"], 210.0)
+        self.assertTrue(linha["QTDE_IGUAL"])
+
+    def test_resumo_fora_do_total_com_quantidade_diferente(self):
+        registros = [
+            registrar("331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 484, 0.652),
+            registrar("50", "JOELHO 90 GRAUS 25MM", 10, 0.5),
+        ]
+        itens = [
+            item("331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 500, 0.58),
+            item("50", "JOELHO 90 GRAUS 25MM", 10, 0.45),
+        ]
+        stats = resumo_retorno(comparar_retorno(registros, itens))
+        # só o JOELHO entra no total; o ADAPTADOR tem quantidades diferentes
+        self.assertEqual(stats["fora_do_total"], 1)
+        self.assertEqual(stats["total_tabela"], 5.0)
+        self.assertEqual(stats["total_gamatec"], 4.5)
+        self.assertAlmostEqual(stats["desconto_total"], 10.0, places=2)
+
     def test_resumo(self):
         registros = [
             registrar("331", "ADAPTADOR SOLD CURTO 25MM X 3/4", 484, 0.652),
-            registrar("29", "TUBO PVC SOLDAVEL 6M 75MM", 4, 201.698, "BR"),
+            registrar("29", "TUBO PVC SOLDAVEL 6M 75MM", 4, 33.6163, "BR"),
             registrar("", "JOELHO 90 GRAUS 25MM", 10, None),
             registrar("555", "ITEM SEM RETORNO", 2, 5.0),
         ]
@@ -223,7 +286,10 @@ class TestFimAFimEBM(unittest.TestCase):
         codigo = registro["CODIGO_KRONA"]
         descricao = (registro["DESCRICAO_TABELA"] or registro["DESCRICAO"] or "").strip()
         quantidade = registro["QUANTIDADE"]
-        preco = round(registro["PRECO_TABELA"] * 0.9, 3)
+        preco = registro["PRECO_TABELA"]
+        if str(registro.get("UNIDADE") or "").strip().upper().rstrip(".") == "BR":
+            preco = preco * 6  # retorno Gamatec vem por barra
+        preco = round(preco * 0.9, 3)
         total = round(quantidade * preco, 2)
         return (f"{codigo.zfill(4)} {descricao} 1 "
                 f"{self._qtde_br(quantidade)} {self._valor_br(preco)} "
@@ -279,10 +345,17 @@ class TestFimAFimEBM(unittest.TestCase):
                 "PRECO_GAMATEC": None, "TOTAL_GAMATEC": None,
                 "DESCONTO_PCT": None, "STATUS": "SEM", "VIA": "—",
                 "OBS": "sem preço no retorno",
+            }, {
+                "CODIGO_KRONA": "105", "DESCRICAO": "TUBO PVC ESGOTO DN 200",
+                "QUANTIDADE": 6, "UNIDADE": "BR", "PRECO_TABELA": 318.435,
+                "TOTAL_TABELA": 1910.61, "PRECO_GAMATEC": 371.297,
+                "TOTAL_GAMATEC": 2227.78, "DESCONTO_PCT": -16.6,
+                "STATUS": "OK", "VIA": "CÓD. KRONA",
+                "OBS": "tubo: tabela em metros; comparado por barra de 6 m",
             }],
-            "stats": {"total": 2, "ok": 1, "revisar": 0, "sem": 1, "extras": 0,
-                      "sem_retorno": 1, "total_tabela": 315.57,
-                      "total_gamatec": 280.72, "desconto_total": 11.04},
+            "stats": {"total": 3, "ok": 2, "revisar": 0, "sem": 1, "extras": 0,
+                      "sem_retorno": 1, "total_tabela": 2226.18,
+                      "total_gamatec": 2508.5, "desconto_total": -12.68},
         }
         pdf = gerar_pdf_retorno(dados, retorno)
         self.assertTrue(pdf.startswith(b"%PDF"))
@@ -321,13 +394,23 @@ class TestRotasRegistradas(unittest.TestCase):
                     "TOTAL_TABELA": 10.0, "PRECO_GAMATEC": 0.9,
                     "TOTAL_GAMATEC": 9.0, "DESCONTO_PCT": 10.0,
                     "STATUS": "OK", "VIA": "CÓD. KRONA", "OBS": None,
+                }, {
+                    "CODIGO_KRONA": "105", "DESCRICAO": "TUBO DN 200",
+                    "QUANTIDADE": 6, "UNIDADE": "BR", "PRECO_TABELA": 318.44,
+                    "TOTAL_TABELA": 1910.61, "PRECO_GAMATEC": 371.297,
+                    "TOTAL_GAMATEC": 2227.78, "DESCONTO_PCT": -16.6,
+                    "STATUS": "OK", "VIA": "CÓD. KRONA", "OBS": "tubo",
                 }],
-                stats={"total": 1, "ok": 1, "revisar": 0, "sem": 0,
-                       "sem_retorno": 0, "extras": 0, "total_tabela": 10.0,
-                       "total_gamatec": 9.0, "desconto_total": 10.0},
+                stats={"total": 2, "ok": 2, "revisar": 0, "sem": 0,
+                       "sem_retorno": 0, "extras": 0, "fora_do_total": 0,
+                       "total_tabela": 1920.61, "total_gamatec": 2236.78,
+                       "desconto_total": -16.46},
             )
         self.assertIn("Retorno comparado", html)
         self.assertIn("10.00%", html)
+        self.assertIn("acima da tabela", html)
+        self.assertIn("chip-err", html)
+        self.assertIn("alert-err", html)
 
 
 if __name__ == "__main__":

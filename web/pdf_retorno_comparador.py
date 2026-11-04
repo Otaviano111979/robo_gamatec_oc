@@ -75,9 +75,12 @@ def _bloco_titulo(page, dados, retorno, fontes):
            nome_regular, 8, _CINZA)
 
     stats = retorno.get("stats") or {}
+    desconto_total = stats.get("desconto_total")
+    acima = desconto_total is not None and desconto_total < 0
     _texto(page, _MARGEM, 109,
-           f"Desconto total: {_percentual(stats.get('desconto_total'))}",
-           nome_negrito, 10, _AZUL)
+           f"Desconto total: {_percentual(desconto_total)}"
+           + (" — acima da tabela" if acima else ""),
+           nome_negrito, 10, _VERMELHO if acima else _AZUL)
     _texto_direita(page, _MARGEM + largura, 109,
                    f"Total tabela {_moeda(stats.get('total_tabela'))} · "
                    f"Gamatec {_moeda(stats.get('total_gamatec'))}",
@@ -171,8 +174,11 @@ def _desenhar_item(page, y, linha, fontes, faixa):
     _texto_direita(page, x + _COLUNAS[4][1] - 3, base,
                    _moeda(linha.get("PRECO_GAMATEC"), 3), nome_regular, regular, 7.2, cor_texto)
     x += _COLUNAS[4][1]
+    desconto = linha.get("DESCONTO_PCT")
+    cor_desconto = (_VERMELHO if desconto is not None and desconto < 0
+                    else cor_texto)
     _texto_direita(page, x + _COLUNAS[5][1] - 3, base,
-                   _percentual(linha.get("DESCONTO_PCT")), nome_negrito, negrito, 7.2, cor_texto)
+                   _percentual(desconto), nome_negrito, negrito, 7.2, cor_desconto)
 
     obs = linha.get("OBS")
     if obs:
@@ -200,7 +206,7 @@ def _bloco_rodape(page, dados, retorno, fontes):
     sem = stats.get("sem_retorno") or 0
     extras = stats.get("extras") or 0
     _texto(page, _MARGEM, 782,
-           _encolher(f"Âmbar: item a confirmar · Vermelho: sem preço no retorno.",
+           _encolher(f"Âmbar: item a confirmar · Vermelho: sem preço no retorno ou % acima da tabela.",
                      regular, 6.8, largura_nota), nome_regular, 6.8, _CINZA)
     _texto(page, _MARGEM, 791,
            _encolher(f"Sem preço no retorno: {sem} item(ns) · Só no retorno: {extras} item(ns).",
@@ -245,8 +251,11 @@ def _totais(page, y, retorno, fontes):
     _texto_direita(page, x + _COLUNAS[4][1] - 3, y + 4,
                    _moeda(stats.get("total_gamatec")), nome_negrito, negrito, 7.6, _ESCURO)
     x += _COLUNAS[4][1]
+    desconto_total = stats.get("desconto_total")
+    acima = desconto_total is not None and desconto_total < 0
     _texto_direita(page, x + _COLUNAS[5][1] - 3, y + 4,
-                   _percentual(stats.get("desconto_total")), nome_negrito, negrito, 7.6, _AZUL)
+                   _percentual(desconto_total), nome_negrito, negrito, 7.6,
+                   _VERMELHO if acima else _AZUL)
     return y + 12
 
 

@@ -26,6 +26,14 @@ VIA_CODIGO = "CÓD. KRONA"
 VIA_DESCRICAO = "DESCRIÇÃO"
 VIA_SO_RETORNO = "SÓ NO RETORNO"
 
+COMPRIMENTO_BARRA = 6.0  # tubos: tabela em metro, retorno Gamatec em barra de 6 m
+
+_ME_DN = re.compile(r"\bDN\s*(\d{1,4})\b", re.I)
+_ME_MM = re.compile(r"\b(\d{1,4}(?:[.,]\d+)?)\s*mm\b", re.I)
+_ME_POL = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(?:pol(?:egada)?s?|\")\b", re.I)
+_ME_FRAC = re.compile(r"\b(\d+)\s*/\s*(\d+)\b")
+_ME_DIM = re.compile(r"\b(\d{1,4})\s*[xX]\s*(\d{1,4})(?!\s*/)\b")
+
 
 def _norm_codigo(valor):
     texto = str(valor if valor is not None else "").strip()
@@ -40,6 +48,43 @@ def _norm_codigo(valor):
 def _score(esquerda, direita):
     return fuzz.token_set_ratio(_sem_acento(esquerda or ""),
                                 _sem_acento(direita or "")) / 100
+
+
+def _medidas(texto):
+    """Medidas encontradas na descrição: (tipo, valor) para DN, mm, polegada e NxN."""
+    encontradas = set()
+    for casamento in _ME_DN.finditer(texto or ""):
+        encontradas.add(("dn", int(casamento.group(1))))
+    for casamento in _ME_MM.finditer(texto or ""):
+        encontradas.add(("mm", float(casamento.group(1).replace(",", "."))))
+    for casamento in _ME_POL.finditer(texto or ""):
+        encontradas.add(("pol", float(casamento.group(1).replace(",", "."))))
+    for casamento in _ME_FRAC.finditer(texto or ""):
+        numerador, denominador = int(casamento.group(1)), int(casamento.group(2))
+        if denominador:
+            encontradas.add(("pol", round(numerador / denominador, 3)))
+    for casamento in _ME_DIM.finditer(texto or ""):
+        encontradas.add(("dim", (int(casamento.group(1)), int(casamento.group(2)))))
+    return encontradas
+
+
+def _medidas_compativeis(esquerda, direita):
+    """Com medidas dos dois lados que não se cruzam, o par não casa."""
+    if not esquerda or not direita:
+        return True
+    tamanhos_esq = {valor for tipo, valor in esquerda if tipo in ("dn", "mm")}
+    tamanhos_dir = {valor for tipo, valor in direita if tipo in ("dn", "mm")}
+    if tamanhos_esq and tamanhos_dir and not (tamanhos_esq & tamanhos_dir):
+        return False
+    pol_esq = {valor for tipo, valor in esquerda if tipo == "pol"}
+    pol_dir = {valor for tipo, valor in direita if tipo == "pol"}
+    if pol_esq and pol_dir and not (pol_esq & pol_dir):
+        return False
+    dim_esq = {valor for tipo, valor in esquerda if tipo == "dim"}
+    dim_dir = {valor for tipo, valor in direita if tipo == "dim"}
+    if dim_esq and dim_dir and not (dim_esq & dim_dir):
+        return False
+    return True
 
 
 def _unidade(valor):
@@ -97,6 +142,15 @@ def _linha(registro, item, via, score=None):
 
     obs = []
     status = STATUS_OK
+
+    tubo = item is not None and _unidade(registro.get("UNIDADE")) in ("BR", "BR.")
+    if tubo:
+        if preco_tabela is not None:
+            preco_tabela = preco_tabela * COMPRIMENTO_BARRA
+        if quantidade is not None and preco_tabela is not None:
+            total_tabela = round(quantidade * preco_tabela, 2)
+        obs.append(f"tubo: tabela em metros; comparado por barra de {COMPRIMENTO_BARRA:g} m")
+
     if item is None:
         status = STATUS_SEM
         obs.append("sem preço no retorno")
@@ -113,6 +167,10 @@ def _linha(registro, item, via, score=None):
             status = STATUS_REVISAR
             obs.append(f"quantidade difere: processo {quantidade:g}, retorno {qtde_retorno:g}")
 
+    qtde_igual = None
+    if quantidade is not None and qtde_retorno is not None:
+        qtde_igual = abs(quantidade - qtde_retorno) <= 1e-6
+
     return {
         "CODIGO_KRONA": str(registro.get("CODIGO_KRONA") or ""),
         "DESCRICAO": _descricao_registro(registro) or (item or {}).get("descricao", ""),
@@ -123,6 +181,7 @@ def _linha(registro, item, via, score=None):
         "PRECO_GAMATEC": preco_gamatec,
         "TOTAL_GAMATEC": total_gamatec,
         "DESCONTO_PCT": _desconto(preco_tabela, preco_gamatec),
+        "QTDE_IGUAL": qtde_igual,
         "STATUS": status,
         "VIA": via or "—",
         "OBS": "; ".join(obs) or None,
@@ -143,6 +202,7 @@ def _linha_extra(item):
         "PRECO_GAMATEC": preco,
         "TOTAL_GAMATEC": total,
         "DESCONTO_PCT": None,
+        "QTDE_IGUAL": None,
         "STATUS": STATUS_SEM,
         "VIA": VIA_SO_RETORNO,
         "OBS": "não estava no processo guardado",
@@ -199,8 +259,11 @@ def comparar_retorno(registros, itens):
 
 def _melhor_descricao(registro, livres):
     alvo = _descricao_registro(registro)
+    medidas_alvo = _medidas(alvo) | _medidas(registro.get("DESCRICAO") or "")
     melhor, melhor_score = None, 0.0
     for item in livres:
+        if not _medidas_compativeis(medidas_alvo, _medidas(item.get("descricao"))):
+            continue
         score = max(_score(alvo, item.get("descricao")),
                     _score(registro.get("DESCRICAO") or "", item.get("descricao")))
         if score > melhor_score:
@@ -220,9 +283,11 @@ def resumo_retorno(linhas):
                       if linha["PRECO_GAMATEC"] is None and linha["VIA"] != VIA_SO_RETORNO)
     com_ambos = [linha for linha in linhas
                  if linha["PRECO_TABELA"] is not None and linha["PRECO_GAMATEC"] is not None]
-    total_tabela = round(sum(linha["TOTAL_TABELA"] for linha in com_ambos
+    no_total = [linha for linha in com_ambos if linha.get("QTDE_IGUAL") is True]
+    fora_do_total = sum(1 for linha in com_ambos if linha.get("QTDE_IGUAL") is False)
+    total_tabela = round(sum(linha["TOTAL_TABELA"] for linha in no_total
                              if linha["TOTAL_TABELA"] is not None), 2)
-    total_gamatec = round(sum(linha["TOTAL_GAMATEC"] for linha in com_ambos
+    total_gamatec = round(sum(linha["TOTAL_GAMATEC"] for linha in no_total
                               if linha["TOTAL_GAMATEC"] is not None), 2)
     desconto_total = (round((total_tabela - total_gamatec) / total_tabela * 100, 2)
                       if total_tabela else None)
@@ -233,6 +298,7 @@ def resumo_retorno(linhas):
         "sem": sem,
         "extras": extras,
         "sem_retorno": sem_retorno,
+        "fora_do_total": fora_do_total,
         "total_tabela": total_tabela,
         "total_gamatec": total_gamatec,
         "desconto_total": desconto_total,
