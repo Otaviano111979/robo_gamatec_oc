@@ -28,6 +28,7 @@ from flask import (
 )
 
 from extrator_documento_nao_precificado import extrair_documento_nao_precificado
+from historico_comparador import carregar_processo, gravar_processo, listar_processos
 from match_documento_tabela import comparar_documento_tabela, resumo
 from matcher import carregar_base_krona
 from matcher_tabela_cliente import preparar_indice
@@ -180,6 +181,12 @@ def processar():
             if isinstance(valor, float) and valor != valor:
                 registro[chave] = None
 
+    # Historico persistente: aditivo; nunca pode quebrar o fluxo atual.
+    try:
+        gravar_processo(dados)
+    except Exception:
+        pass
+
     file_id = f"sess_nao_precificado_{uuid.uuid4().hex}.json"
     temporario = None
     try:
@@ -212,13 +219,7 @@ def resultado():
     )
 
 
-@nao_precificado_bp.get("/documento-nao-precificado/download")
-def download():
-    dados = _dados()
-    if not dados:
-        flash("Comparação indisponível ou sessão expirada. Envie o documento novamente.")
-        return redirect(url_for("nao_precificado.upload"))
-
+def _enviar_planilha(dados):
     df = pd.DataFrame(dados["registros"]).rename(columns={
         "CODIGO_CLIENTE": "CODIGO CLIENTE",
         "CODIGO_KRONA": "CODIGO KRONA",
@@ -262,6 +263,15 @@ def download():
     )
 
 
+@nao_precificado_bp.get("/documento-nao-precificado/download")
+def download():
+    dados = _dados()
+    if not dados:
+        flash("Comparação indisponível ou sessão expirada. Envie o documento novamente.")
+        return redirect(url_for("nao_precificado.upload"))
+    return _enviar_planilha(dados)
+
+
 @nao_precificado_bp.get("/documento-nao-precificado/pdf")
 def download_pdf():
     dados = _dados()
@@ -275,6 +285,53 @@ def download_pdf():
     except Exception as erro:
         flash(f"Não foi possível gerar o PDF do orçamento: {erro}")
         return redirect(url_for("nao_precificado.resultado", id=request.args["id"]))
+
+    nome = f"orcamento_{dados['cliente'].lower()}.pdf"
+    return send_file(BytesIO(pdf), as_attachment=True, download_name=nome,
+                     mimetype="application/pdf")
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico")
+def historico():
+    return render_template(
+        "comparador/nao_precificado_historico.html",
+        processos=listar_processos(),
+    )
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>")
+def historico_ver(pid):
+    dados = carregar_processo(pid)
+    if not dados:
+        flash("Processo não encontrado no histórico.")
+        return redirect(url_for("nao_precificado.historico"))
+    return render_template(
+        "comparador/nao_precificado_resultado.html",
+        dados=dados, registros=dados["registros"], stats=dados["stats"],
+        file_id="", historico_id=pid,
+    )
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/download")
+def historico_download(pid):
+    dados = carregar_processo(pid)
+    if not dados:
+        abort(404)
+    return _enviar_planilha(dados)
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/pdf")
+def historico_pdf(pid):
+    dados = carregar_processo(pid)
+    if not dados:
+        abort(404)
+
+    try:
+        from pdf_orcamento_nao_precificado import gerar_pdf
+        pdf = gerar_pdf(dados)
+    except Exception as erro:
+        flash(f"Não foi possível gerar o PDF do orçamento: {erro}")
+        return redirect(url_for("nao_precificado.historico_ver", pid=pid))
 
     nome = f"orcamento_{dados['cliente'].lower()}.pdf"
     return send_file(BytesIO(pdf), as_attachment=True, download_name=nome,
