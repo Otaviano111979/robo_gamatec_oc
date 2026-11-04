@@ -1555,9 +1555,11 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
     # PRIORIDADE 1 — MRV
     # Match por código interno da OC via tabela DE/PARA.
     # Independente de score — lookup determinístico.
-    # So para itens de fluxo conhecido (gate acima).
+    # A base MRV e exclusiva de documentos MRV: a base central do
+    # sistema e a KRONA, e codigos de outros clientes nao sao
+    # comparaveis com o de/para MRV.
     # =========================================================
-    if indice_mrv and not cliente_desconhecido:
+    if indice_mrv and _fmt_item == "MRV":
         match_mrv = match_por_codigo_mrv(item, indice_mrv)
 
         if match_mrv:

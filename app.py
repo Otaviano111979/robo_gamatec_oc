@@ -78,7 +78,7 @@ def etapa_extracao(caminho_oc):
 
 
 def etapa_matching(df, cliente_tabela=None):
-    print("\n[2/6] REALIZANDO MATCH HÍBRIDO (MRV + KRONA)...")
+    print("\n[2/6] REALIZANDO MATCH (base KRONA; de/para MRV so em documentos MRV)...")
 
     base_krona = carregar_base_krona()
 
