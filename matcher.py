@@ -1512,9 +1512,6 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
     if base_krona is None:
         base_krona = carregar_base_krona()
 
-    if indice_mrv is None:
-        indice_mrv = carregar_indice_mrv()
-
     if indice_brasal is None:
         indice_brasal = carregar_base_brasal()
 
@@ -1550,6 +1547,10 @@ def match_item_oc(item, base_krona=None, indice_mrv=None, indice_brasal=None,
         or "CLIENTE_NOVO" in _obs_str
         or "EXTRATOR_GENERICO" in _obs_str
     )
+
+    # A base MRV so e carregada para itens de documentos MRV.
+    if indice_mrv is None and _fmt_item == "MRV":
+        indice_mrv = carregar_indice_mrv()
 
     # =========================================================
     # PRIORIDADE 1 — MRV
@@ -1916,7 +1917,9 @@ def match_lote_itens(df_oc, base_krona=None, indice_mrv=None, indice_brasal=None
     if base_krona is None:
         base_krona = carregar_base_krona()
 
-    if indice_mrv is None:
+    # A base MRV so e carregada para documentos MRV (base central = KRONA).
+    if indice_mrv is None and "formato_oc" in df_oc.columns and \
+            df_oc["formato_oc"].fillna("").astype(str).str.strip().str.upper().eq("MRV").any():
         indice_mrv = carregar_indice_mrv()
 
     if indice_brasal is None:
