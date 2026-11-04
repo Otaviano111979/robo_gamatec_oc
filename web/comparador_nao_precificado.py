@@ -8,6 +8,10 @@ Fluxo:
     GET  /comparador/documento-nao-precificado/download   → planilha Excel
     GET  /comparador/documento-nao-precificado/pdf        → orçamento em PDF
     GET  /comparador/documento-nao-precificado/modelo.xlsx→ modelo para preencher
+    GET  /comparador/documento-nao-precificado/historico      → processos guardados
+    GET  /comparador/documento-nao-precificado/historico/<id>/retorno      → envio do retorno Gamatec
+    POST /comparador/documento-nao-precificado/historico/<id>/retorno      → compara e grava
+    GET  /comparador/documento-nao-precificado/historico/<id>/retorno/ver  → resultado com % desconto
 
 Não toca no comparador de documento precificado nem no fluxo das OCs.
 """
@@ -28,11 +32,15 @@ from flask import (
 )
 
 from extrator_documento_nao_precificado import extrair_documento_nao_precificado
-from historico_comparador import carregar_processo, gravar_processo, listar_processos
+from extrator_orcamento_gamatec import extrair_orcamento_gamatec
+from historico_comparador import (
+    carregar_processo, gravar_processo, gravar_retorno, listar_processos,
+)
 from match_documento_tabela import comparar_documento_tabela, resumo
 from matcher import carregar_base_krona
 from matcher_tabela_cliente import preparar_indice
 from tabelas_clientes import carregar_tabela, clientes_disponiveis
+from comparador_retorno import comparar_retorno, resumo_retorno
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 SESSION_TMP_DIR = os.path.join(_HERE, "tmp_session")
@@ -334,5 +342,211 @@ def historico_pdf(pid):
         return redirect(url_for("nao_precificado.historico_ver", pid=pid))
 
     nome = f"orcamento_{dados['cliente'].lower()}.pdf"
+    return send_file(BytesIO(pdf), as_attachment=True, download_name=nome,
+                     mimetype="application/pdf")
+
+
+# ── Retorno precificado (Gamatec) ──────────────────────────────────────────
+
+_COLUNAS_RETORNO = [
+    "CODIGO KRONA", "DESCRICAO", "QUANTIDADE", "UNIDADE",
+    "PRECO TABELA", "TOTAL TABELA", "PRECO GAMATEC", "TOTAL GAMATEC",
+    "DESCONTO %", "STATUS", "VIA", "OBS",
+]
+
+
+def _processo_guardado(pid):
+    dados = carregar_processo(pid)
+    if not dados:
+        flash("Processo não encontrado no histórico.")
+        return None
+    return dados
+
+
+def _retorno_ou_nada(dados):
+    retorno = dados.get("retorno")
+    if not retorno:
+        flash("Este processo ainda não tem retorno comparado. Envie o orçamento do Gamatec.")
+        return None
+    return retorno
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/retorno")
+def retorno_upload(pid):
+    dados = _processo_guardado(pid)
+    if not dados:
+        return redirect(url_for("nao_precificado.historico"))
+    if "retorno_csrf" not in session:
+        session["retorno_csrf"] = secrets.token_urlsafe(32)
+    return render_template(
+        "comparador/nao_precificado_retorno_upload.html",
+        dados=dados, csrf_token=session["retorno_csrf"],
+        retorno=dados.get("retorno"),
+    )
+
+
+@nao_precificado_bp.post("/documento-nao-precificado/historico/<int:pid>/retorno")
+def retorno_processar(pid):
+    token = session.get("retorno_csrf", "")
+    recebido = request.form.get("_csrf", "")
+    if not token or not secrets.compare_digest(token.encode("utf-8"), recebido.encode("utf-8")):
+        flash("Atualize a página e tente novamente: validação da sessão falhou.")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    dados = _processo_guardado(pid)
+    if not dados:
+        return redirect(url_for("nao_precificado.historico"))
+
+    arquivo = request.files.get("documento")
+    if not arquivo or not arquivo.filename:
+        flash("Selecione o orçamento precificado (PDF do Gamatec).")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+    if not arquivo.filename.lower().endswith(".pdf"):
+        flash("O retorno deve ser o PDF do orçamento (Gamatec).")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    try:
+        extraido = extrair_orcamento_gamatec(arquivo.read())
+    except ValueError as erro:
+        flash(f"Não foi possível ler o orçamento: {erro}")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+    except Exception as erro:
+        flash(f"Não foi possível ler o orçamento: {erro}")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    if not extraido["itens"]:
+        flash("O orçamento não tem itens com preço.")
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    try:
+        linhas = comparar_retorno(dados["registros"], extraido["itens"])
+    except ValueError as erro:
+        flash(str(erro))
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    for linha in linhas:
+        for chave, valor in linha.items():
+            if isinstance(valor, float) and valor != valor:
+                linha[chave] = None
+
+    retorno = {
+        "numero_orcamento": extraido["numero_orcamento"],
+        "cliente": extraido["cliente"],
+        "emissao": extraido["emissao"],
+        "nome_arquivo": arquivo.filename,
+        "linhas": linhas,
+        "stats": resumo_retorno(linhas),
+    }
+
+    # Aditivo: se a gravação falhar, o resultado continua visível nesta sessão.
+    try:
+        gravar_retorno(pid, retorno)
+    except Exception:
+        pass
+
+    return redirect(url_for("nao_precificado.retorno_ver", pid=pid), code=303)
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/retorno/ver")
+def retorno_ver(pid):
+    dados = _processo_guardado(pid)
+    if not dados:
+        return redirect(url_for("nao_precificado.historico"))
+    retorno = _retorno_ou_nada(dados)
+    if not retorno:
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+    return render_template(
+        "comparador/nao_precificado_retorno_resultado.html",
+        dados=dados, retorno=retorno,
+        linhas=retorno["linhas"], stats=retorno["stats"],
+    )
+
+
+def _enviar_planilha_retorno(dados, retorno):
+    df = pd.DataFrame(retorno["linhas"]).rename(columns={
+        "CODIGO_KRONA": "CODIGO KRONA",
+        "DESCRICAO": "DESCRICAO",
+        "QUANTIDADE": "QUANTIDADE",
+        "UNIDADE": "UNIDADE",
+        "PRECO_TABELA": "PRECO TABELA",
+        "TOTAL_TABELA": "TOTAL TABELA",
+        "PRECO_GAMATEC": "PRECO GAMATEC",
+        "TOTAL_GAMATEC": "TOTAL GAMATEC",
+        "DESCONTO_PCT": "DESCONTO %",
+        "STATUS": "STATUS",
+        "VIA": "VIA",
+        "OBS": "OBS",
+    })[_COLUNAS_RETORNO]
+
+    saida = BytesIO()
+    with pd.ExcelWriter(
+        saida, engine="xlsxwriter",
+        engine_kwargs={"options": {"strings_to_formulas": False, "strings_to_urls": False}},
+    ) as writer:
+        df.to_excel(writer, index=False, sheet_name="retorno")
+        livro = writer.book
+        planilha = writer.sheets["retorno"]
+        moeda = livro.add_format({"num_format": "0.00"})
+        desconto = livro.add_format({"num_format": "0.00"})
+        negrito = livro.add_format({"bold": True})
+        planilha.freeze_panes(1, 0)
+        planilha.set_column("A:A", 14)
+        planilha.set_column("B:B", 46)
+        planilha.set_column("C:C", 12, livro.add_format({"num_format": "0.###"}))
+        planilha.set_column("D:D", 10)
+        planilha.set_column("E:H", 14, moeda)
+        planilha.set_column("I:I", 12, desconto)
+        planilha.set_column("J:K", 14)
+        planilha.set_column("L:L", 52)
+
+        stats = retorno["stats"]
+        fim = len(df) + 2
+        planilha.write_string(fim, 1, "TOTAL", negrito)
+        planilha.write_number(fim, 4, stats["total_tabela"], moeda)
+        planilha.write_number(fim, 6, stats["total_gamatec"], moeda)
+        if stats["desconto_total"] is not None:
+            planilha.write_number(fim, 8, stats["desconto_total"], desconto)
+        if stats["sem_retorno"]:
+            planilha.write_string(
+                fim + 2, 1,
+                f"Itens sem preço no retorno: {stats['sem_retorno']}.",
+            )
+
+    saida.seek(0)
+    nome = f"retorno_{dados['cliente'].lower()}.xlsx"
+    return send_file(
+        saida, as_attachment=True, download_name=nome,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/retorno/download")
+def retorno_download(pid):
+    dados = _processo_guardado(pid)
+    if not dados:
+        return redirect(url_for("nao_precificado.historico"))
+    retorno = _retorno_ou_nada(dados)
+    if not retorno:
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+    return _enviar_planilha_retorno(dados, retorno)
+
+
+@nao_precificado_bp.get("/documento-nao-precificado/historico/<int:pid>/retorno/pdf")
+def retorno_pdf(pid):
+    dados = _processo_guardado(pid)
+    if not dados:
+        return redirect(url_for("nao_precificado.historico"))
+    retorno = _retorno_ou_nada(dados)
+    if not retorno:
+        return redirect(url_for("nao_precificado.retorno_upload", pid=pid))
+
+    try:
+        from pdf_retorno_comparador import gerar_pdf_retorno
+        pdf = gerar_pdf_retorno(dados, retorno)
+    except Exception as erro:
+        flash(f"Não foi possível gerar o PDF do retorno: {erro}")
+        return redirect(url_for("nao_precificado.retorno_ver", pid=pid))
+
+    nome = f"retorno_{dados['cliente'].lower()}.pdf"
     return send_file(BytesIO(pdf), as_attachment=True, download_name=nome,
                      mimetype="application/pdf")

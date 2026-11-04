@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparar retorno | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_modelo_precificado.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_calendario.css') }}">
+</head>
+<body class="page-comparador">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
+    <main class="main">
+      <div class="cmp-narrow">
+        <header class="page-head">
+          <div>
+            <h1>Comparar retorno do Gamatec</h1>
+            <p>Envie o orçamento precificado que voltou do Gamatec. Cada item é casado pelo código Krona (depois pela descrição) e recebe o percentual de desconto sobre o preço da tabela.</p>
+          </div>
+          <div class="page-actions">
+            <a href="{{ url_for('nao_precificado.historico') }}" class="btn">Voltar ao histórico</a>
+            <a href="/ocs" class="btn btn-ghost">Voltar às OCs</a>
+          </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-wrap" role="alert">
+              {% for message in messages %}<div class="flash-msg flash-erro">{{ message }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <section class="panel">
+          <div class="panel-head"><h2>Processo guardado</h2></div>
+          <div class="panel-body">
+            <div class="cmp-meta">
+              <span>Tabela <strong>{{ dados.cliente }}</strong> (vigência {{ dados.vigencia }})</span>
+              {% if dados.numero %}<span>Nº <strong>{{ dados.numero }}</strong></span>{% endif %}
+              <span>Documento <strong>{{ dados.nome_arquivo }}</strong></span>
+              <span>Guardado em <strong>{{ dados.criado_em }}</strong></span>
+            </div>
+            <p class="muted small">
+              {{ dados.stats.total }} itens na comparação · total pela tabela
+              <strong>R$ {{ "%.2f"|format(dados.stats.valor_total) }}</strong>.
+            </p>
+          </div>
+        </section>
+
+        {% if retorno %}
+          <div class="flash-wrap" role="status">
+            <div class="alert alert-warn">
+              Já existe um retorno comparado
+              {% if retorno.numero_orcamento %}(orçamento Nº <strong>{{ retorno.numero_orcamento }}</strong>{% endif %}{% if retorno.emissao %}, emissão {{ retorno.emissao }}{% endif %}).
+              Enviar outro PDF substitui o anterior.
+              <a href="{{ url_for('nao_precificado.retorno_ver', pid=dados.id) }}" class="btn btn-sm">Ver retorno atual</a>
+            </div>
+          </div>
+        {% endif %}
+
+        <section class="panel">
+          <div class="panel-head"><h2>Orçamento precificado (PDF do Gamatec)</h2></div>
+          <form class="panel-body form-stack" id="retornoForm" method="post" enctype="multipart/form-data"
+                action="{{ url_for('nao_precificado.retorno_processar', pid=dados.id) }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+            <div class="cmp-drop" id="drop-retorno">
+              <div class="cmp-drop-label">Orçamento de retorno</div>
+              <div class="cmp-drop-hint">O PDF do orçamento gerado no Gamatec, com os preços que voltaram do sistema.</div>
+              <input type="file" id="retornoInput" name="documento" accept=".pdf" required>
+              <button class="btn btn-sm" type="button" aria-controls="retornoInput"
+                      onclick="document.getElementById('retornoInput').click()">Selecionar arquivo</button>
+              <div class="cmp-drop-file" id="nome-retorno"></div>
+            </div>
+
+            <p class="muted small">O desconto de cada item é (preço da tabela − preço do Gamatec) ÷ preço da tabela. Itens que o retorno não traz ficam sem preço no retorno; itens que só existem no retorno ficam listados no fim.</p>
+
+            <div class="cmp-form-foot">
+              <span class="muted small" id="retornoStatus" role="status" aria-live="polite">Selecione o PDF do orçamento para continuar.</span>
+              <button class="btn btn-primary" id="compararRetornoBtn" type="submit" disabled>Comparar retorno</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const botao = document.getElementById('compararRetornoBtn');
+    const estado = document.getElementById('retornoStatus');
+    const entrada = document.getElementById('retornoInput');
+
+    function atualizarPronto() {
+      const arquivo = entrada.files[0];
+      const nome = document.getElementById('nome-retorno');
+      nome.textContent = arquivo ? arquivo.name : '';
+      nome.style.display = arquivo ? 'block' : 'none';
+      document.getElementById('drop-retorno').classList.toggle('is-selected', !!arquivo);
+      botao.disabled = !arquivo;
+      estado.textContent = arquivo
+        ? 'Pronto para comparar com o processo guardado.'
+        : 'Selecione o PDF do orçamento para continuar.';
+    }
+
+    entrada.addEventListener('change', atualizarPronto);
+    document.getElementById('retornoForm').addEventListener('submit', () => {
+      botao.disabled = true;
+      botao.textContent = 'Comparando…';
+      estado.textContent = 'A ler o orçamento e a calcular o desconto…';
+    });
+    atualizarPronto();
+  </script>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

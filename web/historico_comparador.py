@@ -25,10 +25,26 @@ CREATE TABLE IF NOT EXISTS historico_comparador (
     layout       TEXT,
     stats        TEXT,
     registros    TEXT NOT NULL,
-    estado       TEXT NOT NULL DEFAULT 'aguardando_retorno'
+    estado       TEXT NOT NULL DEFAULT 'aguardando_retorno',
+    retorno      TEXT,
+    retorno_em   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_hc_criado ON historico_comparador(criado_em);
 """
+
+# colunas adicionadas depois da primeira publicação: aditivas, nunca destrutivas
+_MIGRACOES = (
+    ("retorno", "TEXT"),
+    ("retorno_em", "TEXT"),
+)
+
+
+def _aplicar_migracoes(conn):
+    colunas = {linha["name"]
+               for linha in conn.execute("PRAGMA table_info(historico_comparador)")}
+    for nome, tipo in _MIGRACOES:
+        if nome not in colunas:
+            conn.execute(f"ALTER TABLE historico_comparador ADD COLUMN {nome} {tipo}")
 
 _ESTADOS = {
     "aguardando_retorno": "Aguardando retorno",
@@ -40,6 +56,7 @@ def conectar():
     conn = sqlite3.connect(CAMINHO_CRM)
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
+    _aplicar_migracoes(conn)
     return conn
 
 
@@ -117,6 +134,28 @@ def carregar_processo(pid):
             "stats": json.loads(linha["stats"] or "{}"),
             "registros": json.loads(linha["registros"] or "[]"),
             "estado": linha["estado"],
+            "retorno": json.loads(linha["retorno"]) if linha["retorno"] else None,
+            "retorno_em": linha["retorno_em"] or "",
         }
+    finally:
+        conn.close()
+
+
+def gravar_retorno(pid, retorno):
+    """Guarda o retorno precificado no processo e marca-o como comparado."""
+    conn = conectar()
+    try:
+        cur = conn.execute(
+            """UPDATE historico_comparador
+               SET estado = 'retorno_comparado', retorno = ?, retorno_em = ?
+               WHERE id = ?""",
+            (
+                json.dumps(retorno, ensure_ascii=False, allow_nan=False),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                pid,
+            ),
+        )
+        conn.commit()
+        return cur.rowcount > 0
     finally:
         conn.close()

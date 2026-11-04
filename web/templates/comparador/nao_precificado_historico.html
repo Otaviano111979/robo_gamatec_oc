@@ -67,6 +67,11 @@
                   </td>
                   <td class="t-right">
                     <a class="btn btn-sm" href="{{ url_for('nao_precificado.historico_ver', pid=p.id) }}">Abrir</a>
+                    {% if p.estado == 'retorno_comparado' %}
+                      <a class="btn btn-sm" href="{{ url_for('nao_precificado.retorno_ver', pid=p.id) }}">Ver retorno</a>
+                    {% else %}
+                      <a class="btn btn-sm btn-primary" href="{{ url_for('nao_precificado.retorno_upload', pid=p.id) }}">Comparar retorno</a>
+                    {% endif %}
                   </td>
                 </tr>
                 {% else %}

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  {% include '_theme_boot.html' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retorno comparado | Vortex Sync</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/vtx.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_comparador.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_ilha.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pg_calendario.css') }}">
+</head>
+<body class="page-comparador is-precificado">
+  <div class="app">
+    {% set nav_ativo = 'ocs' %}
+    {% include '_sidebar.html' %}
+
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <h1>Retorno comparado</h1>
+          <p class="cmp-meta">
+            <span>Tabela <strong>{{ dados.cliente }}</strong> (vigência {{ dados.vigencia }})</span>
+            {% if dados.numero %}<span>Nº <strong>{{ dados.numero }}</strong></span>{% endif %}
+            <span>Orçamento <strong>{{ retorno.nome_arquivo }}</strong>{% if retorno.numero_orcamento %} (Nº {{ retorno.numero_orcamento }}){% endif %}</span>
+            {% if retorno.emissao %}<span>Emissão <strong>{{ retorno.emissao }}</strong></span>{% endif %}
+          </p>
+        </div>
+        <div class="page-actions">
+          <a href="{{ url_for('nao_precificado.historico') }}" class="btn btn-ghost">Voltar ao histórico</a>
+          <a href="{{ url_for('nao_precificado.retorno_upload', pid=dados.id) }}" class="btn">Novo retorno</a>
+          <a href="{{ url_for('nao_precificado.retorno_pdf', pid=dados.id) }}" class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+            Descarregar PDF
+          </a>
+          <a href="{{ url_for('nao_precificado.retorno_download', pid=dados.id) }}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            Descarregar planilha
+          </a>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for m in messages %}<div class="alert alert-warn">{{ m }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="flash-wrap" role="status">
+        <div class="alert {{ 'alert-warn' if stats.sem }}">
+          {{ stats.total }} itens comparados. Desconto total:
+          {% if stats.desconto_total is not none %}
+            <strong>{{ "%.2f"|format(stats.desconto_total) }}%</strong>
+            (tabela R$ {{ "%.2f"|format(stats.total_tabela) }} → Gamatec R$ {{ "%.2f"|format(stats.total_gamatec) }}).
+          {% else %}—{% endif %}
+          {% if stats.sem_retorno %}{{ stats.sem_retorno }} item(ns) sem preço no retorno.{% endif %}
+          {% if stats.extras %}{{ stats.extras }} item(ns) só existem no retorno.{% endif %}
+        </div>
+      </div>
+
+      <section class="kpis">
+        <div class="kpi is-run">
+          <div class="kpi-label">Total pela tabela</div>
+          <div class="kpi-value"><small>R$</small> {{ "%.2f"|format(stats.total_tabela) }}</div>
+        </div>
+        <div class="kpi is-run">
+          <div class="kpi-label">Total Gamatec</div>
+          <div class="kpi-value"><small>R$</small> {{ "%.2f"|format(stats.total_gamatec) }}</div>
+        </div>
+        <div class="kpi {{ 'is-warn' if stats.desconto_total is none or stats.desconto_total < 0 }}">
+          <div class="kpi-label">Desconto total</div>
+          <div class="kpi-value">
+            {% if stats.desconto_total is not none %}{{ "%.2f"|format(stats.desconto_total) }}<small>%</small>{% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="kpi {{ 'is-err' if stats.sem }}">
+          <div class="kpi-label">Sem preço no retorno</div>
+          <div class="kpi-value">{{ stats.sem_retorno }}</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="input-search cmp-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="input tbl-search" type="text" placeholder="Buscar código ou descrição" aria-label="Buscar código ou descrição" oninput="buscar(this.value)">
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table cmp-table" id="tabelaRetorno">
+            <thead>
+              <tr>
+                <th>Cód. Krona</th>
+                <th>Descrição</th>
+                <th class="t-right">Qtde</th>
+                <th>Un.</th>
+                <th class="t-right">Preço tabela</th>
+                <th class="t-right">Total tabela</th>
+                <th class="t-right">Preço Gamatec</th>
+                <th class="t-right">Total Gamatec</th>
+                <th class="t-right">Desconto</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in linhas %}
+              <tr data-status="{{ r.STATUS }}" data-busca="{{ r.CODIGO_KRONA }} {{ r.DESCRICAO }}">
+                <td class="td-cod">{{ r.CODIGO_KRONA or '—' }}</td>
+                <td class="td-desc" title="{{ r.DESCRICAO }}">{{ r.DESCRICAO }}</td>
+                <td class="td-num">{{ ("%.10g"|format(r.QUANTIDADE)) if r.QUANTIDADE is not none else '—' }}</td>
+                <td class="td-un">{{ r.UNIDADE or '—' }}</td>
+                <td class="td-num">
+                  {% if r.PRECO_TABELA is not none %}R$ {{ "%.3f"|format(r.PRECO_TABELA) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-total-oc">
+                  {% if r.TOTAL_TABELA is not none %}R$ {{ "%.2f"|format(r.TOTAL_TABELA) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num">
+                  {% if r.PRECO_GAMATEC is not none %}R$ {{ "%.3f"|format(r.PRECO_GAMATEC) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num">
+                  {% if r.TOTAL_GAMATEC is not none %}R$ {{ "%.2f"|format(r.TOTAL_GAMATEC) }}{% else %}—{% endif %}
+                </td>
+                <td class="td-num td-preco-orc">
+                  {% if r.DESCONTO_PCT is not none %}{{ "%.2f"|format(r.DESCONTO_PCT) }}%{% else %}—{% endif %}
+                </td>
+                <td class="td-status">
+                  {% if r.STATUS == 'OK' %}
+                    <span class="chip chip-ok">OK</span>
+                  {% elif r.STATUS == 'REVISAR' %}
+                    <span class="chip chip-warn">A revisar</span>
+                  {% else %}
+                    <span class="chip chip-err">Sem preço no retorno</span>
+                  {% endif %}
+                  {% if r.VIA and r.VIA != 'CÓD. KRONA' %}<span class="badge cmp-obs">{{ r.VIA }}</span>{% endif %}
+                  {% if r.OBS %}<span class="badge cmp-obs">{{ r.OBS }}</span>{% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="10" class="empty">Nenhum item para mostrar.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-foot">
+          <span><span id="cmpVisiveis">{{ linhas|length }}</span> de {{ linhas|length }} itens visíveis</span>
+          <span>Desconto por item = (preço tabela − preço Gamatec) ÷ preço tabela; só itens com os dois preços entram no total.</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function buscar(q) {
+      const busca = (q !== undefined ? q : document.querySelector('.tbl-search').value).toLowerCase();
+      let visiveis = 0;
+      document.querySelectorAll('#tabelaRetorno tbody tr[data-status]').forEach(tr => {
+        const mostra = !busca || tr.dataset.busca.toLowerCase().includes(busca);
+        tr.style.display = mostra ? '' : 'none';
+        if (mostra) visiveis++;
+      });
+      const cont = document.getElementById('cmpVisiveis');
+      if (cont) cont.textContent = visiveis;
+    }
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
