@@ -14,7 +14,7 @@ html.natal {
   --natal-luz-1:     #ffd166;
   --natal-luz-2:     #ef6f6c;
   --natal-luz-3:     #7fd8a4;
-  --natal-neve-cor:  #ffffff;
+  --natal-neve-cor:  #e6edf7;
 
   --accent:       var(--natal-verde)     !important;
   --accent-hover: var(--natal-verde-hi)  !important;
@@ -192,15 +192,26 @@ html.natal .sidebar::after {
   opacity: .95;
 }
 
-/* ── NEVE ACUMULADA: touca sobre a logo UNE ── */
-html.natal .sidebar-branding { position: relative; }
+/* ── NEVE ACUMULADA: touca sobre a logo UNE ──
+   O padding-top do .sidebar-branding muda com a altura da tela
+   (pg_ilha.css), então a touca segue a mesma variável pra continuar
+   encostada no topo da imagem. */
+html.natal { --natal-branding-pad: 10px; --natal-logo-w: 168px; }
+@media (max-height: 820px) {
+  html.natal { --natal-branding-pad: 12px; --natal-logo-w: 138px; }
+}
+html.natal .sidebar-branding {
+  position: relative;
+  padding-top: var(--natal-branding-pad);
+}
 html.natal .sidebar-branding::before {
   content: "";
   position: absolute;
-  top: -3px;
-  left: 6%;
-  right: 10%;
-  height: 6px;
+  top: calc(var(--natal-branding-pad) - 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(var(--natal-logo-w) - 8px);
+  height: 7px;
   pointer-events: none;
   z-index: 7;
   background: var(--natal-neve-cor);
@@ -209,6 +220,7 @@ html.natal .sidebar-branding::before {
     14px 3px 0 -1px var(--natal-neve-cor),
     -10px 4px 0 -2px var(--natal-neve-cor),
     42px 4px 0 -2px var(--natal-neve-cor);
+  filter: drop-shadow(0 1px 1px rgba(120, 140, 170, .30));
   opacity: .95;
 }
 
