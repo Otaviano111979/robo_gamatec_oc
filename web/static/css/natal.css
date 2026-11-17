@@ -14,6 +14,7 @@ html.natal {
   --natal-luz-1:     #ffd166;
   --natal-luz-2:     #ef6f6c;
   --natal-luz-3:     #7fd8a4;
+  --natal-neve-cor:  #ffffff;
 
   --accent:       var(--natal-verde)     !important;
   --accent-hover: var(--natal-verde-hi)  !important;
@@ -38,6 +39,7 @@ html.natal.dark body {
   --natal-verde-txt: #5adaa0;
   --natal-dourado:   #e2b45e;
   --natal-vermelho:  #ef6f6c;
+  --natal-neve-cor:  #e9eefb;
   --accent:       var(--natal-verde)     !important;
   --accent-hover: var(--natal-verde-hi)  !important;
   --accent-weak:  var(--natal-verde-bg)  !important;
@@ -172,9 +174,49 @@ html.natal .auth-card::after {
   background: var(--natal-verde-bg) !important;
 }
 
+/* ── NEVE ACUMULADA: montinho no canto inferior esquerdo da sidebar ── */
+html.natal .sidebar::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  bottom: -4px;
+  width: 130px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 7;
+  background:
+    radial-gradient(ellipse 62px 22px at 34px 100%, var(--natal-neve-cor) 0 98%, transparent 100%),
+    radial-gradient(ellipse 46px 15px at 84px 100%, var(--natal-neve-cor) 0 98%, transparent 100%),
+    radial-gradient(ellipse 30px 10px at 112px 100%, var(--natal-neve-cor) 0 98%, transparent 100%);
+  filter: drop-shadow(0 -1px 1px rgba(120, 140, 170, .18));
+  opacity: .95;
+}
+
+/* ── NEVE ACUMULADA: touca sobre a logo UNE ── */
+html.natal .sidebar-branding { position: relative; }
+html.natal .sidebar-branding::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 6%;
+  right: 10%;
+  height: 6px;
+  pointer-events: none;
+  z-index: 7;
+  background: var(--natal-neve-cor);
+  border-radius: 5px 6px 3px 4px;
+  box-shadow:
+    14px 3px 0 -1px var(--natal-neve-cor),
+    -10px 4px 0 -2px var(--natal-neve-cor),
+    42px 4px 0 -2px var(--natal-neve-cor);
+  opacity: .95;
+}
+
 /* ── MOBILE: sem guirlanda e menos neve ── */
 @media (max-width: 900px) {
   .natal-guirlanda { display: none; }
+  html.natal .sidebar::after,
+  html.natal .sidebar-branding::before { display: none; }
   html.natal .sidebar .brand { padding-top: 0; }
 }
 
