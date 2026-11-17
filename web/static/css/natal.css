@@ -1,0 +1,185 @@
+/* ============================================================
+   VORTEX SYNC — Tema de Natal (discreto)
+   Ativo apenas sob html.natal. Sem a classe, o sistema fica
+   idêntico ao padrão.
+   ============================================================ */
+
+html.natal {
+  --natal-verde:     #1a7a4a;
+  --natal-verde-hi:  #14613b;
+  --natal-verde-bg:  #e6f4ec;
+  --natal-verde-txt: #166b40;
+  --natal-dourado:   #c99a2e;
+  --natal-vermelho:  #c0392b;
+  --natal-luz-1:     #ffd166;
+  --natal-luz-2:     #ef6f6c;
+  --natal-luz-3:     #7fd8a4;
+
+  --accent:       var(--natal-verde)     !important;
+  --accent-hover: var(--natal-verde-hi)  !important;
+  --accent-weak:  var(--natal-verde-bg)  !important;
+  --accent-text:  var(--natal-verde-txt) !important;
+}
+
+/* vtx.css define --accent no elemento body (html.dark body),
+   então o override precisa existir em body também */
+html.natal body {
+  --accent:       var(--natal-verde)     !important;
+  --accent-hover: var(--natal-verde-hi)  !important;
+  --accent-weak:  var(--natal-verde-bg)  !important;
+  --accent-text:  var(--natal-verde-txt) !important;
+}
+
+html.natal.dark,
+html.natal.dark body {
+  --natal-verde:     #3ecf8e;
+  --natal-verde-hi:  #5adaa0;
+  --natal-verde-bg:  rgba(62, 207, 142, .14);
+  --natal-verde-txt: #5adaa0;
+  --natal-dourado:   #e2b45e;
+  --natal-vermelho:  #ef6f6c;
+  --accent:       var(--natal-verde)     !important;
+  --accent-hover: var(--natal-verde-hi)  !important;
+  --accent-weak:  var(--natal-verde-bg)  !important;
+  --accent-text:  var(--natal-verde-txt) !important;
+}
+
+/* ── MARCA: acento dourado + detalhe vermelho discreto ── */
+html.natal .brand-name {
+  background: linear-gradient(90deg, var(--natal-verde) 0%, var(--natal-verde) 62%, var(--natal-vermelho) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+html.natal .brand-name span {
+  -webkit-text-fill-color: currentColor;
+  color: var(--natal-dourado);
+  font-weight: 600;
+}
+
+/* ── NAV: item ativo com leve brilho natalino ── */
+html.natal .nav a.is-active {
+  box-shadow: inset 3px 0 0 var(--natal-vermelho);
+}
+
+/* ── CARDS: filete dourado sutil no topo ── */
+html.natal .panel,
+html.natal .kpis .kpi,
+html.natal .login-card,
+html.natal .auth-card {
+  box-shadow: inset 0 2px 0 0 rgba(201, 154, 46, .45), var(--shadow, 0 1px 3px rgba(0,0,0,.08));
+}
+
+/* ── NEVE ── */
+.natal-neve {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 900;
+  overflow: hidden;
+}
+.natal-neve .floco {
+  position: absolute;
+  top: -12px;
+  border-radius: 50%;
+  background: #b9c6dd;
+  opacity: .55;
+  animation-name: natal-neve-cair, natal-neve-ondular;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: normal, alternate;
+  will-change: translate, transform;
+}
+html.dark .natal-neve .floco {
+  background: #dfe8ff;
+  opacity: .35;
+}
+.natal-neve .floco.grande { filter: blur(1px); opacity: .28; }
+
+@keyframes natal-neve-cair {
+  from { translate: 0 -5vh; }
+  to   { translate: 0 108vh; }
+}
+@keyframes natal-neve-ondular {
+  from { transform: translateX(calc(var(--ond, 24px) * -1)); }
+  to   { transform: translateX(var(--ond, 24px)); }
+}
+
+/* ── GUIRLANDA (topo da sidebar) ── */
+html.natal .sidebar { position: relative; }
+
+.natal-guirlanda {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  pointer-events: none;
+  z-index: 6;
+  background:
+    radial-gradient(circle at 8px 6px,  #2e7d4f 0 5px, transparent 6px),
+    radial-gradient(circle at 22px 9px, #256b44 0 6px, transparent 7px),
+    radial-gradient(circle at 14px 13px, #35935e 0 5px, transparent 6px);
+  background-size: 30px 22px;
+  background-repeat: repeat-x;
+  opacity: .9;
+}
+.natal-guirlanda::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 14px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--natal-luz-1);
+  box-shadow:
+    26px 7px 0 0 var(--natal-luz-2),
+    52px 2px 0 0 var(--natal-luz-3),
+    78px 8px 0 0 var(--natal-luz-1),
+    104px 3px 0 0 var(--natal-luz-2),
+    130px 7px 0 0 var(--natal-luz-3),
+    156px 2px 0 0 var(--natal-luz-1),
+    182px 8px 0 0 var(--natal-luz-2),
+    208px 3px 0 0 var(--natal-luz-3),
+    234px 7px 0 0 var(--natal-luz-1);
+  animation: natal-luzes 3.6s ease-in-out infinite;
+}
+@keyframes natal-luzes {
+  0%, 100% { opacity: .55; }
+  50%      { opacity: 1; }
+}
+
+/* Sidebar ganha respiro pra guirlanda não cobrir a marca */
+html.natal .sidebar .brand { padding-top: 14px; }
+
+/* ── LOGIN: saudação sutil no cartão ── */
+html.natal .login-card::after,
+html.natal .auth-card::after {
+  content: "";
+  display: block;
+  height: 3px;
+  margin-top: 14px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--natal-verde), var(--natal-dourado), var(--natal-vermelho));
+  opacity: .65;
+}
+
+/* ── BOTÃO TOGGLE ── */
+#natalToggle[aria-pressed="true"] {
+  color: var(--natal-verde) !important;
+  background: var(--natal-verde-bg) !important;
+}
+
+/* ── MOBILE: sem guirlanda e menos neve ── */
+@media (max-width: 900px) {
+  .natal-guirlanda { display: none; }
+  html.natal .sidebar .brand { padding-top: 0; }
+}
+
+/* ── ACESSIBILIDADE: sem animações ── */
+@media (prefers-reduced-motion: reduce) {
+  .natal-neve, .natal-guirlanda::before { animation: none !important; }
+  .natal-neve { display: none; }
+}

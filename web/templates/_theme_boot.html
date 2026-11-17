@@ -1,9 +1,26 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/natal.css') }}?v=20261117">
 <script>
 (function () {
   try {
     if (localStorage.getItem("tema") === "dark") {
       document.documentElement.classList.add("dark");
     }
+  } catch (e) {}
+})();
+</script>
+<script>
+// Boot do tema de Natal: aplica a classe antes da primeira pintura
+// (mesma janela de datas do natal.js: 01/dez a 06/jan, ou manual).
+(function () {
+  function emEpoca(d) {
+    var m = d.getMonth() + 1, dia = d.getDate();
+    return m === 12 || (m === 1 && dia <= 6);
+  }
+  try {
+    var pref = localStorage.getItem("natal");
+    var ligado = emEpoca(new Date()) ? pref !== "0"
+      : (pref === "1" && !(new Date().getMonth() + 1 === 1 && new Date().getDate() > 6));
+    if (ligado) document.documentElement.classList.add("natal");
   } catch (e) {}
 })();
 </script>

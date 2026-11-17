@@ -62,6 +62,9 @@
   <div class="sidebar-foot">
     <div class="who">{{ session.get('user') }}<small>{{ session.get('tipo', 'user') }}</small></div>
     <div class="sidebar-foot-actions">
+      <button id="natalToggle" class="btn btn-ghost btn-sm btn-icon" type="button" aria-pressed="false" title="Ligar tema de Natal" aria-label="Alternar tema de Natal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 6.5 10h3L5 15.5h4.5V21h5v-5.5H20L14.5 10h3L12 3z"/></svg>
+      </button>
       <button id="themeToggle" class="btn btn-ghost btn-sm btn-icon" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
       </button>
@@ -72,3 +75,4 @@
 </aside>
 <script src="{{ url_for('static', filename='js/ilha.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/calendario.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/natal.js') }}" defer></script>
